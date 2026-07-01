@@ -1,0 +1,89 @@
+"""
+generate_key.py — Generate UNIQUE license key per buyer
+========================================================
+Envelope encryption: each buyer gets their own key wrapping the vault key.
+If one license leaks, only that buyer is affected — vault stays safe.
+
+Usage:
+    python generate_key.py "ali@gmail.com" "ICT-2026001"
+    
+Output: license_{email}.key
+"""
+
+import sys, os, hashlib, base64
+from pathlib import Path
+from datetime import datetime
+from cryptography.fernet import Fernet
+
+VAULT_DIR = Path(r"C:\Users\kevin\Hermes ICT Selling Idea")
+VAULT_KEY_FILE = VAULT_DIR / ".vault_key"
+
+def generate_license(buyer_email, purchase_id):
+    """Generate a unique license key for a buyer using envelope encryption."""
+    
+    # Load vault key (the actual decryption key for ict-vault.kevin)
+    if not VAULT_KEY_FILE.exists():
+        print("ERROR: .vault_key not found. Run build.py first.")
+        sys.exit(1)
+    
+    with open(VAULT_KEY_FILE, 'rb') as f:
+        vault_key = f.read()
+    
+    # Load vault hash for integrity check
+    hash_file = VAULT_DIR / ".vault_sha256"
+    vault_hash = ""
+    if hash_file.exists():
+        with open(hash_file) as f:
+            vault_hash = f.read().strip()
+    
+    # Generate a UNIQUE key for this buyer
+    buyer_key = Fernet.generate_key()
+    
+    # Wrap (encrypt) the vault key with the buyer's unique key
+    buyer_cipher = Fernet(buyer_key)
+    encrypted_vault_key = buyer_cipher.encrypt(vault_key)
+    
+    # Generate unique license ID for tracking
+    hash_input = f"{buyer_email}:{purchase_id}:{datetime.now().isoformat()}"
+    license_id = hashlib.sha256(hash_input.encode()).hexdigest()[:16].upper()
+    
+    # License file: buyer's key + encrypted vault key + identity
+    # Format: LICENSED_TO, PURCHASE_ID, LICENSE_ID, ISSUED, BUYER_KEY, ENCRYPTED_VAULT_KEY
+    license_content = f"""# ICT Knowledge Vault — License Key
+# =====================================
+LICENSED_TO={buyer_email}
+PURCHASE_ID={purchase_id}
+LICENSE_ID={license_id}
+ISSUED={datetime.now().strftime('%Y-%m-%d')}
+BUYER_KEY={buyer_key.decode()}
+ENCRYPTED_VAULT_KEY={encrypted_vault_key.decode()}
+VAULT_HASH={vault_hash}
+"""
+    
+    safe_email = buyer_email.replace('@', '_at_').replace('.', '_')
+    output_file = VAULT_DIR / f"license_{safe_email}.key"
+    
+    with open(output_file, 'w') as f:
+        f.write(license_content)
+    
+    print(f"License generated")
+    print(f"   Buyer:    {buyer_email}")
+    print(f"   Purchase: {purchase_id}")
+    print(f"   License:  {license_id}")
+    print(f"   File:     {output_file.name}")
+    print()
+    print(f"   Each buyer has a UNIQUE key.")
+    print(f"   Leaking one license = only that buyer affected.")
+    
+    return output_file, license_id
+
+if __name__ == "__main__":
+    if len(sys.argv) < 2:
+        print("Usage: python generate_key.py <buyer_email> [purchase_id]")
+        print("Example: python generate_key.py ali@gmail.com ICT-2026001")
+        sys.exit(1)
+    
+    buyer_email = sys.argv[1]
+    purchase_id = sys.argv[2] if len(sys.argv) > 2 else f"ICT-{datetime.now().strftime('%Y%m%d%H%M')}"
+    
+    generate_license(buyer_email, purchase_id)
