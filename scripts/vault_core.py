@@ -611,15 +611,25 @@ def open_vault(vault_file=VAULT_FILE, license_file=LICENSE_FILE, on_progress=Non
 
 
 def _safe_extractall(tar, path):
-    """extractall with path-traversal protection (Py<3.12 has no data filter)."""
-    try:
-        tar.extractall(path=path, filter='data')  # Python 3.12+
-        return
-    except TypeError:
-        pass
+    """Extract a tar safely on ANY Python version.
+
+    Validation always runs first (version-independent): reject path traversal,
+    reject symlink/hardlink entries, and only keep regular files/dirs. Then
+    extract just the vetted members, using the 3.12+ data filter as extra
+    defense when the runtime supports it.
+    """
     dest = os.path.abspath(path)
-    for member in tar.getmembers():
-        target = os.path.abspath(os.path.join(path, member.name))
-        if not (target == dest or target.startswith(dest + os.sep)):
+    safe = []
+    for m in tar.getmembers():
+        target = os.path.abspath(os.path.join(path, m.name))
+        if target != dest and not target.startswith(dest + os.sep):
             raise VaultError("Vault archive contains an unsafe path; refusing to extract.")
-    tar.extractall(path=path)
+        if m.issym() or m.islnk():
+            raise VaultError("Vault archive contains a link entry; refusing to extract.")
+        if m.isfile() or m.isdir():
+            safe.append(m)
+        # else: silently skip devices/fifos/etc. — never present in our vaults
+    try:
+        tar.extractall(path=path, members=safe, filter='data')  # Python 3.12+ / backports
+    except TypeError:
+        tar.extractall(path=path, members=safe)  # older Python — already vetted above
