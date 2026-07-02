@@ -17,7 +17,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 import vault_core as vc  # noqa: E402
-from vault_core import VaultSession  # noqa: E402
+from vault_core import open_vault
+from vault_core import sanitize_fts  # noqa: E402
 
 BENCH = Path(__file__).resolve().parent / "benchmark_queries.json"
 
@@ -25,7 +26,7 @@ BENCH = Path(__file__).resolve().parent / "benchmark_queries.json"
 def main():
     spec = json.loads(BENCH.read_text())
     min_results = spec.get("min_results", 1)
-    session = VaultSession().open()
+    
     passed = failed = 0
     try:
         for case in spec["queries"]:
