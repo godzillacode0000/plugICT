@@ -200,6 +200,10 @@ async def call_tool(name, arguments):
                 return [TextContent(type="text",
                         text="No results found. Try different keywords or list_playlists.")]
             out = [f"Search results for: \"{arguments['query']}\"", f"Licensed to: {_licensed_to}", ""]
+            demo = vc.demo_info(_db)
+            if demo:
+                out.insert(1, f"★ DEMO VERSION — searching {demo['count']}/{demo['total']} videos. "
+                              f"Unlock all {demo['total']}: {demo['cta']}")
             for i, r in enumerate(results, 1):
                 out.append(f"{i}. {r['title']}")
                 out.append(f"   Method: {r['method']} | Timestamp: {r['timestamp']} | Playlist: {r['playlist']}")

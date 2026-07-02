@@ -135,6 +135,7 @@ class VaultSession:
         self.chroma_dir = None
         self.licensed_to = "unknown"
         self._collection = None
+        self.demo = None
         self.vault_hash = self._read_vault_hash()
 
     @staticmethod
@@ -160,6 +161,10 @@ class VaultSession:
         else:
             print("Unlocking vault (first load ~30s)...", file=sys.stderr)
             self.db, self.chroma_dir, self.licensed_to = vc.open_vault()
+        self.demo = vc.demo_info(self.db)
+        if self.demo:
+            info(f"[yellow]★ DEMO VERSION — {self.demo['count']}/{self.demo['total']} videos.[/yellow]"
+                 f" Unlock everything: {self.demo['cta']}")
         return self
 
     def _get_collection(self):
@@ -399,6 +404,9 @@ def repl(session, args):
             info(f"[dim]expanded: {q} → {expanded}[/dim]")
         text, shown = render_results(ranked, q, session.licensed_to, args.session, args.explain)
         info(text)
+        if session.demo and shown:
+            info(f"\n[yellow]★ DEMO — searching {session.demo['count']}/{session.demo['total']} videos."
+                 f" Unlock all {session.demo['total']}: {session.demo['cta']}[/yellow]")
         if args.related and shown:
             show_related(session.db, q)
         print()
@@ -464,6 +472,9 @@ def main():
             info(f"   → also searching keywords: {expanded}")
         text, shown = render_results(ranked, query, session.licensed_to, args.session, args.explain)
         info(text)
+        if session.demo and shown:
+            info(f"\n[yellow]★ DEMO — searching {session.demo['count']}/{session.demo['total']} videos."
+                 f" Unlock all {session.demo['total']}: {session.demo['cta']}[/yellow]")
         if args.related and shown:
             show_related(session.db, query)
         if shown:
