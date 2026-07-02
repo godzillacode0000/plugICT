@@ -15,7 +15,8 @@ from pathlib import Path
 from datetime import datetime
 from cryptography.fernet import Fernet
 
-VAULT_DIR = Path(r"C:\Users\kevin\Hermes ICT Selling Idea")
+import os
+VAULT_DIR = Path(os.environ.get("ICT_SOURCE_DIR", str(Path(__file__).parent.parent.resolve())))
 VAULT_KEY_FILE = VAULT_DIR / ".vault_key"
 
 def generate_license(buyer_email, purchase_id, vault_dir=None):
