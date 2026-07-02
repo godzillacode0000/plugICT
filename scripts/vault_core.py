@@ -312,6 +312,26 @@ _FTS_STOP = {
 }
 
 
+def demo_info(db):
+    """Return {'count', 'total', 'cta'} if this is a demo vault, else None.
+
+    Demo vaults are built by store/build_demo.py, which stamps vault_metadata.
+    """
+    try:
+        rows = dict(db.execute(
+            "SELECT key, value FROM vault_metadata WHERE key IN "
+            "('demo','demo_count','demo_total','demo_cta')").fetchall())
+    except sqlite3.Error:
+        return None
+    if rows.get('demo') != '1':
+        return None
+    return {
+        'count': rows.get('demo_count', '?'),
+        'total': rows.get('demo_total', '576'),
+        'cta': rows.get('demo_cta', 'https://YOUR-SITE/#pricing'),
+    }
+
+
 def youtube_link(video_id, start_ts=None):
     """Deep link to the exact moment: https://youtu.be/ID?t=SECONDS.
 
