@@ -105,6 +105,37 @@ the purchase event.
   the payment mix. DuitNow QR at 0% fee is your best-margin option — worth
   featuring for local buyers.
 
+## Wiring the landing page (frontend half)
+
+The landing page (`index.html` / `landing/index.html`) has a payment-method
+modal wired to every **Get Lifetime Access** button. All of its knobs live in
+one `window.PLUGICT` config block at the top of the file — fill in what you
+have; anything left empty degrades gracefully:
+
+| Config field | Where you get it | Empty behaviour |
+|---|---|---|
+| `billplzUrl` | Billplz → create a Payment Form for RM price → copy URL | Method shows "SOON" + email fallback |
+| `stripeUrl` | Stripe → Payment Links → create $23.99 link → copy URL | Method shows "SOON" + email fallback |
+| `duitnowQrImg` | Export your bank's DuitNow QR as an image, commit it, set path | Pane shows instructions without QR |
+| `usdtSol` / `usdtTrc20` | Your wallet addresses | Address rows hidden |
+| `supportEmail` | Where buyers send receipts / tx hashes | — |
+| `priceMyr` | Optional MYR display, e.g. `'RM 105'` | USD-equivalent wording |
+| `saleEndsAt` | A **real** launch-price deadline (ISO 8601) | Countdown hidden — no fake scarcity |
+| `emailFormAction` | Formspree/Buttondown endpoint for launch updates | Falls back to `mailto:` |
+
+Checklist to go fully live:
+
+1. Create the Billplz payment form and Stripe payment link; paste both URLs
+   into the config. Both checkouts collect the buyer's email.
+2. Point each processor's webhook at your deployed
+   `store/webhook_server.py` (`/webhook/billplz`, `/webhook/stripe`) with
+   `WEBHOOK_SECRET` set — from then on those two methods are fully automated:
+   pay → license emailed, no manual step.
+3. DuitNow QR and USDT stay manual by design: buyer emails proof to
+   `supportEmail`, you verify, then
+   `python store/issue_license.py buyer@email ORDER-ID --method duitnow|usdt --email`.
+4. Keep the config's price in sync with the processors if you change it.
+
 ## Security must-dos
 
 - **Never** put `.vault_key` in the buyer zip, the repo, or a public host. It
