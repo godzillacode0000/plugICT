@@ -13,12 +13,11 @@ regressions. Requires chromadb + sentence-transformers installed.
 
 import json
 import sys
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
-import vault_core as vc  # noqa: E402
-from vault_core import open_vault
-from vault_core import sanitize_fts  # noqa: E402
+from vault_core import VaultSession  # noqa: E402
 
 BENCH = Path(__file__).resolve().parent / "benchmark_queries.json"
 
@@ -26,12 +25,21 @@ BENCH = Path(__file__).resolve().parent / "benchmark_queries.json"
 def main():
     spec = json.loads(BENCH.read_text())
     min_results = spec.get("min_results", 1)
-    
+
+    # Decrypt ONCE, then run every query against the resident session — this is
+    # exactly how the MCP server behaves for buyers (no per-query decryption).
+    t0 = time.perf_counter()
+    session = VaultSession().open()
+    print(f"Vault unlocked in {time.perf_counter() - t0:.1f}s (one-time)\n")
+
     passed = failed = 0
+    times = []
     try:
         for case in spec["queries"]:
             q = case["q"]
+            qt = time.perf_counter()
             ranked, _, _ = session.search(q, top_k=5)
+            times.append(time.perf_counter() - qt)
             blob = " ".join((r.get("title", "") + " " + r.get("text", "")) for r in ranked).lower()
             enough = len(ranked) >= min_results
             term_hit = any(t.lower() in blob for t in case.get("expect_terms", []))
@@ -43,7 +51,10 @@ def main():
             print(f"  [{mark}] {q}{note}")
     finally:
         session.close()
+    avg = sum(times) / len(times) if times else 0
     print(f"\n{passed} passed, {failed} failed out of {passed + failed}")
+    print(f"Per-query time (after one-time unlock): avg {avg*1000:.0f} ms, "
+          f"max {max(times)*1000:.0f} ms" if times else "")
     return 1 if failed else 0
 
 
