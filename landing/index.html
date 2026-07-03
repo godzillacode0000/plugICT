@@ -22,6 +22,34 @@
   }
 }
 </script>
+<script>
+/* ═══ SITE CONFIG — the only block you edit when wiring up payments ═══
+   Backend reference: store/README.md (payment methods) and
+   store/webhook_server.py (automated license delivery for billplz/stripe). */
+window.PLUGICT = {
+  priceUsd: '$23.99',
+  priceMyr: '',            // optional MYR shown on DuitNow QR pane, e.g. 'RM 105'
+
+  /* Automated checkout (webhook issues the license, buyer gets email instantly) */
+  billplzUrl: '',          // Billplz payment form URL — FPX + DuitNow, Malaysia
+  stripeUrl: '',           // Stripe Payment Link — international cards
+
+  /* Manual methods (you confirm payment, then run store/issue_license.py) */
+  duitnowQrImg: '',        // path to your DuitNow QR image, e.g. 'landing/assets/duitnow-qr.png'
+  usdtSol: '',             // your USDT address (Solana)
+  usdtTrc20: '',           // your USDT address (TRC20)
+
+  supportEmail: 'hermesian0000@gmail.com',  // where buyers send payment proof / questions
+
+  /* Launch-price countdown. Set a REAL deadline (ISO 8601) or leave empty —
+     an empty value hides the countdown entirely. No fake scarcity. */
+  saleEndsAt: '',          // e.g. '2026-08-01T00:00:00+08:00'
+
+  /* "Email me updates" form endpoint (Formspree/Buttondown/etc.).
+     Empty = falls back to a plain mailto: to supportEmail. */
+  emailFormAction: ''
+};
+</script>
 <style>
   :root{
     --paper:#F4EFE4; --paper-alt:#ECE5D4; --card:#FBF8F0;
@@ -195,6 +223,66 @@
   .price-card .demo-line a{color:var(--terracotta); cursor:pointer; border-bottom:1px solid rgba(188,75,34,.4); text-decoration:none}
   .pay-row{display:flex; gap:8px; justify-content:center; margin-top:20px; flex-wrap:wrap}
   .pay-chip{font:400 11px var(--mono); color:var(--ink-mut); border:1px solid var(--line); border-radius:999px; padding:6px 12px}
+
+  /* ── countdown (hidden unless a real deadline is configured) ── */
+  .countdown{display:none; margin-top:18px; font:500 12px var(--mono); letter-spacing:.1em; color:var(--terracotta)}
+  .countdown.on{display:block}
+
+  /* ── payment modal ──────────────────────────────────────── */
+  .pay-overlay{position:fixed; inset:0; z-index:50; background:rgba(27,24,17,.55); display:none;
+    align-items:center; justify-content:center; padding:20px}
+  .pay-overlay.open{display:flex}
+  .pay-modal{background:var(--card); border:1.5px solid var(--ink); border-radius:18px; max-width:520px; width:100%;
+    max-height:88vh; overflow-y:auto; padding:34px 32px; position:relative}
+  .pay-modal .close{position:absolute; top:16px; right:18px; background:none; border:none; cursor:pointer;
+    font:400 22px var(--serif); color:var(--ink-mut); line-height:1; padding:4px}
+  .pay-modal .close:hover{color:var(--ink)}
+  .pay-modal h3{font:500 26px var(--serif); letter-spacing:-.01em}
+  .pay-modal .price-line{font:400 12.5px var(--mono); color:var(--ink-mut); margin-top:6px}
+  .pay-methods{display:flex; flex-direction:column; gap:10px; margin-top:22px}
+  .pay-method{display:flex; align-items:center; justify-content:space-between; gap:14px; text-align:left;
+    width:100%; background:var(--paper); border:1px solid var(--line); border-radius:12px; padding:16px 18px;
+    cursor:pointer; font-family:var(--sans); transition:border-color .2s, transform .15s}
+  .pay-method:hover{border-color:var(--terracotta); transform:translateY(-1px)}
+  .pay-method .pm-name{font-weight:600; font-size:15px; color:var(--ink)}
+  .pay-method .pm-desc{font-size:12.5px; color:var(--ink-mut); margin-top:2px}
+  .pay-method .pm-tag{font:500 10.5px var(--mono); letter-spacing:.08em; color:var(--terracotta);
+    border:1px solid rgba(188,75,34,.35); border-radius:999px; padding:4px 10px; flex-shrink:0}
+  .pay-method .pm-tag.soon{color:var(--ink-mut); border-color:var(--line)}
+  .pay-pane{display:none; margin-top:22px}
+  .pay-pane.open{display:block}
+  .pay-pane .back{background:none; border:none; cursor:pointer; font:500 12px var(--mono);
+    color:var(--ink-mut); padding:0 0 14px}
+  .pay-pane .back:hover{color:var(--terracotta)}
+  .pay-pane h4{font:500 20px var(--serif)}
+  .pay-pane ol{margin:14px 0 0; padding-left:20px; font-size:14px; line-height:1.7; color:var(--ink-soft)}
+  .pay-pane ol li{margin-bottom:8px}
+  .pay-pane .qr{display:block; width:220px; max-width:100%; margin:16px auto; border:1px solid var(--line); border-radius:12px}
+  .pay-addr{margin-top:12px; background:var(--dark); border-radius:8px; padding:11px 14px;
+    display:flex; justify-content:space-between; align-items:center; gap:10px}
+  .pay-addr span:first-child{font:400 11.5px var(--mono); color:#F4EFE4; word-break:break-all}
+  .pay-note{margin-top:16px; border-left:2px solid var(--terracotta); padding-left:14px; font-size:13px;
+    line-height:1.65; color:var(--ink-soft)}
+  .pay-note a{color:var(--terracotta)}
+
+  /* ── final CTA + email capture ──────────────────────────── */
+  .final-cta{background:var(--dark); color:#F4EFE4}
+  .final-cta h2{color:#F4EFE4}
+  .final-cta h2 em{color:var(--terracotta-bright)}
+  .final-cta .sub{color:rgba(244,239,228,.6)}
+  .final-cta .btn.primary{background:#F4EFE4; color:var(--ink)}
+  .final-cta .fine{font:400 12px var(--mono); letter-spacing:.05em; color:rgba(244,239,228,.45); margin-top:18px}
+  .capture{max-width:440px; margin:44px auto 0; padding-top:34px; border-top:1px solid var(--dark-line)}
+  .capture .cap-lbl{font:500 11.5px var(--mono); letter-spacing:.14em; color:rgba(244,239,228,.5)}
+  .capture form{display:flex; gap:10px; margin-top:14px; flex-wrap:wrap}
+  .capture input{flex:1; min-width:200px; background:rgba(244,239,228,.06); border:1px solid var(--dark-line);
+    border-radius:999px; padding:13px 20px; font:400 14px var(--sans); color:#F4EFE4; outline:none}
+  .capture input::placeholder{color:rgba(244,239,228,.35)}
+  .capture input:focus{border-color:var(--terracotta-bright)}
+  .capture button{background:none; border:1px solid rgba(244,239,228,.25); border-radius:999px; padding:13px 24px;
+    font:500 14px var(--sans); color:#F4EFE4; cursor:pointer; transition:border-color .2s}
+  .capture button:hover{border-color:var(--terracotta-bright); color:var(--terracotta-bright)}
+  .capture .cap-done{display:none; margin-top:14px; font-size:14px; color:var(--terracotta-bright)}
 
   /* ── FAQ ────────────────────────────────────────────────── */
   .faq{max-width:720px; margin:36px 0 0}
@@ -452,6 +540,7 @@
       <div class="was">Regular price <s>$100</s></div>
       <div class="now">$23.99</div>
       <div class="onetime">one-time payment</div>
+      <div class="countdown" id="countdown" role="timer" aria-live="off"></div>
       <!-- TODO: replace href with your Billplz / Stripe checkout link -->
       <a class="btn primary" href="#" data-buy-link>Get Lifetime Access</a>
       <div class="demo-line">or <a href="https://github.com/kevingenautry-lgtm/ICT-Vault/releases/download/v1.0-demo/ict-vault-demo.zip" data-demo-link>try the free demo</a> first — 5 videos, full engine, no license needed</div>
@@ -486,6 +575,27 @@
   </div>
 </section>
 
+<!-- ═══ FINAL CTA ═══ -->
+<section id="get-access" class="final-cta center">
+  <div class="inner">
+    <h2 class="fadeup">Stop scrubbing timelines. <em>Start asking.</em></h2>
+    <p class="sub fadeup" data-delay=".08">576 videos, one license, yours for life. Set up in three minutes.</p>
+    <div class="fadeup" data-delay=".16" style="margin-top:34px">
+      <a class="btn primary" href="#pricing" data-buy-link>Get Lifetime Access — $23.99</a>
+    </div>
+    <div class="fine fadeup" data-delay=".22">ONE-TIME · NO SUBSCRIPTION · NO API FEES</div>
+
+    <div class="capture fadeup" data-delay=".28">
+      <div class="cap-lbl">NOT READY YET? GET LAUNCH UPDATES</div>
+      <form id="capture-form" novalidate>
+        <input type="email" name="email" placeholder="you@example.com" required autocomplete="email" aria-label="Email address">
+        <button type="submit">Keep me posted</button>
+      </form>
+      <div class="cap-done" id="capture-done">✓ Noted — you'll hear from us before the launch price ends.</div>
+    </div>
+  </div>
+</section>
+
 </main>
 
 <footer>
@@ -499,6 +609,70 @@
     </div>
   </div>
 </footer>
+
+<!-- ═══ PAYMENT MODAL ═══ -->
+<div class="pay-overlay" id="pay-overlay" role="dialog" aria-modal="true" aria-labelledby="pay-title">
+  <div class="pay-modal">
+    <button class="close" type="button" aria-label="Close" data-pay-close>×</button>
+
+    <div id="pay-home">
+      <h3 id="pay-title">Get Lifetime Access</h3>
+      <div class="price-line" id="pay-price"></div>
+      <div class="pay-methods">
+        <button class="pay-method" type="button" data-method="billplz">
+          <span><span class="pm-name">FPX / DuitNow</span><br><span class="pm-desc">Malaysian online banking via Billplz — license emailed instantly</span></span>
+          <span class="pm-tag" data-tag="billplz">INSTANT</span>
+        </button>
+        <button class="pay-method" type="button" data-method="stripe">
+          <span><span class="pm-name">Card</span><br><span class="pm-desc">International cards via Stripe — license emailed instantly</span></span>
+          <span class="pm-tag" data-tag="stripe">INSTANT</span>
+        </button>
+        <button class="pay-method" type="button" data-method="duitnow">
+          <span><span class="pm-name">DuitNow QR</span><br><span class="pm-desc">Scan &amp; pay from any Malaysian bank app — 0% fees</span></span>
+          <span class="pm-tag soon">MANUAL</span>
+        </button>
+        <button class="pay-method" type="button" data-method="usdt">
+          <span><span class="pm-name">USDT</span><br><span class="pm-desc">Solana or TRC20 — crypto, international</span></span>
+          <span class="pm-tag soon">MANUAL</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="pay-pane" id="pane-duitnow">
+      <button class="back" type="button" data-pay-back>← all payment methods</button>
+      <h4>Pay with DuitNow QR</h4>
+      <img class="qr" id="duitnow-qr" alt="DuitNow QR code" hidden>
+      <ol>
+        <li>Scan the QR with any Malaysian bank app and pay <b id="duitnow-amt"></b>.</li>
+        <li>Email your payment receipt to <a href="" class="support-mail"></a> from the address you want the license sent to.</li>
+        <li>Your <code style="font-size:.85em">license.key</code> + download link arrive by email — usually within a few hours.</li>
+      </ol>
+      <div class="pay-note">DuitNow QR is verified manually, so delivery isn't instant like FPX/card — but it has zero fees.</div>
+    </div>
+
+    <div class="pay-pane" id="pane-usdt">
+      <button class="back" type="button" data-pay-back>← all payment methods</button>
+      <h4>Pay with USDT</h4>
+      <ol>
+        <li>Send the equivalent of <b class="usd-amt"></b> in USDT to either address:</li>
+      </ol>
+      <div class="pay-addr" id="usdt-sol-row" hidden><span id="usdt-sol"></span><button class="copy-btn" type="button" data-cmd="">copy</button></div>
+      <div class="pay-addr" id="usdt-trc-row" hidden><span id="usdt-trc"></span><button class="copy-btn" type="button" data-cmd="">copy</button></div>
+      <ol start="2">
+        <li>Email the transaction hash to <a href="" class="support-mail"></a> from the address you want the license sent to.</li>
+        <li>Once the tx confirms, your <code style="font-size:.85em">license.key</code> + download link arrive by email.</li>
+      </ol>
+    </div>
+
+    <div class="pay-pane" id="pane-fallback">
+      <button class="back" type="button" data-pay-back>← all payment methods</button>
+      <h4 id="fallback-title">Checkout is being set up</h4>
+      <div class="pay-note">This payment method goes live shortly. In the meantime, email
+        <a href="" class="support-mail"></a> and we'll sort your order out directly — or pick another method.</div>
+    </div>
+
+  </div>
+</div>
 
 <script>
   document.documentElement.classList.add('js');
@@ -532,6 +706,86 @@
       setTimeout(()=>{btn.textContent=prev;},1200);
     });
   });
+
+  /* ── payments: modal, countdown, email capture (config in <head>) ── */
+  (function(){
+    const cfg=window.PLUGICT||{};
+    const overlay=document.getElementById('pay-overlay'); if(!overlay) return;
+    const home=document.getElementById('pay-home');
+    const panes={duitnow:'pane-duitnow',usdt:'pane-usdt',fallback:'pane-fallback'};
+
+    document.getElementById('pay-price').textContent=
+      (cfg.priceUsd||'$23.99')+' one-time'+(cfg.priceMyr?' · '+cfg.priceMyr:'');
+    document.querySelectorAll('.support-mail').forEach(a=>{
+      a.href='mailto:'+(cfg.supportEmail||'');a.textContent=cfg.supportEmail||'us';});
+    document.querySelectorAll('.usd-amt').forEach(e=>e.textContent=cfg.priceUsd||'$23.99');
+    document.getElementById('duitnow-amt').textContent=cfg.priceMyr||('the equivalent of '+(cfg.priceUsd||'$23.99')+' in MYR');
+    if(cfg.duitnowQrImg){const img=document.getElementById('duitnow-qr');img.src=cfg.duitnowQrImg;img.hidden=false;}
+    const solRow=document.getElementById('usdt-sol-row'),trcRow=document.getElementById('usdt-trc-row');
+    if(cfg.usdtSol){solRow.hidden=false;document.getElementById('usdt-sol').textContent=cfg.usdtSol;
+      solRow.querySelector('.copy-btn').dataset.cmd=cfg.usdtSol;}
+    if(cfg.usdtTrc20){trcRow.hidden=false;document.getElementById('usdt-trc').textContent=cfg.usdtTrc20;
+      trcRow.querySelector('.copy-btn').dataset.cmd=cfg.usdtTrc20;}
+    ['billplz','stripe'].forEach(m=>{
+      if(!cfg[m+'Url'])document.querySelector('[data-tag="'+m+'"]').classList.add('soon'),
+        document.querySelector('[data-tag="'+m+'"]').textContent='SOON';});
+
+    let lastFocus=null;
+    const showPane=(id)=>{home.style.display=id?'none':'block';
+      Object.values(panes).forEach(p=>document.getElementById(p).classList.remove('open'));
+      if(id)document.getElementById(id).classList.add('open');};
+    const open=()=>{lastFocus=document.activeElement;showPane(null);
+      overlay.classList.add('open');document.body.style.overflow='hidden';
+      overlay.querySelector('.close').focus();};
+    const close=()=>{overlay.classList.remove('open');document.body.style.overflow='';
+      lastFocus&&lastFocus.focus();};
+
+    document.querySelectorAll('[data-buy-link]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();open();}));
+    overlay.querySelector('[data-pay-close]').addEventListener('click',close);
+    overlay.addEventListener('click',e=>{if(e.target===overlay)close();});
+    addEventListener('keydown',e=>{if(e.key==='Escape'&&overlay.classList.contains('open'))close();});
+    overlay.querySelectorAll('[data-pay-back]').forEach(b=>b.addEventListener('click',()=>showPane(null)));
+
+    overlay.querySelectorAll('.pay-method').forEach(btn=>btn.addEventListener('click',()=>{
+      const m=btn.dataset.method;
+      if(m==='billplz'||m==='stripe'){
+        const url=cfg[m+'Url'];
+        if(url){location.href=url;}
+        else{document.getElementById('fallback-title').textContent=
+          (m==='billplz'?'FPX / DuitNow checkout':'Card checkout')+' is being set up';
+          showPane(panes.fallback);}
+      } else showPane(panes[m]);
+    }));
+
+    /* countdown — renders only for a real, future deadline */
+    const cd=document.getElementById('countdown');
+    const end=cfg.saleEndsAt?Date.parse(cfg.saleEndsAt):NaN;
+    if(cd&&!isNaN(end)&&end>Date.now()){
+      cd.classList.add('on');
+      const tick=()=>{const ms=end-Date.now();
+        if(ms<=0){cd.classList.remove('on');return;}
+        const d=Math.floor(ms/864e5),h=Math.floor(ms%864e5/36e5),mi=Math.floor(ms%36e5/6e4);
+        cd.textContent='LAUNCH PRICE ENDS IN '+(d?d+'D ':'')+h+'H '+mi+'M';
+        setTimeout(tick,3e4);};
+      tick();
+    }
+
+    /* email capture */
+    const form=document.getElementById('capture-form');
+    if(form)form.addEventListener('submit',e=>{
+      e.preventDefault();
+      const email=form.email.value.trim();
+      if(!email||!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){form.email.focus();return;}
+      if(cfg.emailFormAction){
+        fetch(cfg.emailFormAction,{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},
+          body:JSON.stringify({email})}).catch(()=>{});
+        form.style.display='none';document.getElementById('capture-done').style.display='block';
+      }else{
+        location.href='mailto:'+(cfg.supportEmail||'')+'?subject='+encodeURIComponent('PlugICT launch updates')+
+          '&body='+encodeURIComponent('Keep me posted: '+email);
+      }
+    });
+  })();
 
   /* terminal typing demo */
   (function(){
