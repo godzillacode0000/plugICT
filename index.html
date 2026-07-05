@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0D0B08">
-<title>PlugICT — Ten Years of ICT Lessons. One Instant Answer.</title>
+<title>PlugICT — Years of ICT Lessons. One Instant Answer.</title>
 <meta name="description" content="576 ICT videos transcribed, indexed and searchable by your own AI agent via MCP. Verified answers with exact video sources and timestamps. Lifetime license, runs locally.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -17,7 +17,7 @@
   "description": "AI knowledge base of 576 ICT videos — transcribed, indexed, searchable by any MCP-compatible AI agent with exact video sources and timestamps.",
   "offers": {
     "@type": "Offer",
-    "price": "23.99",
+    "price": "18.99",
     "priceCurrency": "USD",
     "availability": "https://schema.org/InStock"
   }
@@ -28,7 +28,7 @@
    Backend reference: store/README.md (payment methods) and
    store/webhook_server.py (automated license delivery for billplz/stripe). */
 window.PLUGICT = {
-  priceUsd: '$23.99',
+  priceUsd: '$18.99',
   priceMyr: '',            // optional MYR shown on DuitNow QR pane, e.g. 'RM 105'
 
   /* Automated checkout (webhook issues the license, buyer gets email instantly) */
@@ -172,7 +172,7 @@ window.PLUGICT = {
 
   /* ── problem story ──────────────────────────────────────── */
   .story{display:grid; grid-template-columns:1fr auto 1fr; gap:34px; align-items:center; margin-top:56px}
-  @media(max-width:900px){ .story{grid-template-columns:1fr} .story .arrow{transform:rotate(90deg); justify-self:center} }
+  @media(max-width:900px){ .story{grid-template-columns:1fr} .story .arrow{justify-self:center} }
   .panel{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:28px; min-height:280px; position:relative}
   .panel-label{position:absolute; top:14px; right:16px; font:500 11px var(--mono); letter-spacing:.1em; text-transform:uppercase; color:var(--ink-mut)}
   .chaos .vid{display:inline-block; font-size:12px; font-weight:500; color:var(--ink-soft);
@@ -180,7 +180,24 @@ window.PLUGICT = {
   .chaos .vid.r1{transform:rotate(-3deg)} .chaos .vid.r2{transform:rotate(2.5deg)} .chaos .vid.r3{transform:rotate(-1.5deg)}
   .chaos .searchbar{margin-top:18px; border:1px solid var(--line); border-radius:10px; padding:12px 16px;
     color:var(--ink-mut); font-size:14px; display:flex; justify-content:space-between; background:rgba(0,0,0,.35)}
-  .story .arrow{font:400 30px var(--serif); color:var(--terracotta)}
+  /* adaptive Before→After connector: a track with a looping light,
+     horizontal on desktop, vertical once the story stacks on mobile —
+     direction is drawn per-axis, never rotated, so it can't point wrong */
+  .story .arrow{display:flex; align-items:center; justify-content:center; gap:7px; color:var(--terracotta)}
+  .flow-track{position:relative; width:60px; height:3px; border-radius:3px; flex-shrink:0;
+    background:linear-gradient(90deg, transparent, rgba(232,98,44,.5) 18%, rgba(232,98,44,.5) 82%, transparent)}
+  .flow-dot{position:absolute; top:50%; left:0; width:9px; height:9px; margin-top:-4.5px; border-radius:50%;
+    background:var(--terracotta-bright); box-shadow:0 0 12px 3px var(--ember-glow); opacity:0;
+    animation:flow-x 2.6s ease-in-out infinite}
+  @keyframes flow-x{0%{left:0%; opacity:0} 10%{opacity:1} 50%{opacity:1} 90%{opacity:1} 100%{left:100%; opacity:0}}
+  .flow-head-v{display:none}
+  @media(max-width:900px){
+    .flow-track{width:3px; height:60px}
+    .flow-dot{top:0; left:50%; margin-left:-4.5px; margin-top:0; animation-name:flow-y}
+    @keyframes flow-y{0%{top:0%; opacity:0} 10%{opacity:1} 50%{opacity:1} 90%{opacity:1} 100%{top:100%; opacity:0}}
+    .flow-head-h{display:none}
+    .flow-head-v{display:block}
+  }
   .answer{background:var(--dark); color:#F4EFE4; border-color:rgba(232,98,44,.3);
     box-shadow:0 0 50px -20px var(--ember-glow)}
   .answer .panel-label{color:rgba(244,239,228,.5)}
@@ -384,13 +401,13 @@ window.PLUGICT = {
   <div class="wrap">
     <div>
       <div class="eyebrow fadeup">The ICT knowledge engine</div>
-      <h1 class="fadeup" data-delay=".08">Ten years of ICT lessons — <em>one instant answer.</em></h1>
+      <h1 class="fadeup" data-delay=".08">Years of ICT lessons — <em>one instant answer.</em></h1>
       <p class="sub fadeup" data-delay=".16">The complete catalogue — 576 videos transcribed, indexed and connected to your AI agent. Every answer verified with the exact video and timestamp.</p>
       <div class="cta fadeup" data-delay=".24">
         <a class="btn primary" href="#pricing" data-buy-link>Get Lifetime Access</a>
         <a class="link-arrow" href="https://github.com/godzillacode0000/plugICT/releases/download/v1.0-demo/ict-vault-demo.zip" data-demo-link>TRY THE FREE DEMO →</a>
       </div>
-      <div class="fine fadeup" data-delay=".3">$23.99 one-time · runs locally · you bring your own AI key</div>
+      <div class="fine fadeup" data-delay=".3">$18.99 one-time · runs locally · you bring your own AI key</div>
     </div>
     <div class="terminal fadeup" data-delay=".2" role="img" aria-label="Terminal demo: searching the ICT Vault">
       <div class="term-head"><i></i><i></i><i></i><span>ict-vault — search</span></div>
@@ -437,7 +454,11 @@ window.PLUGICT = {
         <span class="vid r2">2016 Core Content M4</span>
         <div class="searchbar"><span>where does he explain CISD entry…?</span><span>⌕</span></div>
       </div>
-      <div class="arrow fadeup" aria-hidden="true">→</div>
+      <div class="arrow fadeup" aria-hidden="true">
+        <div class="flow-track"><span class="flow-dot"></span></div>
+        <svg class="flow-head-h" width="9" height="9" viewBox="0 0 10 10"><path d="M0 0L10 5L0 10Z" fill="currentColor"/></svg>
+        <svg class="flow-head-v" width="9" height="9" viewBox="0 0 10 10"><path d="M0 0L10 0L5 10Z" fill="currentColor"/></svg>
+      </div>
       <div class="panel answer fadeup">
         <span class="panel-label">After</span>
         <div class="q">You: How does ICT define CISD?</div>
@@ -523,7 +544,7 @@ window.PLUGICT = {
         <div class="cap-visual cv-license">
           <span class="cv-icon" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M8.5 8.5C5.5 8.5 3.5 10 3.5 12s2 3.5 5 3.5c3.5 0 4.5-7 8-7 3 0 5 1.5 5 3.5s-2 3.5-5 3.5c-3.5 0-4.5-7-8-7z" transform="scale(.86) translate(2 2)"/></svg></span>
           <div class="lbl">LICENSE.KEY</div>
-          <div class="price">$23.99 · one-time</div>
+          <div class="price">$18.99 · one-time</div>
           <div class="note">lifetime access · always works</div>
         </div>
       </div>
@@ -601,15 +622,14 @@ window.PLUGICT = {
     </div>
     <div class="price-card fadeup" data-delay=".1">
       <div class="tag">LIFETIME LICENSE · LAUNCH PRICING</div>
-      <div class="was">Regular price <s>$100</s></div>
-      <div class="now">$23.99</div>
+      <div class="was">Normal price <s>$49.99</s></div>
+      <div class="now">$18.99</div>
       <div class="onetime">one-time payment</div>
       <div class="countdown" id="countdown" role="timer" aria-live="off"></div>
       <!-- TODO: replace href with your Billplz / Stripe checkout link -->
       <a class="btn primary" href="#" data-buy-link>Get Lifetime Access</a>
-      <div class="demo-line">or <a href="https://github.com/godzillacode0000/plugICT/releases/download/v1.0-demo/ict-vault-demo.zip" data-demo-link>try the free demo</a> first — 5 videos, full engine, no license needed</div>
+      <div class="demo-line">or <a href="https://github.com/godzillacode0000/plugICT/releases/download/v1.0-demo/ict-vault-demo.zip" data-demo-link>try the free demo</a> first — vault of 3 videos from the 2022 Mentorship, full engine, no license needed</div>
       <div class="pay-row">
-        <span class="pay-chip">DUITNOW QR</span>
         <span class="pay-chip">FPX</span>
         <span class="pay-chip">CARD</span>
         <span class="pay-chip">USDT</span>
@@ -632,7 +652,7 @@ window.PLUGICT = {
       <details class="fadeup"><summary>What exactly do I download? <span class="chev">+</span></summary>
         <div class="faq-body"><div><p>Three things: an encrypted knowledge vault file, a setup file that handles everything automatically, and your personal <code>license.key</code> (emailed to you). No app, no installer, no bloat. The license is tied to you and traceable, so please don't share it.</p></div></div></details>
       <details class="fadeup"><summary>Do I need to pay for anything else? <span class="chev">+</span></summary>
-        <div class="faq-body"><div><p>The vault is one-time $23.99 with zero ongoing fees. Your AI agent needs its own API key — free options include Google Gemini (1,500 queries/day free), and DeepSeek runs about $2/month. Claude Desktop's free plan works too.</p></div></div></details>
+        <div class="faq-body"><div><p>The vault is one-time $18.99 with zero ongoing fees. Your AI agent needs its own API key — free options include Google Gemini (1,500 queries/day free), and DeepSeek runs about $2/month. Claude Desktop's free plan works too.</p></div></div></details>
       <details class="fadeup"><summary>How can I pay? <span class="chev">+</span></summary>
         <div class="faq-body"><div><p>DuitNow QR and FPX online banking for Malaysia, international cards via Stripe, or USDT (Solana / TRC20) for crypto. However you pay, your license is emailed to you and the product works exactly the same.</p></div></div></details>
       <details class="fadeup"><summary>What are the system requirements? <span class="chev">+</span></summary>
@@ -647,7 +667,7 @@ window.PLUGICT = {
     <h2 class="fadeup">Stop scrubbing timelines. <em>Start asking.</em></h2>
     <p class="sub fadeup" data-delay=".08">576 videos, one license, yours for life. Set up in three minutes.</p>
     <div class="fadeup" data-delay=".16" style="margin-top:34px">
-      <a class="btn primary" href="#pricing" data-buy-link>Get Lifetime Access — $23.99</a>
+      <a class="btn primary" href="#pricing" data-buy-link>Get Lifetime Access — $18.99</a>
     </div>
     <div class="fine fadeup" data-delay=".22">ONE-TIME · NO SUBSCRIPTION · NO ONGOING FEES</div>
 
@@ -781,11 +801,11 @@ window.PLUGICT = {
     const panes={duitnow:'pane-duitnow',usdt:'pane-usdt',fallback:'pane-fallback'};
 
     document.getElementById('pay-price').textContent=
-      (cfg.priceUsd||'$23.99')+' one-time'+(cfg.priceMyr?' · '+cfg.priceMyr:'');
+      (cfg.priceUsd||'$18.99')+' one-time'+(cfg.priceMyr?' · '+cfg.priceMyr:'');
     document.querySelectorAll('.support-mail').forEach(a=>{
       a.href='mailto:'+(cfg.supportEmail||'');a.textContent=cfg.supportEmail||'us';});
-    document.querySelectorAll('.usd-amt').forEach(e=>e.textContent=cfg.priceUsd||'$23.99');
-    document.getElementById('duitnow-amt').textContent=cfg.priceMyr||('the equivalent of '+(cfg.priceUsd||'$23.99')+' in MYR');
+    document.querySelectorAll('.usd-amt').forEach(e=>e.textContent=cfg.priceUsd||'$18.99');
+    document.getElementById('duitnow-amt').textContent=cfg.priceMyr||('the equivalent of '+(cfg.priceUsd||'$18.99')+' in MYR');
     if(cfg.duitnowQrImg){const img=document.getElementById('duitnow-qr');img.src=cfg.duitnowQrImg;img.hidden=false;}
     const solRow=document.getElementById('usdt-sol-row'),trcRow=document.getElementById('usdt-trc-row');
     if(cfg.usdtSol){solRow.hidden=false;document.getElementById('usdt-sol').textContent=cfg.usdtSol;
