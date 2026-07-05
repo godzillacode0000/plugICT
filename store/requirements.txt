@@ -1,0 +1,9 @@
+# Dependencies for the license-delivery webhook (store/webhook_server.py).
+# This is the SELLER-SIDE service you deploy (Render/Fly/a VPS) — it is NOT
+# the buyer's vault app (that has its own requirements shipped by deliver.py).
+#
+# Pinned to majors so a deploy months from now still builds the same way.
+fastapi>=0.110,<1.0
+uvicorn[standard]>=0.29,<1.0
+# Envelope encryption for minting license.key (used via scripts/generate_key.py).
+cryptography>=42,<46
