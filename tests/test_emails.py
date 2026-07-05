@@ -16,9 +16,10 @@ def test_license_email_has_key_details(monkeypatch):
         assert "ABC123" in body
         assert "https://cdn.example/ict-vault.zip" in body
         assert "https://ictvault.example/start" in body
-    assert "ICT Vault" in subject
-    # No leftover template braces
-    assert "{" not in text and "}" not in text
+    assert "PlugICT" in subject
+    # No unfilled f-string placeholders leaked through (e.g. "{c['download']}")
+    assert "{c[" not in text and "{c[" not in html
+    assert "{license" not in text and "YOUR-" not in text
 
 
 def test_payment_instructions_variants(monkeypatch):

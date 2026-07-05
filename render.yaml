@@ -1,0 +1,47 @@
+# Render Blueprint for the PlugICT license-delivery webhook.
+# ---------------------------------------------------------------------------
+# In Render: New +  ->  Blueprint  ->  pick this repo. Render reads this file,
+# creates the service, and prompts for the secrets marked `sync: false` below.
+# Full click-path (Render + Resend + Stripe): store/DEPLOY.md.
+#
+# What this service does: receives the Stripe/Billplz webhook, mints the
+# buyer's license.key, emails it. See store/webhook_server.py.
+services:
+  - type: web
+    name: plugict-webhook
+    runtime: python
+    plan: free
+    buildCommand: pip install -r store/requirements.txt
+    # Render injects $PORT; uvicorn must bind it and 0.0.0.0.
+    startCommand: uvicorn store.webhook_server:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      # ── Secrets you paste in the Render dashboard (never committed) ──
+      - key: WEBHOOK_SECRET        # Stripe signing secret (whsec_...) from the webhook endpoint
+        sync: false
+      - key: SMTP_HOST             # Resend: smtp.resend.com
+        sync: false
+      - key: SMTP_PORT
+        value: "587"
+      - key: SMTP_USER             # Resend: "resend"
+        sync: false
+      - key: SMTP_PASS             # Resend API key (re_...)
+        sync: false
+      - key: SMTP_FROM             # a verified sender, e.g. licenses@yourdomain
+        sync: false
+      # ── Buyer-facing URLs baked into the license email ──
+      - key: ICT_VAULT_DOWNLOAD_URL
+        value: https://github.com/godzillacode0000/plugICT/releases/latest
+      - key: ICT_GETTING_STARTED_URL
+        value: https://godzillacode0000.github.io/plugICT/#setup
+      - key: ICT_SUPPORT_EMAIL
+        sync: false
+      # ── Where .vault_key lives on the server (the master key that mints
+      #    licenses). Upload .vault_key + .vault_sha256 as Render "Secret
+      #    Files" into this dir — do NOT commit them. See store/DEPLOY.md. ──
+      - key: ICT_SOURCE_DIR
+        value: /etc/secrets
+      # Optional: reject Stripe events older than N seconds (replay guard).
+      # Leave unset to disable; idempotency already prevents double-fulfil.
+      - key: STRIPE_SIG_TOLERANCE
+        value: "300"
