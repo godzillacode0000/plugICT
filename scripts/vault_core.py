@@ -391,6 +391,12 @@ class _SentenceTransformerEF:
         )
         return embeddings.tolist() if hasattr(embeddings, "tolist") else embeddings
 
+    def embed_documents(self, input):
+        return self.__call__(input)
+
+    def embed_query(self, input):
+        return self.__call__([input])[0]
+
     def name(self):
         return f"{self.model_name}@{self.revision}"
 
