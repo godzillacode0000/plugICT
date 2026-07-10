@@ -26,6 +26,7 @@ import hashlib
 import tarfile
 import tempfile
 import atexit
+from collections import OrderedDict
 from pathlib import Path
 
 VAULT_DIR = Path(__file__).parent.resolve()
@@ -36,6 +37,9 @@ LICENSE_FILE = Path(os.environ.get("ICT_VAULT_LICENSE", VAULT_DIR / "license.key
 
 TEMP_PREFIX = "ict_vault_"
 _CHUNK = 4 * 1024 * 1024  # 4 MB streaming chunk
+MIN_RERANK_SCORE = -6.0
+MMR_LAMBDA = 0.7
+SEARCH_CACHE_MAX = 100
 
 # Vault format versions understood by this build.
 FORMAT_V1_RAW = 1   # [ver:4][db_size:8][chroma_size:8][db][chroma]
@@ -50,6 +54,10 @@ class VaultError(Exception):
 
 # ── Temp lifecycle ───────────────────────────────────────────────────────────
 _temp_dirs = []
+vault_hash = ""
+_search_cache = OrderedDict()
+_search_cache_hits = 0
+_search_cache_misses = 0
 
 
 def _cleanup_temp(*_args):
@@ -307,6 +315,24 @@ def classify_playlist(name):
     return 'Other / Misc'
 
 
+def get_embedding_function():
+    """Return the best available embedding function for ChromaDB.
+
+    Tries BGE-large first, falls back to MiniLM.
+    """
+    from chromadb.utils import embedding_functions
+    try:
+        from sentence_transformers import SentenceTransformer
+        # Force-load now so build and query paths use the same usable model.
+        SentenceTransformer('BAAI/bge-large-en-v1.5')
+        return embedding_functions.SentenceTransformerEmbeddingFunction(
+            model_name='BAAI/bge-large-en-v1.5',
+            normalize_embeddings=True,
+        )
+    except Exception:
+        return embedding_functions.ONNXMiniLM_L6_V2()
+
+
 # Words that shouldn't constrain a keyword search (recall-oriented FTS).
 _FTS_STOP = {
     "a", "an", "the", "of", "to", "is", "are", "was", "were", "be", "what",
@@ -553,6 +579,7 @@ def open_vault(vault_file=VAULT_FILE, license_file=LICENSE_FILE, on_progress=Non
     Streaming + low memory. Supports format v1 (raw) and v2 (zstd). Verifies
     the vault hash from the license when present.
     """
+    global vault_hash
     if not vault_file.exists():
         raise VaultError(
             "ict-vault.kevin not found next to mcp_server.py.\n"
@@ -611,6 +638,9 @@ def open_vault(vault_file=VAULT_FILE, license_file=LICENSE_FILE, on_progress=Non
     computed = getattr(_decrypt_stream, "last_hash", "")
     if expected_hash and computed and computed != expected_hash:
         raise VaultError("Vault file failed its integrity check (corrupted download). Please re-download ict-vault.kevin.")
+    if computed and computed != vault_hash:
+        clear_search_cache()
+        vault_hash = computed
 
     # 4) Extract ChromaDB tar safely, then drop the tar.
     with tarfile.open(chroma_tar_path) as tar:
@@ -714,6 +744,69 @@ def _normalized_rrf(candidates):
     return {id(c): c.get('rrf_score', 0.0) / best for c in candidates}
 
 
+def clear_search_cache():
+    _search_cache.clear()
+
+
+def _cache_key(query, top_k, playlist=None):
+    return ((query or "").lower(), int(top_k), playlist or '', vault_hash)
+
+
+def get_cached_results(query, top_k, playlist=None):
+    global _search_cache_hits, _search_cache_misses
+    key = _cache_key(query, top_k, playlist)
+    if key in _search_cache:
+        _search_cache_hits += 1
+        _search_cache.move_to_end(key)
+        print(f"(search cache hit: hits={_search_cache_hits} misses={_search_cache_misses})", file=sys.stderr)
+        return [dict(r) for r in _search_cache[key]]
+    _search_cache_misses += 1
+    print(f"(search cache miss: hits={_search_cache_hits} misses={_search_cache_misses})", file=sys.stderr)
+    return None
+
+
+def put_cached_results(query, top_k, playlist, results):
+    key = _cache_key(query, top_k, playlist)
+    _search_cache[key] = [dict(r) for r in results]
+    _search_cache.move_to_end(key)
+    while len(_search_cache) > SEARCH_CACHE_MAX:
+        _search_cache.popitem(last=False)
+
+
+def _word_set(text):
+    return set(re.findall(r"[a-z0-9]+", (text or "").lower()))
+
+
+def _jaccard(a, b):
+    if not a or not b:
+        return 0.0
+    union = a | b
+    return (len(a & b) / len(union)) if union else 0.0
+
+
+def apply_mmr(candidates, top_k, lambda_=MMR_LAMBDA):
+    """Greedy MMR over reranked candidates using Jaccard text similarity."""
+    remaining = list(candidates)
+    selected = []
+    word_sets = {id(c): _word_set(_cand_text(c)) for c in remaining}
+    while remaining and len(selected) < top_k:
+        best = None
+        best_score = None
+        for c in remaining:
+            max_sim = max(
+                (_jaccard(word_sets[id(c)], word_sets[id(s)]) for s in selected),
+                default=0.0,
+            )
+            relevance = c.get('final_score', c.get('rerank_score', 0.0))
+            mmr_score = (lambda_ * relevance) - ((1 - lambda_) * max_sim)
+            if best is None or mmr_score > best_score:
+                best = c
+                best_score = mmr_score
+        selected.append(best)
+        remaining.remove(best)
+    return selected
+
+
 def kg_expand(db, text, max_related=3):
     """Auto knowledge-graph expansion: find KG entities the query mentions and
     return their directly-related entity names, to widen retrieval. Empty on any
@@ -802,7 +895,10 @@ def rerank(query, candidates, top_k):
             c['rerank_score'] = boosted
             c['final_score'] = boosted + (0.1 * rrf_norm[id(c)])
         candidates.sort(key=lambda c: c.get('final_score', c.get('rerank_score', 0.0)), reverse=True)
-        return candidates[:top_k]
+        filtered = [c for c in candidates if c.get('rerank_score', 0.0) >= MIN_RERANK_SCORE]
+        if not filtered:
+            return candidates[:1]
+        return apply_mmr(filtered, top_k)
     except Exception as e:
         print(f"(rerank skipped: {e})", file=sys.stderr)
         candidates.sort(key=lambda c: c.get('rrf_score', 0.0), reverse=True)
@@ -831,7 +927,10 @@ class VaultSession:
             from chromadb.config import Settings
             client = chromadb.PersistentClient(
                 path=self.chroma_dir, settings=Settings(anonymized_telemetry=False))
-            self._collection = client.get_collection('ict_vault')
+            self._collection = client.get_collection(
+                'ict_vault',
+                embedding_function=get_embedding_function(),
+            )
         return self._collection
 
     def _fts_candidates(self, query_text, limit, playlist=None, source='keyword', rrf_source=None):
@@ -860,6 +959,9 @@ class VaultSession:
     def search(self, query, playlist=None, session=None, top_k=5):
         """Return (ranked_candidates, expanded_query, expansion_changed)."""
         expanded, changed = expand_query(query)
+        cached = get_cached_results(query, top_k, playlist)
+        if cached is not None:
+            return cached, expanded, changed
         candidates = []
         pool = top_k + 5
 
@@ -893,6 +995,7 @@ class VaultSession:
         candidates = apply_rrf_scores(candidates)
         candidates = dedup_candidates(candidates)
         ranked = rerank(query, candidates, top_k) if candidates else []
+        put_cached_results(query, top_k, playlist, ranked)
         return ranked, expanded, changed
 
     def close(self):

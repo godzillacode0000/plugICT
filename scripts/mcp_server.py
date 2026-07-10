@@ -93,7 +93,10 @@ def _get_collection():
         from chromadb.config import Settings
         client = chromadb.PersistentClient(
             path=_chroma_dir, settings=Settings(anonymized_telemetry=False))
-        _collection = client.get_collection('ict_vault')
+        _collection = client.get_collection(
+            'ict_vault',
+            embedding_function=vc.get_embedding_function(),
+        )
     return _collection
 
 
@@ -126,6 +129,10 @@ def _fts_candidates(query_text, limit, playlist=None, method='keyword', rrf_sour
 def search_vault(query, top_k=5, playlist=None, kg=True):
     ensure_vault()
     top_k = _clamp_top_k(top_k)
+    if kg:
+        cached = vc.get_cached_results(query, top_k, playlist)
+        if cached is not None:
+            return cached
     results = []
     expanded, _ = vc.expand_query(query)
     # Over-fetch from each source so the reranker has real choice, then trim.
@@ -168,7 +175,10 @@ def search_vault(query, top_k=5, playlist=None, kg=True):
     # 4) Dedup (one chunk never fills two slots), then 5) cross-encoder rerank.
     results = vc.apply_rrf_scores(results)
     results = vc.dedup_candidates(results)
-    return vc.rerank(query, results, top_k)
+    ranked = vc.rerank(query, results, top_k)
+    if kg:
+        vc.put_cached_results(query, top_k, playlist, ranked)
+    return ranked
 
 
 def get_all_playlists():
