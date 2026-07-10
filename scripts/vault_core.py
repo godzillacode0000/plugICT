@@ -392,10 +392,22 @@ class _SentenceTransformerEF:
         return embeddings.tolist() if hasattr(embeddings, "tolist") else embeddings
 
     def embed_documents(self, input):
-        return self.__call__(input)
+        texts = [input] if isinstance(input, str) else list(input)
+        embeddings = self._model.encode(
+            texts,
+            normalize_embeddings=self.normalize_embeddings,
+        )
+        return embeddings.tolist() if hasattr(embeddings, "tolist") else embeddings
 
     def embed_query(self, input):
-        return self.__call__([input])[0]
+        # ChromaDB 0.6+ calls embed_query(input=...) with keyword arg
+        if isinstance(input, dict):
+            input = input.get("input", list(input.values())[0])
+        embedding = self._model.encode(
+            input,
+            normalize_embeddings=self.normalize_embeddings,
+        )
+        return embedding.tolist() if hasattr(embedding, "tolist") else embedding
 
     def name(self):
         return f"{self.model_name}@{self.revision}"
