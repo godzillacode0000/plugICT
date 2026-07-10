@@ -12,11 +12,7 @@ diagnostic here goes to stderr, never stdout.
 """
 
 import sys
-import os
 import sqlite3
-import time
-from collections import deque
-from contextlib import redirect_stdout
 
 import vault_core as vc
 from vault_core import VaultError
@@ -32,28 +28,6 @@ _db = None
 _chroma_dir = None
 _collection = None
 _licensed_to = "unknown"
-_query_timestamps = deque()
-_RATE_LIMIT_PER_MINUTE = 60
-_MAX_TOP_K = 5
-
-
-def _rate_limit_exceeded():
-    now = time.time()
-    cutoff = now - 60
-    while _query_timestamps and _query_timestamps[0] < cutoff:
-        _query_timestamps.popleft()
-    if len(_query_timestamps) >= _RATE_LIMIT_PER_MINUTE:
-        return True
-    _query_timestamps.append(now)
-    return False
-
-
-def _clamp_top_k(value):
-    try:
-        value = int(value or _MAX_TOP_K)
-    except (TypeError, ValueError):
-        value = _MAX_TOP_K
-    return max(1, min(value, _MAX_TOP_K))
 
 
 def ensure_vault():
@@ -78,17 +52,6 @@ def ensure_vault():
 def _get_collection():
     global _collection
     if _collection is None:
-        sqlite_path = os.path.join(_chroma_dir, 'chroma.sqlite3')
-        if os.path.exists(sqlite_path):
-            con = None
-            try:
-                con = sqlite3.connect(sqlite_path)
-                con.execute("PRAGMA schema_version").fetchone()
-            except sqlite3.Error as e:
-                raise RuntimeError(f"invalid ChromaDB store: {e}") from e
-            finally:
-                if con:
-                    con.close()
         import chromadb
         from chromadb.config import Settings
         client = chromadb.PersistentClient(
@@ -98,7 +61,7 @@ def _get_collection():
 
 
 # ── Search functions ─────────────────────────────────────────────────────────
-def _fts_candidates(query_text, limit, playlist=None, method='keyword', rrf_source=None):
+def _fts_candidates(query_text, limit, playlist=None):
     """Keyword (FTS5) candidates for a query string. Returns [] on any error."""
     out = []
     fts_query = vc.sanitize_fts(query_text)
@@ -114,10 +77,9 @@ def _fts_candidates(query_text, limit, playlist=None, method='keyword', rrf_sour
             params.append(playlist)
         sql += " ORDER BY rank LIMIT ?"
         params.append(limit)
-        for i, r in enumerate(_db.execute(sql, params).fetchall()):
-            out.append({'method': method, 'title': r[0], 'video_id': r[1],
-                        'timestamp': r[2], 'playlist': r[3], 'snippet': r[4],
-                        '_rank_in_source': i, '_rrf_source': rrf_source or method})
+        for r in _db.execute(sql, params).fetchall():
+            out.append({'method': 'keyword', 'title': r[0], 'video_id': r[1],
+                        'timestamp': r[2], 'playlist': r[3], 'snippet': r[4]})
     except sqlite3.Error as e:
         log(f"[warn] keyword search unavailable: {e}")
     return out
@@ -125,7 +87,6 @@ def _fts_candidates(query_text, limit, playlist=None, method='keyword', rrf_sour
 
 def search_vault(query, top_k=5, playlist=None, kg=True):
     ensure_vault()
-    top_k = _clamp_top_k(top_k)
     results = []
     expanded, _ = vc.expand_query(query)
     # Over-fetch from each source so the reranker has real choice, then trim.
@@ -136,19 +97,15 @@ def search_vault(query, top_k=5, playlist=None, kg=True):
 
     # 2) ChromaDB semantic on the original query.
     try:
-        if not vc.chroma_store_usable(_chroma_dir):
-            raise RuntimeError("chroma store is not a valid sqlite database")
         where = {'playlist': playlist} if playlist else None
-        with redirect_stdout(sys.stderr):
-            out = _get_collection().query(query_texts=[query], n_results=pool, where=where)
+        out = _get_collection().query(query_texts=[query], n_results=pool, where=where)
         docs = out.get('documents', [[]])[0]
         metas = out.get('metadatas', [[]])[0]
         for i, doc in enumerate(docs):
             m = metas[i] if i < len(metas) else {}
             results.append({'method': 'semantic', 'title': m.get('title', 'Unknown'),
                             'video_id': m.get('video_id', ''), 'timestamp': m.get('start_ts', ''),
-                            'playlist': m.get('playlist', ''), 'snippet': doc[:500],
-                            '_rank_in_source': i, '_rrf_source': 'semantic'})
+                            'playlist': m.get('playlist', ''), 'snippet': doc[:500]})
     except ImportError:
         log("[warn] semantic search unavailable — chromadb not installed")
     except Exception as e:
@@ -161,12 +118,13 @@ def search_vault(query, top_k=5, playlist=None, kg=True):
     if kg:
         try:
             for term in vc.kg_expand(_db, query + ' ' + expanded):
-                results.extend(_fts_candidates(term, 2, playlist, method='kg', rrf_source=f'kg:{term}'))
+                for c in _fts_candidates(term, 2, playlist):
+                    c['method'] = 'kg'
+                    results.append(c)
         except Exception as e:
             log(f"[warn] kg expansion skipped: {e}")
 
     # 4) Dedup (one chunk never fills two slots), then 5) cross-encoder rerank.
-    results = vc.apply_rrf_scores(results)
     results = vc.dedup_candidates(results)
     return vc.rerank(query, results, top_k)
 
@@ -236,8 +194,8 @@ async def list_tools():
                 "properties": {
                     "query": {"type": "string",
                               "description": "What to search for, e.g. 'Fair Value Gap', 'Silver Bullet London'"},
-                    "top_k": {"type": "integer", "default": 5, "minimum": 1, "maximum": 5,
-                              "description": "Number of results (default 5, max 5)"},
+                    "top_k": {"type": "integer", "default": 5, "minimum": 1, "maximum": 10,
+                              "description": "Number of results (default 5, max 10)"},
                     "playlist": {"type": "string",
                                  "description": "Optional playlist filter, e.g. '2022 ICT Mentorship'"},
                 },
@@ -292,10 +250,8 @@ async def call_tool(name, arguments):
             return [TextContent(type="text", text=f"Vault unavailable: {e}")]
 
         if name == "search_ict":
-            if _rate_limit_exceeded():
-                return [TextContent(type="text", text="Rate limit exceeded. Please wait.")]
             results = search_vault(arguments.get('query', ''),
-                                   top_k=_clamp_top_k(arguments.get('top_k', 5)),
+                                   top_k=arguments.get('top_k', 5),
                                    playlist=arguments.get('playlist'))
             if not results:
                 return [TextContent(type="text",
