@@ -170,17 +170,33 @@ client = chromadb.PersistentClient(
     settings=Settings(anonymized_telemetry=False)
 )
 
-# Delete existing if present
+ef = vc.get_embedding_function()
+print(f"  Embedding function: {ef.__class__.__name__}")
+
+
+def _embedding_dim(embedding_function):
+    return len(embedding_function(["dimension check"])[0])
+
+
+def _collection_dim(collection):
+    data = collection.get(limit=1, include=["embeddings"])
+    embeddings = data.get("embeddings")
+    if embeddings is None or len(embeddings) == 0:
+        return None
+    return len(embeddings[0])
+
+
 try:
-    client.delete_collection("ict_vault")
-except:
+    old = client.get_collection("ict_vault")
+    old_dim = _collection_dim(old)
+    new_dim = _embedding_dim(ef)
+    if old_dim is not None and old_dim != new_dim:
+        print(f"  Existing collection dimension {old_dim} != {new_dim}; recreating...")
+        client.delete_collection("ict_vault")
+except Exception:
     pass
 
-# ONNX embedding function
-from chromadb.utils import embedding_functions
-ef = embedding_functions.ONNXMiniLM_L6_V2()
-
-collection = client.create_collection(
+collection = client.get_or_create_collection(
     name="ict_vault",
     embedding_function=ef,
     metadata={"description": "ICT Knowledge Vault — Inner Circle Trader transcripts"}
@@ -189,7 +205,7 @@ collection = client.create_collection(
 # Embed in batches (avoid memory issues)
 for i in range(0, len(all_chunks), BATCH_SIZE):
     batch = all_chunks[i:i+BATCH_SIZE]
-    collection.add(
+    collection.upsert(
         ids=[c['id'] for c in batch],
         documents=[c['text'] for c in batch],
         metadatas=[{
