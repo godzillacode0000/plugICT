@@ -39,6 +39,14 @@ Use the Python inside `.venv` if setup created one:
 - Never fabricate citations.
 - Use `expand_result` only when the returned snippet needs nearby context.
 
+## Facet-aware multi_search (v1.1b)
+
+For complex questions, map the ask into components (definition, times, entry, targets, rules, market),
+then send **different** variants—not four synonyms. After results, check coverage; allow **one**
+targeted follow-up search. Multiple hits from one video are not independent confirmations.
+
+Full rules: see `PLUGICT-AGENT-SKILL.md` (paste/attach in Claude Desktop if not auto-loaded).
+
 ## Claude Desktop
 
 Edit:
