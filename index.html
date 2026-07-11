@@ -269,24 +269,59 @@ window.PLUGICT = {
   .chaos .vid.r1{transform:rotate(-3deg)} .chaos .vid.r2{transform:rotate(2.5deg)} .chaos .vid.r3{transform:rotate(-1.5deg)}
   .chaos .searchbar{margin-top:18px; border:1px solid var(--line); border-radius:10px; padding:12px 16px;
     color:var(--ink-mut); font-size:14px; display:flex; justify-content:space-between; background:rgba(0,0,0,.35)}
-  /* adaptive Before→After connector: a track with a looping light,
-     horizontal on desktop, vertical once the story stacks on mobile —
-     direction is drawn per-axis, never rotated, so it can't point wrong */
-  .story .arrow{display:flex; align-items:center; justify-content:center; gap:7px; color:var(--terracotta)}
-  .flow-track{position:relative; width:60px; height:3px; border-radius:3px; flex-shrink:0;
-    background:linear-gradient(90deg, transparent, rgba(232,98,44,.5) 18%, rgba(232,98,44,.5) 82%, transparent)}
-  .flow-dot{position:absolute; top:50%; left:0; width:9px; height:9px; margin-top:-4.5px; border-radius:50%;
-    background:var(--terracotta-bright); box-shadow:0 0 12px 3px var(--ember-glow); opacity:0;
-    animation:flow-x 2.6s ease-in-out infinite}
-  @keyframes flow-x{0%{left:0%; opacity:0} 10%{opacity:1} 50%{opacity:1} 90%{opacity:1} 100%{left:100%; opacity:0}}
-  .flow-head-v{display:none}
-  @media(max-width:1000px){
-    .flow-track{width:3px; height:60px}
-    .flow-dot{top:0; left:50%; margin-left:-4.5px; margin-top:0; animation-name:flow-y}
-    @keyframes flow-y{0%{top:0%; opacity:0} 10%{opacity:1} 50%{opacity:1} 90%{opacity:1} 100%{top:100%; opacity:0}}
-    .flow-head-h{display:none}
-    .flow-head-v{display:block}
-  }
+  /* adaptive Before→After connector: neuron string of linked nodes.
+       Horizontal on desktop, vertical once the story stacks on mobile. */
+    .story .arrow{display:flex; align-items:center; justify-content:center; color:var(--terracotta)}
+    .neuron-string{display:flex; align-items:center; justify-content:center; gap:0; flex-shrink:0}
+    .neuron-node{position:relative; width:10px; height:10px; border-radius:50%; flex-shrink:0;
+      background:radial-gradient(circle at 35% 30%, #FFB07A, var(--terracotta-bright) 55%, var(--terracotta-deep));
+      box-shadow:0 0 0 2px rgba(232,98,44,.18), 0 0 14px 2px var(--ember-glow);
+      animation:neuron-pulse 2.4s ease-in-out infinite}
+    .neuron-node.n1{animation-delay:0s}
+    .neuron-node.n2{animation-delay:.3s}
+    .neuron-node.n3{animation-delay:.6s}
+    .neuron-node.n4{animation-delay:.9s}
+    .neuron-node.n5{animation-delay:1.2s}
+    .neuron-link{position:relative; flex-shrink:0; overflow:visible;
+      background:linear-gradient(90deg, rgba(232,98,44,.15), rgba(232,98,44,.55), rgba(232,98,44,.15))}
+    /* desktop: horizontal string */
+    .neuron-string{flex-direction:row; width:88px}
+    .neuron-link{width:14px; height:2px}
+    .neuron-link::after{content:""; position:absolute; top:50%; left:0; width:6px; height:6px; margin-top:-3px;
+      border-radius:50%; background:var(--terracotta-bright); box-shadow:0 0 10px 2px var(--ember-glow);
+      opacity:0; animation:synapse-x 2.4s ease-in-out infinite}
+    .neuron-link.l1::after{animation-delay:.15s}
+    .neuron-link.l2::after{animation-delay:.45s}
+    .neuron-link.l3::after{animation-delay:.75s}
+    .neuron-link.l4::after{animation-delay:1.05s}
+    @keyframes synapse-x{
+      0%{left:-2px; opacity:0; transform:scale(.4)}
+      15%{opacity:1; transform:scale(1)}
+      70%{opacity:.9}
+      100%{left:calc(100% - 2px); opacity:0; transform:scale(.4)}
+    }
+    @keyframes neuron-pulse{
+      0%,100%{transform:scale(1); box-shadow:0 0 0 2px rgba(232,98,44,.18), 0 0 10px 1px var(--ember-glow)}
+      50%{transform:scale(1.18); box-shadow:0 0 0 3px rgba(232,98,44,.28), 0 0 18px 4px var(--ember-glow)}
+    }
+    /* mobile: vertical string of neurons */
+    @media(max-width:1000px){
+      .story .arrow{padding:6px 0 10px}
+      .neuron-string{flex-direction:column; width:auto; height:96px}
+      .neuron-link{width:2px; height:14px;
+        background:linear-gradient(180deg, rgba(232,98,44,.15), rgba(232,98,44,.55), rgba(232,98,44,.15))}
+      .neuron-link::after{top:0; left:50%; margin-left:-3px; margin-top:0; animation-name:synapse-y}
+      @keyframes synapse-y{
+        0%{top:-2px; opacity:0; transform:scale(.4)}
+        15%{opacity:1; transform:scale(1)}
+        70%{opacity:.9}
+        100%{top:calc(100% - 2px); opacity:0; transform:scale(.4)}
+      }
+    }
+    @media (prefers-reduced-motion: reduce){
+      .neuron-node{animation:none !important}
+      .neuron-link::after{animation:none !important; opacity:.7; left:50%; top:50%; margin:-3px 0 0 -3px}
+    }
   .answer{background:var(--dark); color:#F4EFE4; border-color:rgba(232,98,44,.3);
     box-shadow:0 0 50px -20px var(--ember-glow)}
   .answer .panel-label{color:rgba(244,239,228,.5)}
@@ -647,10 +682,18 @@ window.PLUGICT = {
         <div class="searchbar"><span>where does he explain CISD entry…?</span><span>⌕</span></div>
       </div>
       <div class="arrow fadeup" aria-hidden="true">
-        <div class="flow-track"><span class="flow-dot"></span></div>
-        <svg class="flow-head-h" width="9" height="9" viewBox="0 0 10 10"><path d="M0 0L10 5L0 10Z" fill="currentColor"/></svg>
-        <svg class="flow-head-v" width="9" height="9" viewBox="0 0 10 10"><path d="M0 0L10 0L5 10Z" fill="currentColor"/></svg>
-      </div>
+              <div class="neuron-string" title="Before → After">
+                <span class="neuron-node n1"></span>
+                <span class="neuron-link l1"></span>
+                <span class="neuron-node n2"></span>
+                <span class="neuron-link l2"></span>
+                <span class="neuron-node n3"></span>
+                <span class="neuron-link l3"></span>
+                <span class="neuron-node n4"></span>
+                <span class="neuron-link l4"></span>
+                <span class="neuron-node n5"></span>
+              </div>
+            </div>
       <div class="panel answer fadeup">
         <span class="panel-label">After</span>
         <div class="q">You: How does ICT define CISD?</div>
