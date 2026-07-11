@@ -145,15 +145,6 @@ window.PLUGICT = {
 
   /* ── hero ───────────────────────────────────────────────── */
   .hero{position:relative; overflow:hidden; background:var(--paper)}
-  .hero-earth{display:none !important}
-  .hero-earth{position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden; background:#1f2228}
-  .hero-earth picture,.hero-earth img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; object-position:72% 40%;
-    filter:saturate(.95) brightness(.95) contrast(1.08); display:block}
-  .hero-earth::after{content:""; position:absolute; inset:0; z-index:1;
-    background:
-      linear-gradient(100deg, rgba(7,6,5,.92) 0%, rgba(7,6,5,.78) 34%, rgba(7,6,5,.35) 58%, rgba(7,6,5,.55) 100%),
-      linear-gradient(180deg, rgba(7,6,5,.25) 0%, rgba(7,6,5,.05) 45%, rgba(7,6,5,.88) 100%),
-      radial-gradient(45% 50% at 70% 40%, rgba(255,255,255,.14), transparent 65%)}
   .hero::before{content:""; position:absolute; top:-30%; right:-15%; width:70%; height:130%; pointer-events:none; z-index:1;
     background:radial-gradient(50% 50% at 60% 40%, rgba(255,255,255,.12), transparent 70%)}
   /* particles stay subtle above earth */
@@ -408,7 +399,7 @@ window.PLUGICT = {
   .kg-edge.support.draw{stroke-dasharray:2.5 3.8; stroke-dashoffset:0; animation:none}
   .kg-edge.active{stroke:rgba(255,255,255,.98); opacity:1; filter:drop-shadow(0 0 7px rgba(255,255,255,.58))}
   .kg-edge.dim{opacity:.18}
-  .kg-pulse{fill:#ffd0a8; opacity:0; filter:drop-shadow(0 0 9px rgba(255,255,255,.9))}
+  .kg-pulse{fill:#ffffff; opacity:0; filter:drop-shadow(0 0 9px rgba(255,255,255,.9))}
   .kg-route-glow{fill:none; stroke:rgba(255,255,255,.16); stroke-width:13; stroke-linecap:round; opacity:0; transition:opacity .35s ease; vector-effect:non-scaling-stroke}
   .kg-route-glow.on{opacity:1}
   .kg-edge-label{font:600 2.6px var(--mono); fill:rgba(255,153,96,.82); letter-spacing:.04em; text-shadow:0 0 5px rgba(255,255,255,.48); pointer-events:none}
@@ -447,7 +438,7 @@ window.PLUGICT = {
   .kg-node:hover, .kg-node:focus-visible{outline:none; border-color:rgba(255,255,255,.82);
     transform:translate(-50%, calc(-50% - 2px)) scale(1); color:#ffffff}
   .kg-node:focus-visible{box-shadow:0 0 0 2px rgba(12,11,8,.9), 0 0 0 4px rgba(255,255,255,.68), inset 0 1px 0 rgba(255,255,255,.12)}
-  .kg-node.active{opacity:1; border-color:var(--terracotta-bright); color:#ffd0a8;
+  .kg-node.active{opacity:1; border-color:var(--terracotta-bright); color:#ffffff;
     box-shadow:0 0 0 1px rgba(255,255,255,.42), 0 0 34px -6px rgba(255,255,255,.74), inset 0 1px 0 rgba(255,255,255,.14)}
   .kg-node.active:focus-visible{box-shadow:0 0 0 2px rgba(12,11,8,.9), 0 0 0 4px rgba(255,255,255,.72), 0 0 28px -6px rgba(255,255,255,.64), inset 0 1px 0 rgba(255,255,255,.14)}
   .kg-node.active .port{background:var(--terracotta-bright); box-shadow:0 0 12px 3px rgba(255,255,255,.65)}
@@ -745,12 +736,6 @@ window.PLUGICT = {
 
 <!-- ═══ HERO ═══ -->
 <header class="hero">
-  <div class="hero-earth" role="presentation" aria-hidden="true">
-    <picture>
-      <source srcset="assets/earth-hero.webp" type="image/webp">
-      <img src="assets/earth-hero.jpg" alt="" width="1920" height="1440" decoding="async" fetchpriority="high">
-    </picture>
-  </div>
   <canvas id="hero-canvas" aria-hidden="true"></canvas>
   <div class="wrap">
     <div>
@@ -830,7 +815,7 @@ window.PLUGICT = {
         <svg class="neuron-svg neuron-h" viewBox="0 0 110 48" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <radialGradient id="somaGrad" cx="35%" cy="30%" r="70%">
-              <stop offset="0%" stop-color="#FFD0A8"/>
+              <stop offset="0%" stop-color="#ffffff"/>
               <stop offset="55%" stop-color="#ffffff"/>
               <stop offset="100%" stop-color="rgba(255,255,255,0.7)"/>
             </radialGradient>
@@ -867,7 +852,7 @@ window.PLUGICT = {
         <svg class="neuron-svg neuron-v" viewBox="0 0 56 120" xmlns="http://www.w3.org/2000/svg">
           <defs>
             <radialGradient id="somaGradV" cx="35%" cy="30%" r="70%">
-              <stop offset="0%" stop-color="#FFD0A8"/>
+              <stop offset="0%" stop-color="#ffffff"/>
               <stop offset="55%" stop-color="#ffffff"/>
               <stop offset="100%" stop-color="rgba(255,255,255,0.7)"/>
             </radialGradient>
@@ -1156,8 +1141,7 @@ window.PLUGICT = {
     </div>
     <div class="price-card fadeup glow" data-delay=".1">
       <div class="tag">LIFETIME LICENSE · LAUNCH PRICING</div>
-      <div class="was">Normal price <s>$49.99</s><span class="save-badge">52% OFF AT LAUNCH</span></div>
-      <div class="now">$1.00</div>
+<div class="now">$1.00</div>
       <div class="onetime">one-time payment</div>
       <div class="countdown" id="countdown" role="timer" aria-live="off"></div>
       <a class="btn primary" href="#pricing" data-buy-link>Get Lifetime Access</a>
