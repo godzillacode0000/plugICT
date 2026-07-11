@@ -269,58 +269,39 @@ window.PLUGICT = {
   .chaos .vid.r1{transform:rotate(-3deg)} .chaos .vid.r2{transform:rotate(2.5deg)} .chaos .vid.r3{transform:rotate(-1.5deg)}
   .chaos .searchbar{margin-top:18px; border:1px solid var(--line); border-radius:10px; padding:12px 16px;
     color:var(--ink-mut); font-size:14px; display:flex; justify-content:space-between; background:rgba(0,0,0,.35)}
-  /* adaptive Before→After connector: neuron string of linked nodes.
-       Horizontal on desktop, vertical once the story stacks on mobile. */
-    .story .arrow{display:flex; align-items:center; justify-content:center; color:var(--terracotta)}
-    .neuron-string{display:flex; align-items:center; justify-content:center; gap:0; flex-shrink:0}
-    .neuron-node{position:relative; width:10px; height:10px; border-radius:50%; flex-shrink:0;
-      background:radial-gradient(circle at 35% 30%, #FFB07A, var(--terracotta-bright) 55%, var(--terracotta-deep));
-      box-shadow:0 0 0 2px rgba(232,98,44,.18), 0 0 14px 2px var(--ember-glow);
-      animation:neuron-pulse 2.4s ease-in-out infinite}
-    .neuron-node.n1{animation-delay:0s}
-    .neuron-node.n2{animation-delay:.3s}
-    .neuron-node.n3{animation-delay:.6s}
-    .neuron-node.n4{animation-delay:.9s}
-    .neuron-node.n5{animation-delay:1.2s}
-    .neuron-link{position:relative; flex-shrink:0; overflow:visible;
-      background:linear-gradient(90deg, rgba(232,98,44,.15), rgba(232,98,44,.55), rgba(232,98,44,.15))}
-    /* desktop: horizontal string */
-    .neuron-string{flex-direction:row; width:88px}
-    .neuron-link{width:14px; height:2px}
-    .neuron-link::after{content:""; position:absolute; top:50%; left:0; width:6px; height:6px; margin-top:-3px;
-      border-radius:50%; background:var(--terracotta-bright); box-shadow:0 0 10px 2px var(--ember-glow);
-      opacity:0; animation:synapse-x 2.4s ease-in-out infinite}
-    .neuron-link.l1::after{animation-delay:.15s}
-    .neuron-link.l2::after{animation-delay:.45s}
-    .neuron-link.l3::after{animation-delay:.75s}
-    .neuron-link.l4::after{animation-delay:1.05s}
-    @keyframes synapse-x{
-      0%{left:-2px; opacity:0; transform:scale(.4)}
-      15%{opacity:1; transform:scale(1)}
-      70%{opacity:.9}
-      100%{left:calc(100% - 2px); opacity:0; transform:scale(.4)}
+  /* Before→After connector = neuron string (SVG).
+         Horizontal on desktop, vertical on mobile. */
+    .story .arrow{display:flex; align-items:center; justify-content:center; color:var(--terracotta); padding:4px 0}
+    .neuron-svg{display:block; overflow:visible; filter:drop-shadow(0 0 8px rgba(232,98,44,.45))}
+    .neuron-svg .axon{fill:none; stroke:rgba(232,98,44,.55); stroke-width:2; stroke-linecap:round}
+    .neuron-svg .axon-glow{fill:none; stroke:rgba(255,138,74,.22); stroke-width:6; stroke-linecap:round}
+    .neuron-svg .twig{fill:none; stroke:rgba(232,98,44,.4); stroke-width:1.4; stroke-linecap:round}
+    .neuron-svg .soma{fill:url(#somaGrad); stroke:rgba(255,176,122,.7); stroke-width:1}
+    .neuron-svg .soma-core{fill:#FF8A4A}
+    .neuron-svg .signal{fill:#FFB07A; filter:url(#softGlow)}
+    .neuron-svg .signal{animation:signal-move 2.2s ease-in-out infinite}
+    .neuron-svg .s2{animation-delay:.35s}
+    .neuron-svg .s3{animation-delay:.7s}
+    .neuron-svg .soma{transform-origin:center; animation:soma-breathe 2.2s ease-in-out infinite}
+    .neuron-svg .soma.s-d1{animation-delay:0s}
+    .neuron-svg .soma.s-d2{animation-delay:.25s}
+    .neuron-svg .soma.s-d3{animation-delay:.5s}
+    .neuron-svg .soma.s-d4{animation-delay:.75s}
+    .neuron-svg .soma.s-d5{animation-delay:1s}
+    @keyframes soma-breathe{
+      0%,100%{transform:scale(1); opacity:.95}
+      50%{transform:scale(1.18); opacity:1}
     }
-    @keyframes neuron-pulse{
-      0%,100%{transform:scale(1); box-shadow:0 0 0 2px rgba(232,98,44,.18), 0 0 10px 1px var(--ember-glow)}
-      50%{transform:scale(1.18); box-shadow:0 0 0 3px rgba(232,98,44,.28), 0 0 18px 4px var(--ember-glow)}
-    }
-    /* mobile: vertical string of neurons */
+    /* desktop: show horizontal SVG, hide vertical */
+    .neuron-h{width:110px; height:48px}
+    .neuron-v{display:none}
     @media(max-width:1000px){
-      .story .arrow{padding:6px 0 10px}
-      .neuron-string{flex-direction:column; width:auto; height:96px}
-      .neuron-link{width:2px; height:14px;
-        background:linear-gradient(180deg, rgba(232,98,44,.15), rgba(232,98,44,.55), rgba(232,98,44,.15))}
-      .neuron-link::after{top:0; left:50%; margin-left:-3px; margin-top:0; animation-name:synapse-y}
-      @keyframes synapse-y{
-        0%{top:-2px; opacity:0; transform:scale(.4)}
-        15%{opacity:1; transform:scale(1)}
-        70%{opacity:.9}
-        100%{top:calc(100% - 2px); opacity:0; transform:scale(.4)}
-      }
+      .story .arrow{padding:10px 0 14px}
+      .neuron-h{display:none}
+      .neuron-v{display:block; width:56px; height:120px}
     }
     @media (prefers-reduced-motion: reduce){
-      .neuron-node{animation:none !important}
-      .neuron-link::after{animation:none !important; opacity:.7; left:50%; top:50%; margin:-3px 0 0 -3px}
+      .neuron-svg .signal, .neuron-svg .soma{animation:none !important}
     }
   .answer{background:var(--dark); color:#F4EFE4; border-color:rgba(232,98,44,.3);
     box-shadow:0 0 50px -20px var(--ember-glow)}
@@ -682,18 +663,91 @@ window.PLUGICT = {
         <div class="searchbar"><span>where does he explain CISD entry…?</span><span>⌕</span></div>
       </div>
       <div class="arrow fadeup" aria-hidden="true">
-              <div class="neuron-string" title="Before → After">
-                <span class="neuron-node n1"></span>
-                <span class="neuron-link l1"></span>
-                <span class="neuron-node n2"></span>
-                <span class="neuron-link l2"></span>
-                <span class="neuron-node n3"></span>
-                <span class="neuron-link l3"></span>
-                <span class="neuron-node n4"></span>
-                <span class="neuron-link l4"></span>
-                <span class="neuron-node n5"></span>
-              </div>
-            </div>
+        <!-- Desktop: horizontal neuron string -->
+        <svg class="neuron-svg neuron-h" viewBox="0 0 110 48" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="somaGrad" cx="35%" cy="30%" r="70%">
+              <stop offset="0%" stop-color="#FFD0A8"/>
+              <stop offset="55%" stop-color="#FF8A4A"/>
+              <stop offset="100%" stop-color="#B9440F"/>
+            </radialGradient>
+            <filter id="softGlow" x="-80%" y="-80%" width="260%" height="260%">
+              <feGaussianBlur stdDeviation="1.6" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <path class="axon-glow" d="M8 24 C 28 24, 32 10, 48 24 S 72 38, 88 24 L 102 24"/>
+          <path class="axon" d="M8 24 C 28 24, 32 10, 48 24 S 72 38, 88 24 L 102 24"/>
+          <path class="twig" d="M28 20 L 22 10"/>
+          <path class="twig" d="M28 28 L 20 36"/>
+          <path class="twig" d="M62 20 L 68 10"/>
+          <path class="twig" d="M70 30 L 78 38"/>
+          <circle class="soma s-d1" cx="10" cy="24" r="5.5"/>
+          <circle class="soma-core" cx="10" cy="24" r="2"/>
+          <circle class="soma s-d2" cx="38" cy="18" r="4.5"/>
+          <circle class="soma-core" cx="38" cy="18" r="1.6"/>
+          <circle class="soma s-d3" cx="58" cy="28" r="5"/>
+          <circle class="soma-core" cx="58" cy="28" r="1.8"/>
+          <circle class="soma s-d4" cx="82" cy="22" r="4.5"/>
+          <circle class="soma-core" cx="82" cy="22" r="1.6"/>
+          <circle class="soma s-d5" cx="102" cy="24" r="5.5"/>
+          <circle class="soma-core" cx="102" cy="24" r="2"/>
+          <circle class="signal" r="2.4">
+            <animateMotion dur="2.2s" repeatCount="indefinite" path="M8 24 C 28 24, 32 10, 48 24 S 72 38, 88 24 L 102 24"/>
+          </circle>
+          <circle class="signal s2" r="1.8">
+            <animateMotion dur="2.2s" begin="0.55s" repeatCount="indefinite" path="M8 24 C 28 24, 32 10, 48 24 S 72 38, 88 24 L 102 24"/>
+          </circle>
+        </svg>
+
+        <!-- Mobile: vertical neuron string -->
+        <svg class="neuron-svg neuron-v" viewBox="0 0 56 120" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="somaGradV" cx="35%" cy="30%" r="70%">
+              <stop offset="0%" stop-color="#FFD0A8"/>
+              <stop offset="55%" stop-color="#FF8A4A"/>
+              <stop offset="100%" stop-color="#B9440F"/>
+            </radialGradient>
+            <filter id="softGlowV" x="-80%" y="-80%" width="260%" height="260%">
+              <feGaussianBlur stdDeviation="1.8" result="b"/>
+              <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+            </filter>
+          </defs>
+          <path class="axon-glow" d="M28 8 C 28 22, 12 30, 28 44 S 44 58, 28 74 S 14 92, 28 112"/>
+          <path class="axon" d="M28 8 C 28 22, 12 30, 28 44 S 44 58, 28 74 S 14 92, 28 112"/>
+          <path class="twig" d="M22 26 L 10 18"/>
+          <path class="twig" d="M34 26 L 46 20"/>
+          <path class="twig" d="M22 50 L 8 54"/>
+          <path class="twig" d="M34 50 L 48 46"/>
+          <path class="twig" d="M22 80 L 12 90"/>
+          <path class="twig" d="M34 78 L 46 86"/>
+          <circle class="soma-core" cx="10" cy="18" r="1.6"/>
+          <circle class="soma-core" cx="46" cy="20" r="1.6"/>
+          <circle class="soma-core" cx="8" cy="54" r="1.5"/>
+          <circle class="soma-core" cx="48" cy="46" r="1.5"/>
+          <circle class="soma-core" cx="12" cy="90" r="1.5"/>
+          <circle class="soma-core" cx="46" cy="86" r="1.5"/>
+          <circle class="soma s-d1" cx="28" cy="10" r="6" style="fill:url(#somaGradV)"/>
+          <circle class="soma-core" cx="28" cy="10" r="2.2"/>
+          <circle class="soma s-d2" cx="20" cy="36" r="5" style="fill:url(#somaGradV)"/>
+          <circle class="soma-core" cx="20" cy="36" r="1.8"/>
+          <circle class="soma s-d3" cx="36" cy="58" r="5.5" style="fill:url(#somaGradV)"/>
+          <circle class="soma-core" cx="36" cy="58" r="2"/>
+          <circle class="soma s-d4" cx="22" cy="84" r="5" style="fill:url(#somaGradV)"/>
+          <circle class="soma-core" cx="22" cy="84" r="1.8"/>
+          <circle class="soma s-d5" cx="28" cy="112" r="6.5" style="fill:url(#somaGradV)"/>
+          <circle class="soma-core" cx="28" cy="112" r="2.3"/>
+          <circle class="signal" r="2.8" style="filter:url(#softGlowV)">
+            <animateMotion dur="2.4s" repeatCount="indefinite" path="M28 8 C 28 22, 12 30, 28 44 S 44 58, 28 74 S 14 92, 28 112"/>
+          </circle>
+          <circle class="signal s2" r="2" style="filter:url(#softGlowV)">
+            <animateMotion dur="2.4s" begin="0.6s" repeatCount="indefinite" path="M28 8 C 28 22, 12 30, 28 44 S 44 58, 28 74 S 14 92, 28 112"/>
+          </circle>
+          <circle class="signal s3" r="1.6" style="filter:url(#softGlowV)">
+            <animateMotion dur="2.4s" begin="1.2s" repeatCount="indefinite" path="M28 8 C 28 22, 12 30, 28 44 S 44 58, 28 74 S 14 92, 28 112"/>
+          </circle>
+        </svg>
+      </div>
       <div class="panel answer fadeup">
         <span class="panel-label">After</span>
         <div class="q">You: How does ICT define CISD?</div>
