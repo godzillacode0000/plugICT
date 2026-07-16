@@ -1,5 +1,5 @@
 {
-  "description": "Retrieval-quality eval set for the ICT Vault. Each query lists lowercase `expect_terms` we expect in a good result's title/text. The harness reports top-1 hit rate, top-5 recall, and per-query timing. Run against the REAL vault (seller-side) before shipping any change to chunking, embeddings, reranking, FTS, or KG expansion. Categories show which query TYPES regress.",
+  "description": "Frozen retrieval-quality telemetry for the ICT Vault. Each query lists lowercase expect_terms; a lexical hit requires at least 66% of those terms within one returned result unless overridden. This is not human claim-quality review. Exact timestamp accuracy is reported only for cases with frozen expected_video_id and expected_timestamp labels.",
   "min_results": 1,
   "queries": [
     {"q": "what is a fair value gap", "category": "definition", "expect_terms": ["fair value", "gap", "imbalance"]},
@@ -21,7 +21,7 @@
     {"q": "difference between fvg and ifvg", "category": "comparison", "expect_terms": ["fair value", "inversion"]},
     {"q": "external vs internal range liquidity", "category": "comparison", "expect_terms": ["range liquidity"]},
     {"q": "premium and discount equilibrium", "category": "comparison", "expect_terms": ["premium", "discount", "equilibrium"]},
-    {"q": "silver bullet timing new york", "category": "timing", "expect_terms": ["silver bullet", "new york"]},
+    {"q": "silver bullet timing new york", "category": "timing", "expect_terms": ["silver bullet", "new york"], "expected_video_id": "tRq1hyGGtl4", "expected_timestamp": "0:00"},
     {"q": "london killzone open", "category": "timing", "expect_terms": ["london"]},
     {"q": "asian range killzone", "category": "timing", "expect_terms": ["asian", "range"]},
     {"q": "new york am session killzone", "category": "timing", "expect_terms": ["new york", "am"]},
@@ -48,6 +48,8 @@
     {"q": "how to set targets and take profit", "category": "howto", "expect_terms": ["target"]},
     {"q": "trading psychology discipline", "category": "howto", "expect_terms": ["discipline"]},
     {"q": "how to backtest a strategy", "category": "howto", "expect_terms": ["backtest"]},
-    {"q": "which timeframe should I use", "category": "howto", "expect_terms": ["timeframe"]}
+    {"q": "which timeframe should I use", "category": "howto", "expect_terms": ["timeframe"]},
+    {"q": "photosynthesis chloroplast thylakoid membrane", "category": "no-answer", "expect_terms": [], "no_answer": true},
+    {"q": "quantum chromodynamics gluon confinement", "category": "no-answer", "expect_terms": [], "no_answer": true}
   ]
 }

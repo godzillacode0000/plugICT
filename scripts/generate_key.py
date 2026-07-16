@@ -10,13 +10,14 @@ Usage:
 Output: license_{email}.key
 """
 
-import sys, os, hashlib, base64
+import sys, hashlib, base64
 from pathlib import Path
 from datetime import datetime
 from cryptography.fernet import Fernet
 
-import os
-VAULT_DIR = Path(os.environ.get("ICT_SOURCE_DIR", str(Path(__file__).parent.parent.resolve())))
+from artifact_paths import resolve_artifact_dir
+
+VAULT_DIR = resolve_artifact_dir(Path(__file__).parent.parent.resolve())
 VAULT_KEY_FILE = VAULT_DIR / ".vault_key"
 
 def generate_license(buyer_email, purchase_id, vault_dir=None, output_dir=None):
@@ -38,13 +39,21 @@ def generate_license(buyer_email, purchase_id, vault_dir=None, output_dir=None):
     with open(vault_key_file, 'rb') as f:
         vault_key = f.read()
 
-    # Load vault hash for integrity check
+    encrypted_vault = vault_dir / "ict-vault.kevin"
     hash_file = vault_dir / ".vault_sha256"
-    vault_hash = ""
-    if hash_file.exists():
-        with open(hash_file) as f:
-            vault_hash = f.read().strip()
-    
+    if not encrypted_vault.is_file():
+        raise FileNotFoundError(f"ict-vault.kevin not found in {vault_dir}. Run build.py first.")
+    if not hash_file.is_file():
+        raise FileNotFoundError(f".vault_sha256 not found in {vault_dir}. Run build.py first.")
+    vault_hash = hash_file.read_text(encoding="utf-8").strip().lower()
+    if len(vault_hash) != 64 or any(c not in "0123456789abcdef" for c in vault_hash):
+        raise ValueError(".vault_sha256 must contain one valid SHA-256 hex digest")
+    actual_hash = hashlib.sha256(encrypted_vault.read_bytes()).hexdigest()
+    if actual_hash != vault_hash:
+        raise ValueError(".vault_sha256 does not match the actual encrypted vault")
+    if len(vault_key) != 32:
+        raise ValueError(f".vault_key must be exactly 32 bytes, got {len(vault_key)}")
+
     # Generate a UNIQUE key for this buyer
     buyer_key = Fernet.generate_key()
     

@@ -5,9 +5,9 @@ Produces a small, watermarked vault with a handful of videos and a bundled
 license (no purchase needed), packaged into a folder ready to zip and host on
 the landing page.
 
-The demo reuses the REAL pipeline (ict_ingest.py -> build.py), so search,
+The demo reuses the REAL V3 pipeline (ict_ingest_v3.py -> build.py), so search,
 glossary, reranker and MCP behave exactly like the paid product — the only
-differences are the video count and the "DEMO — N/576" watermark stamped into
+differences are the video count and the "DEMO — N/581" watermark stamped into
 the vault itself.
 
 Usage (on the seller machine, where the full transcript library lives):
@@ -34,7 +34,7 @@ SCRIPTS = ROOT / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 from generate_key import generate_license  # noqa: E402
 
-FULL_TOTAL = "576"
+FULL_TOTAL = "581"
 
 # Regenerates the AI-agent config on the BUYER's machine (correct local paths),
 # so the demo never ships the seller's build path. Mirrors deliver.py.
@@ -64,8 +64,9 @@ def build_demo(source_dir, count=5, videos=None, cta="https://YOUR-SITE/#pricing
                  "Set ICT_SOURCE_DIR to your full transcript library.")
 
     stage = STORE_DIR / "demo_build" / "_stage"
+    build_dir = STORE_DIR / "demo_build" / "_artifacts"
     out_dir = STORE_DIR / "demo_build" / "ict-vault-demo"
-    for d in (stage, out_dir):
+    for d in (stage, build_dir, out_dir):
         if d.exists():
             shutil.rmtree(d)
         d.mkdir(parents=True)
@@ -90,14 +91,18 @@ def build_demo(source_dir, count=5, videos=None, cta="https://YOUR-SITE/#pricing
     for p in picks:
         print(f"      - {p.name}")
 
-    env = dict(os.environ, ICT_SOURCE_DIR=str(stage), ICT_DEMO="1",
-               ICT_DEMO_TOTAL=FULL_TOTAL, ICT_DEMO_CTA=cta)
+    env = dict(os.environ, ICT_SOURCE_DIR=str(stage), ICT_BUILD_DIR=str(build_dir),
+               ICT_DEMO="1", ICT_DEMO_TOTAL=FULL_TOTAL, ICT_DEMO_CTA=cta,
+               ICT_RESUME="0", ICT_EXPECTED_FINAL_CHUNKS="0")
+    env.pop("ICT_OUTPUT_FILE", None)
+    env.pop("ICT_VAULT_KEY_FILE", None)
 
-    # ── 2) Index (chunks + vectors + KG) then build the encrypted vault ──
-    print("[2/4] Indexing demo transcripts (ict_ingest.py)...")
-    r = subprocess.run([sys.executable, str(SCRIPTS / "ict_ingest.py")], env=env)
+    # ── 2) Index (V3 chunks + vectors + KG + schema-2 completion attestation),
+    # then build the encrypted vault from the same isolated artifact directory.
+    print("[2/4] Indexing demo transcripts (ict_ingest_v3.py)...")
+    r = subprocess.run([sys.executable, str(SCRIPTS / "ict_ingest_v3.py")], env=env)
     if r.returncode != 0:
-        sys.exit("ERROR: ict_ingest.py failed (is chromadb installed?)")
+        sys.exit("ERROR: ict_ingest_v3.py failed (is chromadb installed?)")
 
     print("[3/4] Building encrypted demo vault (build.py)...")
     r = subprocess.run([sys.executable, str(SCRIPTS / "build.py")], env=env)
@@ -105,14 +110,15 @@ def build_demo(source_dir, count=5, videos=None, cta="https://YOUR-SITE/#pricing
         sys.exit("ERROR: build.py failed")
 
     # ── 3) Bundled demo license (same crypto path; not tied to a buyer) ──
-    lic_file, lic_id = generate_license("demo@ict-vault.free", "DEMO", vault_dir=stage)
+    lic_file, lic_id = generate_license("demo@ict-vault.free", "DEMO", vault_dir=build_dir)
 
     # ── 4) Assemble the ready-to-zip folder ──
     print("[4/4] Assembling demo package...")
-    shutil.move(str(stage / "ict-vault.kevin"), out_dir / "ict-vault.kevin")
+    shutil.move(str(build_dir / "ict-vault.kevin"), out_dir / "ict-vault.kevin")
     shutil.move(str(lic_file), out_dir / "license.key")
-    for name in ("mcp_server.py", "vault_core.py"):
+    for name in ("mcp_server.py", "vault_core.py", "metadata_enricher.py"):
         shutil.copy2(SCRIPTS / name, out_dir / name)
+    shutil.copy2(ROOT / "VAULT.md", out_dir / "VAULT.md")
     (out_dir / "requirements.txt").write_text(
         "cryptography~=42.0\nchromadb~=0.5.0\nsentence-transformers~=3.0\n"
         "mcp~=1.2\nzstandard~=0.22\n")
@@ -148,8 +154,9 @@ def build_demo(source_dir, count=5, videos=None, cta="https://YOUR-SITE/#pricing
         "10 playlists, with the same engine and every answer cited to a timestamp.\n\n"
         f"Unlock everything: {cta}\n")
 
-    # Never ship seller secrets: wipe the staging dir (holds .vault_key).
+    # Never ship or retain seller secrets in the disposable demo workspace.
     shutil.rmtree(stage)
+    shutil.rmtree(build_dir)
 
     size = sum(f.stat().st_size for f in out_dir.rglob("*") if f.is_file()) / 1024 / 1024
     print()

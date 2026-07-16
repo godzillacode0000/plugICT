@@ -37,11 +37,12 @@ from email.message import EmailMessage
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from generate_key import generate_license  # noqa: E402
+from artifact_paths import resolve_artifact_dir  # noqa: E402
 import emails  # noqa: E402
 
 STORE_DIR = Path(__file__).resolve().parent
-# Where .vault_key / .vault_sha256 live (seller secrets). Override with env.
-SOURCE_DIR = Path(os.environ.get("ICT_SOURCE_DIR", STORE_DIR.parent / "scripts"))
+# Where .vault_key / .vault_sha256 live (seller secrets). Isolated builds win.
+SOURCE_DIR = resolve_artifact_dir(STORE_DIR.parent / "scripts")
 # Writable scratch space for generated license files. Render Secret Files mount
 # /etc/secrets read-only, so never write per-buyer keys next to .vault_key.
 LICENSE_WORK_DIR = Path(os.environ.get(
