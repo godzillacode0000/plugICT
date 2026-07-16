@@ -78,6 +78,11 @@ def _write_fixture_vault(tmp, compress):
     return vault_path, license_path
 
 
+def test_default_temp_base_uses_platform_temp_directory(monkeypatch):
+    monkeypatch.delenv("ICT_TEMP_DIR", raising=False)
+    assert Path(vc.resolve_temp_base()).resolve() == Path(tempfile.gettempdir()).resolve()
+
+
 # ── Round-trip: v1 (raw) and v2 (zstd) ───────────────────────────────────────
 def test_roundtrip_v1_raw():
     with tempfile.TemporaryDirectory() as tmp:

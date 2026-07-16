@@ -5,9 +5,10 @@ Envelope encryption:
   vault_key → encrypts the vault (zstd-compressed, AES-256-CTR)
   .vault_key → saved for generate_key.py to wrap per-buyer
 
-Key stability (so you can ship new videos to existing buyers):
-  If .vault_key already exists, it is REUSED, so the rebuilt vault opens with
-  every license already issued. Buyers just re-download and keep their key.
+Key stability (so you can ship new videos without changing buyer key material):
+  If .vault_key already exists, it is REUSED. Existing buyer licenses retain a
+  compatible wrapped key, but their VAULT_HASH binding must be refreshed for the
+  new encrypted artifact with refresh_license_hash.py.
   Pass --rotate-key to force a NEW key (security rotation) — this invalidates
   all previously issued licenses, so only do it deliberately.
 
@@ -19,13 +20,21 @@ from pathlib import Path
 from datetime import datetime
 
 import vault_core as vc
+from build_safety import atomic_write_bytes, atomic_write_text, resolve_build_paths
+from build_integrity import (
+    snapshot_source_corpus,
+    verify_completed_ingestion,
+    verify_source_corpus,
+)
 
 ROTATE_KEY = "--rotate-key" in sys.argv
 
-# Source content lives on the seller machine; override with ICT_SOURCE_DIR.
-VAULT_DIR = Path(os.environ.get("ICT_SOURCE_DIR", r"C:\Users\kevin\Hermes ICT Selling Idea"))
-OUTPUT_FILE = VAULT_DIR / "ict-vault.kevin"
-VAULT_KEY_FILE = VAULT_DIR / ".vault_key"  # Keep secret! Used by generate_key.py
+# Source content and build artifacts must live separately unless an explicit
+# legacy override is supplied. Output/key overrides cannot escape BUILD_DIR.
+SOURCE_DIR, BUILD_DIR, OUTPUT_FILE, VAULT_KEY_FILE, VAULT_HASH_FILE = resolve_build_paths(
+    os.environ.get("ICT_SOURCE_DIR", r"C:\Users\kevin\Hermes ICT Selling Idea")
+)
+BUILD_DIR.mkdir(parents=True, exist_ok=True)
 
 print("=" * 60)
 print("ICT Knowledge Vault — Encrypted Build")
@@ -33,8 +42,8 @@ print("=" * 60)
 
 # ── Step 1: Verify ──
 print("\n[1/5] Verifying source files...")
-vectors_dir = VAULT_DIR / "_vectors"
-kg_db_path = VAULT_DIR / "kg.db"
+vectors_dir = BUILD_DIR / "_vectors"
+kg_db_path = BUILD_DIR / "kg.db"
 
 for p in [vectors_dir, kg_db_path]:
     if not p.exists():
@@ -43,13 +52,26 @@ for p in [vectors_dir, kg_db_path]:
     size = sum(f.stat().st_size for f in p.rglob('*') if f.is_file()) if p.is_dir() else p.stat().st_size
     print(f"  OK {p.name} ({size/1024/1024:.0f} MB)")
 
-md_count = len([f for f in VAULT_DIR.glob("*.md") if f.name not in ('index.md','README.md','CATALOG.md')])
-print(f"  OK {md_count} transcripts")
+try:
+    attestation = verify_completed_ingestion(BUILD_DIR)
+except RuntimeError as exc:
+    sys.exit(f"ERROR: completed ingestion verification failed: {exc}")
+print(
+    f"  OK completed ingestion {attestation['build_id']} "
+    f"({attestation['final_chunk_count']:,} exact FTS/Chroma IDs)"
+)
+
+try:
+    transcript_snapshot = verify_source_corpus(
+        SOURCE_DIR, attestation["corpus_manifest_hash"])
+except RuntimeError as exc:
+    sys.exit(f"ERROR: source corpus verification failed: {exc}")
+print(f"  OK {len(transcript_snapshot)} transcripts bound to completed ingestion")
 
 # ── Step 2: Build master SQLite ──
 print("\n[2/5] Building master database...")
 
-master_db = VAULT_DIR / "_build_master.db"
+master_db = BUILD_DIR / "_build_master.db"
 if master_db.exists():
     master_db.unlink()
 
@@ -64,12 +86,10 @@ dst.execute("""
     )
 """)
 
-transcripts = [f for f in sorted(VAULT_DIR.glob("*.md")) 
-               if f.name not in ('index.md','README.md','CATALOG.md')]
+transcripts = [path for path, _ in transcript_snapshot]
 
-for fp in transcripts:
-    with open(fp, encoding='utf-8', errors='replace') as f:
-        content = f.read()
+for fp, content_bytes in transcript_snapshot:
+    content = content_bytes.decode('utf-8', errors='replace')
     
     title = fp.stem; video_id = ''; duration = ''
     if content.startswith('---'):
@@ -105,7 +125,7 @@ if os.environ.get("ICT_DEMO") == "1":
     dst.execute("INSERT OR REPLACE INTO vault_metadata VALUES ('demo', '1')")
     dst.execute("INSERT OR REPLACE INTO vault_metadata VALUES ('demo_count', ?)", (str(len(transcripts)),))
     dst.execute("INSERT OR REPLACE INTO vault_metadata VALUES ('demo_total', ?)",
-                (os.environ.get("ICT_DEMO_TOTAL", "576"),))
+                (os.environ.get("ICT_DEMO_TOTAL", "581"),))
     dst.execute("INSERT OR REPLACE INTO vault_metadata VALUES ('demo_cta', ?)",
                 (os.environ.get("ICT_DEMO_CTA", "https://YOUR-SITE/#pricing"),))
     print(f"  DEMO BUILD — watermarked {len(transcripts)} videos")
@@ -140,8 +160,9 @@ print("\n[4/5] Compressing + encrypting vault...")
 
 raw_size = (len(db_bytes) + len(chroma_bytes)) / 1024 / 1024
 
-# Reuse the existing key (default) so already-issued licenses keep working with
-# the rebuilt vault. --rotate-key forces a fresh key (invalidates old licenses).
+# Reuse the existing key (default) so already-issued buyer licenses retain
+# compatible wrapped-key material. Their VAULT_HASH line still must be refreshed
+# for this new encrypted artifact. --rotate-key forces a fresh key.
 existing_key = None
 if VAULT_KEY_FILE.exists() and not ROTATE_KEY:
     existing_key = VAULT_KEY_FILE.read_bytes()
@@ -149,7 +170,7 @@ if VAULT_KEY_FILE.exists() and not ROTATE_KEY:
         sys.exit(f"ERROR: {VAULT_KEY_FILE} is {len(existing_key)} bytes, expected 32. "
                  "Refusing to build with a malformed key. Restore the real .vault_key "
                  "or run with --rotate-key to mint a new one (invalidates old licenses).")
-    print(f"  Reusing existing .vault_key — existing licenses stay valid.")
+    print("  Reusing existing .vault_key — wrapped buyer keys remain compatible; refresh VAULT_HASH licenses.")
 elif ROTATE_KEY and VAULT_KEY_FILE.exists():
     print("  --rotate-key: minting a NEW key. WARNING: all previously issued "
           "licenses will STOP working with this vault.")
@@ -157,17 +178,24 @@ elif ROTATE_KEY and VAULT_KEY_FILE.exists():
 final_encrypted, vault_key, vault_hash = vc.pack_and_encrypt(
     db_bytes, chroma_bytes, compress=True, level=19, vault_key=existing_key)
 
-with open(OUTPUT_FILE, 'wb') as f:
-    f.write(final_encrypted)
+# Re-read the live source after all expensive packing work and immediately before
+# the first atomic publication write. The master DB was built from the verified
+# byte snapshot above; persistent drift at the publication boundary fails closed.
+try:
+    _, live_corpus_hash = snapshot_source_corpus(SOURCE_DIR)
+except RuntimeError as exc:
+    master_db.unlink(missing_ok=True)
+    sys.exit(f"ERROR: source corpus recheck failed: {exc}")
+if live_corpus_hash != attestation["corpus_manifest_hash"]:
+    master_db.unlink(missing_ok=True)
+    sys.exit("ERROR: source corpus changed during build; refusing publication")
 
-# SHA-256 for integrity verification (matches what the license embeds).
-with open(VAULT_DIR / ".vault_sha256", 'w') as f:
-    f.write(vault_hash)
-
-# Save vault key (raw 32 bytes, for generate_key.py to wrap per-buyer).
-with open(VAULT_KEY_FILE, 'wb') as f:
-    f.write(vault_key)
-os.chmod(VAULT_KEY_FILE, 0o600)
+# Each file is staged, fsynced, and atomically replaced. The hash is replaced
+# last, so any interruption leaves a detectable mismatch and license issuance
+# fails closed instead of silently accepting a mixed artifact/key/hash set.
+atomic_write_bytes(OUTPUT_FILE, final_encrypted)
+atomic_write_bytes(VAULT_KEY_FILE, vault_key, mode=0o600)
+atomic_write_text(VAULT_HASH_FILE, vault_hash)
 
 # Cleanup
 master_db.unlink()

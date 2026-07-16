@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import vault_core as vc
 
 
-def _c(vid, ts, score, title=None, text=None):
+def _c(vid, ts, score, title=None, text=None, matched_query=None):
     return {
         'video_id': vid,
         'start_ts': ts,
@@ -15,7 +15,7 @@ def _c(vid, ts, score, title=None, text=None):
         'final_score': score,
         'rrf_score': score,
         '_full_text': text or f'body {vid} {ts}',
-        'matched_queries': [f'q-{ts}'],
+        'matched_queries': [matched_query or f'q-{ts}'],
         'retrieval_sources': ['keyword'],
     }
 
@@ -38,8 +38,8 @@ def test_caps_same_video_at_two():
 
 def test_merges_adjacent_timestamps():
     cands = [
-        _c('AAA', '10:00', 10, text='first chunk longer ' * 20),
-        _c('AAA', '10:30', 9, text='near'),  # 30s later → merge
+        _c('AAA', '10:00', 10, text='first chunk longer ' * 20, matched_query='same'),
+        _c('AAA', '10:30', 9, text='near', matched_query='same'),  # same facet → merge
         _c('BBB', '5:00', 8),
     ]
     out, meta = vc.diversify_by_video(cands, top_k=5, merge_gap_sec=90)

@@ -16,6 +16,7 @@ import os
 import sqlite3
 import time
 import json
+from pathlib import Path
 from collections import deque
 from contextlib import redirect_stdout
 
@@ -68,7 +69,7 @@ def ensure_vault():
     if _db is None:
         # One-time decrypt (~10–30s). Report progress to stderr so the wait is
         # never mistaken for a hang. stdout stays the JSON-RPC channel.
-        log("⏳ Warming up vault — unlocking 576 videos (one-time, ~10–30s)...")
+        log("⏳ Warming up encrypted vault (one-time, ~10–30s)...")
         milestone = [0]
 
         def progress(done, total):
@@ -138,6 +139,9 @@ def _semantic_candidates(query_text, limit, playlist=None, rrf_source='semantic'
                         'timestamp': m.get('start_ts', ''),
                         'start_ts': m.get('start_ts', ''),
                         'end_ts': m.get('end_ts', ''),
+                        'start_seconds': m.get('start_seconds'),
+                        'end_seconds': m.get('end_seconds'),
+                        'timing_precision': m.get('timing_precision', ''),
                         'chunk_index': m.get('chunk_index'),
                         'playlist': m.get('playlist', ''),
                         'source_file': m.get('source_file', ''),
@@ -156,7 +160,7 @@ def _semantic_candidates(query_text, limit, playlist=None, rrf_source='semantic'
 def search_vault(query, top_k=15, playlist=None, kg=True, rerank=False):
     ensure_vault()
     top_k = _clamp_top_k(top_k)
-    if kg:
+    if kg and not rerank:
         cached = vc.get_cached_results(query, top_k, playlist)
         if cached is not None:
             return cached
@@ -169,28 +173,7 @@ def search_vault(query, top_k=15, playlist=None, kg=True, rerank=False):
     results.extend(_fts_candidates(expanded, pool, playlist, matched_query=query))
 
     # 2) ChromaDB semantic on the original query.
-    try:
-        if not vc.chroma_store_usable(_chroma_dir):
-            raise RuntimeError("chroma store is not a valid sqlite database")
-        where = {'playlist': playlist} if playlist else None
-        with redirect_stdout(sys.stderr):
-            out = _get_collection().query(query_texts=[query], n_results=pool, where=where)
-        ids = out.get('ids', [[]])[0]
-        docs = out.get('documents', [[]])[0]
-        metas = out.get('metadatas', [[]])[0]
-        for i, doc in enumerate(docs):
-            m = metas[i] if i < len(metas) else {}
-            results.append({'method': 'semantic', 'title': m.get('title', 'Unknown'),
-                            'source': 'semantic',
-                            'chunk_id': ids[i] if i < len(ids) else m.get('chunk_id', ''),
-                            'video_id': m.get('video_id', ''), 'timestamp': m.get('start_ts', ''),
-                            'start_ts': m.get('start_ts', ''),
-                            'playlist': m.get('playlist', ''), '_full_text': doc,
-                            '_rank_in_source': i, '_rrf_source': 'semantic'})
-    except ImportError:
-        log("[warn] semantic search unavailable — chromadb not installed")
-    except Exception as e:
-        log(f"[warn] semantic search unavailable: {e}")
+    results.extend(_semantic_candidates(query, pool, playlist, 'semantic', query))
 
     # 3) Knowledge-graph auto-expansion: widen the pool with chunks about
     #    concepts directly related to the query's ICT entities. The reranker
@@ -205,15 +188,19 @@ def search_vault(query, top_k=15, playlist=None, kg=True, rerank=False):
         except Exception as e:
             log(f"[warn] kg expansion skipped: {e}")
 
-    # 4) Dedup (one chunk never fills two slots), then 5) cross-encoder rerank.
+    # 4) Dedup. Optional cross-encoder reranking is controlled by the caller;
+    # otherwise preserve the deterministic RRF order.
     results = vc.apply_rrf_scores(results)
     results = vc.dedup_candidates(results)
     results = [vc.hydrate_candidate_text(_db, r) for r in results]
-    ranked = vc.rerank(query, results, top_k)
-    ranked = vc.finalize_ranked_results(ranked, query=query)
-    # Enrich each result with metadata tags (year, playlist_family, etc.)
+    if rerank:
+        ranked = vc.rerank(query, results, top_k)
+    else:
+        ranked = sorted(results, key=lambda r: r.get('rrf_score', 0.0), reverse=True)[:top_k]
+    # Derive content metadata from the complete cited chunk before snippet truncation.
     ranked = [me.enrich(r) for r in ranked]
-    if kg:
+    ranked = vc.finalize_ranked_results(ranked, query=query)
+    if kg and not rerank:
         vc.put_cached_results(query, top_k, playlist, ranked)
     return ranked
 
@@ -235,13 +222,12 @@ def multi_search_vault(question, queries, top_k=5, playlist=None, snippet_chars=
         research_mode=research_mode)
     for c in ranked:
         c['result_ref'] = _result_refs.issue(c)
+    ranked = [me.enrich(c) for c in ranked]
     results = vc.finalize_ranked_results(
         ranked,
         vc._clamp_chars(snippet_chars, vc.SNIPPET_DEFAULT_CHARS, vc.SNIPPET_MAX_CHARS),
         query=question,
     )
-    # Enrich each result with metadata tags (year, playlist_family, etc.)
-    results = [me.enrich(r) for r in results]
     out = {
         'question': question,
         'queries': variants,
@@ -249,6 +235,7 @@ def multi_search_vault(question, queries, top_k=5, playlist=None, snippet_chars=
         'playlist': playlist,
         'work_units': meta.get('work_units', work_units),
         'results': results,
+        'answerability': vc.assess_answerability(question, results),
         'research_mode': research_mode,
     }
     if meta.get('diversity'):
@@ -277,10 +264,10 @@ def get_all_playlists():
 
 def vault_identity():
     """Return the PlugICT system identity markdown (VAULT.md)."""
-    from pathlib import Path
-    vault_md = Path(__file__).parent.parent / "VAULT.md"
-    if vault_md.exists():
-        return vault_md.read_text(encoding="utf-8")
+    root = Path(__file__).resolve().parent
+    for vault_md in (root / "VAULT.md", root.parent / "VAULT.md", root / "docs" / "VAULT.md"):
+        if vault_md.is_file():
+            return vault_md.read_text(encoding="utf-8")
     return "# PlugICT Vault\n\nSystem identity file (VAULT.md) not found."
 
 
@@ -329,7 +316,7 @@ def _build_bundle_ctx(candidate, context_chars):
     try:
         ctx = vc.expand_result_context(_db, candidate, before=1, after=1)
         texts = []
-        for part in ctx.get('context', []):
+        for part in ctx.get('sections', []):
             if isinstance(part, dict) and part.get('text'):
                 texts.append(part['text'])
             elif isinstance(part, str):
@@ -346,19 +333,19 @@ def build_research_bundle_plan(question, result_refs, max_videos=3, context_char
     max_videos = min(max(max_videos, 1), _MAX_BUNDLE_VIDEOS)
     context_chars_per_chunk = min(max(context_chars_per_chunk, 500), 5000)
 
-    # Resolve refs and group by video
+    # Peek at refs for size planning without consuming their single build use.
     candidates = []
     seen_videos = set()
     for ref in result_refs:
-        cand = _result_refs.resolve(ref)
+        cand = _result_refs.peek(ref)
         if cand is None:
             continue
         vid = cand.get('video_id', '')
         if vid and vid not in seen_videos:
+            if len(seen_videos) >= max_videos:
+                continue
             seen_videos.add(vid)
         candidates.append(cand)
-        if len(seen_videos) > max_videos:
-            break  # cap at max videos
 
     if not candidates:
         raise ValueError("No valid result_refs. Run multi_search_ict first to get result_refs.")
@@ -430,11 +417,11 @@ def build_research_bundle(question, result_refs, max_videos=3, context_chars_per
         if cand is None:
             continue
         vid = cand.get('video_id', '')
-        if vid not in seen_videos:
+        if vid and vid not in seen_videos:
+            if len(seen_videos) >= max_videos:
+                continue
             seen_videos.add(vid)
         candidates.append(cand)
-        if len(seen_videos) > max_videos:
-            break
 
     if not candidates:
         raise ValueError("No valid result_refs. Run multi_search_ict first.")
@@ -444,19 +431,27 @@ def build_research_bundle(question, result_refs, max_videos=3, context_chars_per
     total_chars = 0
     for c in candidates:
         vid = c.get('video_id', 'unknown')
-        # Check per-video cap
         existing = next((v for v in video_groups if v['video_id'] == vid), None)
-        if existing and existing['total_chars'] >= _MAX_CHARS_PER_VIDEO:
+        existing_chars = existing['total_chars'] if existing else 0
+        remaining_video = _MAX_CHARS_PER_VIDEO - existing_chars
+        remaining_global = _MAX_BUNDLE_CHARS - total_chars
+        allowed_chars = min(context_chars_per_chunk, remaining_video, remaining_global)
+        if allowed_chars <= 0:
+            if remaining_global <= 0:
+                break
             continue
 
-        ctx = _build_bundle_ctx(c, context_chars_per_chunk)
+        ctx = _build_bundle_ctx(c, allowed_chars)[:allowed_chars]
+        if not ctx:
+            continue
         section = {
             'title': c.get('title', 'Unknown'),
             'video_id': vid,
             'playlist': c.get('playlist', ''),
             'timestamp': c.get('timestamp', ''),
             'chunk_index': c.get('chunk_index', 0),
-            'source_link': vc.youtube_link(vid, c.get('timestamp')),
+            'source_link': vc.youtube_link(
+                vid, c.get('timestamp') or c.get('start_ts'), c.get('start_seconds')),
             'context': ctx,
             'context_chars': len(ctx),
         }
@@ -477,7 +472,9 @@ def build_research_bundle(question, result_refs, max_videos=3, context_chars_per
         if total_chars >= _MAX_BUNDLE_CHARS:
             break
 
-    total_chars = min(total_chars, _MAX_BUNDLE_CHARS)
+    # Prospective slicing above guarantees the reported count equals emitted text.
+    if total_chars > _MAX_BUNDLE_CHARS:
+        raise RuntimeError("Research bundle exceeded its global character cap")
 
     # Bundle summary
     bundle_evidence = []
@@ -713,7 +710,9 @@ async def call_tool(name, arguments):
             if not results:
                 return [TextContent(type="text",
                         text="No relevant results found. Try different keywords or list_playlists.")]
-            out = [f"Search results for: \"{arguments['query']}\"", f"Licensed to: {_licensed_to}", ""]
+            gate = vc.assess_answerability(arguments.get('query', ''), results)
+            out = [f"Search results for: \"{arguments['query']}\"", f"Licensed to: {_licensed_to}",
+                   f"Evidence gate: {gate['status']} (query-term coverage {gate['query_term_coverage']:.0%}; heuristic)", ""]
             demo = vc.demo_info(_db)
             if demo:
                 out.insert(1, f"★ DEMO VERSION — searching {demo['count']}/{demo['total']} videos. "
@@ -724,7 +723,7 @@ async def call_tool(name, arguments):
                 clean = r['snippet'].replace("<b>", "").replace("</b>", "")
                 out.append(f"   \"{clean}\"")
                 if r.get('video_id'):
-                    out.append(f"   Video: {vc.youtube_link(r['video_id'], r.get('timestamp'))}")
+                    out.append(f"   Video: {vc.youtube_link(r['video_id'], r.get('timestamp'), r.get('start_seconds'))}")
                 out.append("")
             return [TextContent(type="text", text="\n".join(out))]
 
@@ -749,6 +748,8 @@ async def call_tool(name, arguments):
                     "question": payload["question"],
                     "queries": payload["queries"],
                     "results": [],
+                    "answerability": payload.get("answerability", vc.assess_answerability(
+                        payload["question"], [])),
                     "message": "No relevant results found. Try different query variants or list_playlists.",
                 }, indent=2))]
             return [TextContent(type="text", text=json.dumps(payload, indent=2))]

@@ -60,8 +60,7 @@ def test_issue_reads_secrets_but_writes_license_to_work_dir(tmp_path, monkeypatc
     """Render mounts /etc/secrets read-only; issuance must not write there."""
     src = tmp_path / "secrets"
     src.mkdir()
-    (src / ".vault_key").write_bytes(b"k" * 32)
-    (src / ".vault_sha256").write_text("abc123")
+    _seed_source(src)
     issued = tmp_path / "issued"
     work = tmp_path / "work"
     monkeypatch.setattr(issue_license, "SOURCE_DIR", src)

@@ -38,9 +38,16 @@ VAULT_FILE = Path(os.environ.get("ICT_VAULT_FILE", VAULT_DIR / "ict-vault.kevin"
 LICENSE_FILE = Path(os.environ.get("ICT_VAULT_LICENSE", VAULT_DIR / "license.key"))
 
 TEMP_PREFIX = "ict_vault_"
-# Force temp to D: drive to avoid filling system C: (too small / 2GB free)
-_TEMP_BASE = os.environ.get("ICT_TEMP_DIR", r"D:\tmp")
-os.makedirs(_TEMP_BASE, exist_ok=True)
+
+
+def resolve_temp_base():
+    """Return an explicit override or the platform's private temp directory."""
+    base = os.environ.get("ICT_TEMP_DIR") or tempfile.gettempdir()
+    os.makedirs(base, mode=0o700, exist_ok=True)
+    return str(Path(base).resolve())
+
+
+_TEMP_BASE = resolve_temp_base()
 _CHUNK = 4 * 1024 * 1024  # 4 MB streaming chunk
 MIN_RERANK_SCORE = -10.0
 MMR_LAMBDA = 0.7
@@ -52,8 +59,8 @@ CONTEXT_CURRENT_MAX_CHARS = 1000
 CONTEXT_AFTER_MAX_CHARS = 500
 CONTEXT_TOTAL_MAX_CHARS = 2000
 MAX_QUERY_VARIANTS = 4
-MAX_TOP_K = 5
-RESEARCH_MAX_TOP_K = 10
+MAX_TOP_K = 25
+RESEARCH_MAX_TOP_K = 50
 RESULT_REF_TTL_SECONDS = 15 * 60
 RESULT_REF_MAX_USES = 1
 
@@ -81,8 +88,8 @@ DEFAULT_EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
 DEFAULT_EMBEDDING_REVISION = "5c38ec7c405ec4b44b94cc5a9bb96e735b38267a"
 QUERY_INSTRUCTION_VERSION = "bge-v1.5-no-query-instruction-v1"
 VECTOR_SCHEMA_VERSION = "2"
-CHUNK_SCHEMA_VERSION = "2"
-CHUNK_ID_STRATEGY = "sha1-source-file-chunk-index-start-ts-v1"
+CHUNK_SCHEMA_VERSION = "3"
+CHUNK_ID_STRATEGY = "sha1-source-chunker-times-content-v3"
 
 EMBEDDING_SPECS = {
     "BAAI/bge-small-en-v1.5": {
@@ -143,7 +150,7 @@ def sweep_stale_temp():
     atexit does not fire on SIGKILL / power loss, so a crashed session can
     leave a full plaintext copy of the vault on disk. Clean those on startup.
     """
-    root = _TEMP_BASE  # Use D:\tmp instead of C:\Users\...\Temp
+    root = _TEMP_BASE
     for path in glob.glob(os.path.join(root, TEMP_PREFIX + "*")):
         if path in _temp_dirs:
             continue
@@ -634,20 +641,26 @@ def demo_info(db):
         return None
     return {
         'count': rows.get('demo_count', '?'),
-        'total': rows.get('demo_total', '576'),
+        'total': rows.get('demo_total', '581'),
         'cta': rows.get('demo_cta', 'https://YOUR-SITE/#pricing'),
     }
 
 
-def youtube_link(video_id, start_ts=None):
+def youtube_link(video_id, start_ts=None, start_seconds=None):
     """Deep link to the exact moment: https://youtu.be/ID?t=SECONDS.
 
-    start_ts is the transcript timestamp like '12:34' or '1:02:07'. Falls back
-    to a plain video link when the timestamp is missing/zero/unparsable.
+    Prefer canonical stored ``start_seconds`` when supplied. ``start_ts`` is a
+    legacy/display fallback for older rows that do not carry numeric provenance.
     """
     if not video_id:
         return ""
     base = f"https://youtu.be/{video_id}"
+    if start_seconds is not None:
+        try:
+            secs = int(start_seconds)
+        except (TypeError, ValueError):
+            return base
+        return f"{base}?t={secs}" if secs > 0 else base
     if not start_ts:
         return base
     try:
@@ -895,6 +908,21 @@ class _SplitSink:
         self._chroma.close()
 
 
+def _copy_and_hash_encrypted(source, destination):
+    """Copy ciphertext into private temp storage and return its SHA-256."""
+    hasher = hashlib.sha256()
+    with open(source, 'rb') as src, open(destination, 'xb') as dst:
+        while True:
+            chunk = src.read(_CHUNK)
+            if not chunk:
+                break
+            hasher.update(chunk)
+            dst.write(chunk)
+        dst.flush()
+        os.fsync(dst.fileno())
+    return hasher.hexdigest()
+
+
 def _decrypt_stream(vault_key, encrypted_file, on_progress=None):
     """Yield decrypted plaintext chunks while verifying the file hash.
 
@@ -946,10 +974,18 @@ def open_vault(vault_file=VAULT_FILE, license_file=LICENSE_FILE, on_progress=Non
 
     info = load_license(license_file)
     vault_key = _unwrap_vault_key(info)
-    expected_hash = info.get('VAULT_HASH', '')
+    expected_hash = info.get('VAULT_HASH', '').strip().lower()
+    if len(expected_hash) != 64 or any(c not in '0123456789abcdef' for c in expected_hash):
+        raise VaultError("License is missing a valid VAULT_HASH. Request a replacement license.")
 
     tmpdir = tempfile.mkdtemp(prefix=TEMP_PREFIX, dir=_TEMP_BASE)
     _temp_dirs.append(tmpdir)
+    authenticated_vault = os.path.join(tmpdir, 'vault.authenticated')
+    computed_before_decrypt = _copy_and_hash_encrypted(vault_file, authenticated_vault)
+    if not secrets.compare_digest(computed_before_decrypt, expected_hash):
+        shutil.rmtree(tmpdir, ignore_errors=True)
+        _temp_dirs.remove(tmpdir)
+        raise VaultError("Vault file failed its integrity check (corrupted download). Please re-download ict-vault.kevin.")
     db_fd, db_path = tempfile.mkstemp(prefix='sqlite_', suffix='.db', dir=tmpdir)
     os.close(db_fd)
     chroma_dir = os.path.join(tmpdir, 'chroma')
@@ -957,7 +993,7 @@ def open_vault(vault_file=VAULT_FILE, license_file=LICENSE_FILE, on_progress=Non
     chroma_tar_path = os.path.join(tmpdir, 'chroma.tar')
 
     # 1) Read the 20-byte header first (needs only the first plaintext chunk).
-    stream = _decrypt_stream(vault_key, vault_file, on_progress)
+    stream = _decrypt_stream(vault_key, authenticated_vault, on_progress)
     buffer = bytearray()
     try:
         while len(buffer) < HEADER.size:
@@ -992,11 +1028,15 @@ def open_vault(vault_file=VAULT_FILE, license_file=LICENSE_FILE, on_progress=Non
     finally:
         sink.close()
 
-    # 3) Verify integrity (hash covers the whole encrypted file).
+    # 3) Defend against any authenticated-copy corruption during decryption.
     computed = getattr(_decrypt_stream, "last_hash", "")
-    if expected_hash and computed and computed != expected_hash:
+    if not computed or not secrets.compare_digest(computed, expected_hash):
         raise VaultError("Vault file failed its integrity check (corrupted download). Please re-download ict-vault.kevin.")
-    if computed and computed != vault_hash:
+    try:
+        os.remove(authenticated_vault)
+    except OSError:
+        pass
+    if computed != vault_hash:
         clear_search_cache()
         vault_hash = computed
 
@@ -1111,9 +1151,15 @@ def dedup_candidates(cands):
 
 
 def apply_rrf_scores(cands):
-    """Attach Reciprocal Rank Fusion scores before dedup/rerank."""
+    """Attach Reciprocal Rank Fusion scores before dedup/rerank.
+
+    Also retain per-query-variant keyword/semantic scores so multi-search can
+    preserve facet coverage instead of letting broad cross-query hits occupy
+    every result slot. KG expansions remain global support, not facet anchors.
+    """
     ranks = {}
     scores = {}
+    variant_scores = {}
     seen_sources = set()
     for c in cands:
         key = _cand_key(c)
@@ -1124,9 +1170,17 @@ def apply_rrf_scores(cands):
             ranks[source] = rank + 1
         if (key, source) not in seen_sources:
             seen_sources.add((key, source))
-            scores[key] = scores.get(key, 0.0) + (1.0 / (60 + int(rank)))
+            contribution = 1.0 / (60 + int(rank))
+            scores[key] = scores.get(key, 0.0) + contribution
+            match = re.fullmatch(r"(q\d+):(keyword|semantic)", str(source))
+            if match:
+                bucket = variant_scores.setdefault(key, {})
+                variant = match.group(1)
+                bucket[variant] = bucket.get(variant, 0.0) + contribution
     for c in cands:
-        c['rrf_score'] = scores.get(_cand_key(c), 0.0)
+        key = _cand_key(c)
+        c['rrf_score'] = scores.get(key, 0.0)
+        c['_variant_scores'] = dict(variant_scores.get(key, {}))
     return cands
 
 
@@ -1189,6 +1243,10 @@ def fts_candidates(db, query_text, limit, playlist=None, source='keyword', rrf_s
     has_chunk_id = 'chunk_id' in cols
     has_chunk_index = 'chunk_index' in cols
     has_end_ts = 'end_ts' in cols
+    optional_provenance = [
+        name for name in ('timing_precision', 'start_seconds', 'end_seconds')
+        if name in cols
+    ]
     try:
         if has_chunk_id:
             select = ["chunk_id", "title", "video_id", "start_ts", "playlist", "source_file", "content"]
@@ -1196,6 +1254,7 @@ def fts_candidates(db, query_text, limit, playlist=None, source='keyword', rrf_s
                 select.append("chunk_index")
             if has_end_ts:
                 select.append("end_ts")
+            select.extend(optional_provenance)
             sql = ("SELECT " + ", ".join(select) + " "
                    "FROM transcripts_fts WHERE content MATCH ?")
         else:
@@ -1204,6 +1263,7 @@ def fts_candidates(db, query_text, limit, playlist=None, source='keyword', rrf_s
                 select.append("chunk_index")
             if has_end_ts:
                 select.append("end_ts")
+            select.extend(optional_provenance)
             sql = ("SELECT " + ", ".join(select) + " "
                    "FROM transcripts_fts WHERE content MATCH ?")
         params = [fts_query]
@@ -1236,6 +1296,10 @@ def fts_candidates(db, query_text, limit, playlist=None, source='keyword', rrf_s
                 idx += 1
             if has_end_ts:
                 item['end_ts'] = r[idx]
+                idx += 1
+            for name in optional_provenance:
+                item[name] = r[idx]
+                idx += 1
             out.append(item)
     except sqlite3.Error as e:
         print(f"(keyword search unavailable: {e})", file=sys.stderr)
@@ -1245,7 +1309,8 @@ def fts_candidates(db, query_text, limit, playlist=None, source='keyword', rrf_s
 def _chunk_select_columns(db):
     cols = _fts_columns(db)
     wanted = ['chunk_id', 'title', 'video_id', 'playlist', 'start_ts',
-              'end_ts', 'chunk_index', 'source_file', 'content']
+              'end_ts', 'chunk_index', 'source_file', 'timing_precision',
+              'start_seconds', 'end_seconds', 'content']
     return [c for c in wanted if c in cols]
 
 
@@ -1292,7 +1357,8 @@ def hydrate_candidate_text(db, candidate):
         return candidate
     out = dict(candidate)
     for key in ('chunk_id', 'title', 'video_id', 'playlist', 'start_ts',
-                'end_ts', 'chunk_index', 'source_file'):
+                'end_ts', 'chunk_index', 'source_file', 'timing_precision',
+                'start_seconds', 'end_seconds'):
         if row.get(key) not in (None, ''):
             out[key] = row[key]
     out['timestamp'] = out.get('start_ts') or out.get('timestamp') or ''
@@ -1470,22 +1536,38 @@ def warm_reranker():
 
 
 def rerank(query, candidates, top_k):
-    """RRF-only rerank. Cross-encoder disabled — buyer's LLM filters relevance.
-    Sorts candidates by fused RRF score (FTS + semantic + KG signals)."""
+    """Use an explicitly loaded cross-encoder, otherwise deterministic RRF.
+
+    Production keeps the cross-encoder disabled for buyer resource usage. Tests
+    and opt-in callers may inject one; that path remains functional rather than
+    silently ignoring the caller.
+    """
     global _reranker
-    if _reranker is not None:
-        # Dead code path — warm_reranker always returns False now.
-        # Kept to avoid breaking imports for any external callers.
-        pass
+    if len(candidates) <= 1 and _reranker is None:
+        return candidates[:top_k]
     rrf_norm = _normalized_rrf(candidates)
+    if _reranker is not None:
+        try:
+            scores = _reranker.predict([(query, _cand_text(c)[:1500]) for c in candidates])
+            for c, score in zip(candidates, scores):
+                boosted = float(score) + (0.5 if c.get('dual_hit') else 0.0)
+                c['rerank_score'] = boosted
+                c['final_score'] = boosted + (0.1 * rrf_norm.get(id(c), 0.0))
+            candidates.sort(
+                key=lambda c: c.get('final_score', c.get('rerank_score', 0.0)),
+                reverse=True,
+            )
+            filtered = [c for c in candidates
+                        if c.get('rerank_score', 0.0) >= MIN_RERANK_SCORE]
+            return apply_mmr(filtered, top_k) if filtered else []
+        except Exception as exc:
+            print(f"(rerank skipped: {exc})", file=sys.stderr)
+
     for c in candidates:
         c['rerank_score'] = rrf_norm.get(id(c), 0.0)
         c['final_score'] = c['rerank_score']
     candidates.sort(key=lambda c: c.get('final_score', 0.0), reverse=True)
-    filtered = [c for c in candidates if c.get('final_score', 0.0) >= MIN_RERANK_SCORE]
-    if not filtered:
-        return []
-    return filtered[:top_k]
+    return candidates[:top_k]
 
 
 def _clamp_chars(value, default, hard_cap):
@@ -1573,7 +1655,7 @@ def _video_bucket_key(c):
 
 
 def _merge_two_candidates(a, b):
-    """Keep higher-score chunk; union metadata; prefer longer text for expand."""
+    """Keep one complete cited chunk; union only retrieval/ranking metadata."""
     if _cand_score(b) > _cand_score(a):
         keep, drop = dict(b), a
     else:
@@ -1595,16 +1677,29 @@ def _merge_two_candidates(a, b):
                 float(drop.get('rerank_score') or -1e9))
         except (TypeError, ValueError):
             pass
-    if len(_cand_text(drop)) > len(_cand_text(keep)):
-        for field in ('_full_text', 'text', 'snippet'):
-            if drop.get(field):
-                keep[field] = drop[field]
+    if keep.get('_variant_priority') is not None or drop.get('_variant_priority') is not None:
+        keep['_variant_priority'] = max(
+            int(keep.get('_variant_priority') or 0),
+            int(drop.get('_variant_priority') or 0),
+        )
     keep['_merged_from'] = (keep.get('_merged_from') or 1) + (drop.get('_merged_from') or 1)
     return keep
 
 
+def _merge_query_signature(candidate):
+    return tuple(sorted({
+        str(query).strip().lower()
+        for query in (candidate.get('matched_queries') or [])
+        if str(query).strip()
+    }))
+
+
 def _merge_adjacent_same_video(cands, merge_gap_sec=MERGE_GAP_SEC):
-    """Within each video, merge chunks whose start times are within merge_gap_sec."""
+    """Merge nearby chunks only when they support the same query evidence.
+
+    Distinct multi-query facets must keep their own chunk text, ID, and timestamp;
+    collapsing them can erase a required facet even though provenance stays valid.
+    """
     if not cands:
         return [], 0
     by_vid = {}
@@ -1630,7 +1725,8 @@ def _merge_adjacent_same_video(cands, merge_gap_sec=MERGE_GAP_SEC):
                 continue
             prev = clusters[-1]
             pts = _cand_ts_seconds(prev)
-            if pts is not None and abs(ts - pts) <= merge_gap_sec:
+            same_evidence = _merge_query_signature(prev) == _merge_query_signature(c)
+            if pts is not None and abs(ts - pts) <= merge_gap_sec and same_evidence:
                 clusters[-1] = _merge_two_candidates(prev, c)
                 merges += 1
             else:
@@ -1658,11 +1754,15 @@ def diversify_by_video(candidates, top_k=5,
         }
 
     pool, merges = _merge_adjacent_same_video(candidates, merge_gap_sec=merge_gap_sec)
-    pool = sorted(pool, key=_cand_score, reverse=True)
+    pool = sorted(
+        pool,
+        key=lambda c: (int(c.get('_variant_priority') or 0), _cand_score(c)),
+        reverse=True,
+    )
 
     selected = []
     per_video = {}
-    last_ts_for_video = {}
+    last_candidate_for_video = {}
 
     for c in pool:
         if len(selected) >= top_k:
@@ -1673,17 +1773,17 @@ def diversify_by_video(candidates, top_k=5,
             continue
         if count >= 1 and vkey[0] == 'video':
             ts = _cand_ts_seconds(c)
-            prev_ts = last_ts_for_video.get(vkey)
+            previous = last_candidate_for_video.get(vkey)
+            prev_ts = _cand_ts_seconds(previous) if previous else None
             if ts is not None and prev_ts is not None:
-                if abs(ts - prev_ts) < distinct_gap_sec:
+                same_evidence = _merge_query_signature(previous) == _merge_query_signature(c)
+                if abs(ts - prev_ts) < distinct_gap_sec and same_evidence:
                     continue
             elif ts is None:
                 continue
         selected.append(c)
         per_video[vkey] = count + 1
-        ts = _cand_ts_seconds(c)
-        if ts is not None:
-            last_ts_for_video[vkey] = ts
+        last_candidate_for_video[vkey] = c
 
     if len(selected) < top_k:
         selected_ids = {id(c) for c in selected}
@@ -1711,32 +1811,131 @@ def diversify_by_video(candidates, top_k=5,
     return selected, meta
 
 
+_ANSWERABILITY_STOPWORDS = {
+    'a', 'an', 'and', 'are', 'as', 'at', 'be', 'between', 'do', 'does', 'for',
+    'from', 'how', 'i', 'in', 'is', 'it', 'of', 'on', 'or', 'the', 'to', 'vs',
+    'what', 'when', 'where', 'which', 'who', 'why', 'with', 'you', 'your',
+}
+
+
+def assess_answerability(question, results):
+    """Return a conservative, machine-readable retrieval evidence gate.
+
+    This measures whether retrieved snippets cover the meaningful query terms. It
+    does not claim factual truth and cannot infer conflicts unless retrieval or a
+    later evidence-review stage explicitly marks them.
+    """
+    rows = list(results or [])
+    unique_videos = len({r.get('video_id') for r in rows if r.get('video_id')})
+    if any(r.get('evidence_conflict') or r.get('evidence_status') == 'conflicting'
+           for r in rows):
+        return {
+            'status': 'conflicting', 'query_term_coverage': 0.0,
+            'evidence_count': len(rows), 'unique_videos': unique_videos,
+            'basis': 'explicit_conflict_marker', 'claim_support': False,
+            'heuristic': True,
+        }
+    if not rows:
+        return {
+            'status': 'no_retrieved_evidence', 'query_term_coverage': 0.0,
+            'evidence_count': 0, 'unique_videos': 0,
+            'basis': 'no_retrieved_evidence', 'claim_support': False,
+            'heuristic': True,
+        }
+
+    terms = []
+    for token in re.findall(r"[a-z0-9]+", (question or '').lower()):
+        if len(token) >= 3 and token not in _ANSWERABILITY_STOPWORDS and token not in terms:
+            terms.append(token)
+    evidence = ' '.join(
+        ' '.join(str(r.get(k, '')) for k in ('title', 'snippet', '_full_text'))
+        for r in rows
+    ).lower()
+    matched = [term for term in terms if re.search(rf"(?<![a-z0-9]){re.escape(term)}(?![a-z0-9])", evidence)]
+    coverage = len(matched) / len(terms) if terms else 0.0
+    if terms and coverage == 1.0:
+        status = 'full_lexical_coverage'
+    elif matched:
+        status = 'partial_lexical_coverage'
+    else:
+        status = 'no_lexical_coverage'
+    return {
+        'status': status,
+        'query_term_coverage': round(coverage, 3),
+        'matched_query_terms': matched,
+        'missing_query_terms': [term for term in terms if term not in matched],
+        'evidence_count': len(rows),
+        'unique_videos': unique_videos,
+        'basis': 'lexical_telemetry_not_claim_support',
+        'claim_support': False,
+        'heuristic': True,
+    }
+
+
+def _snippet_terms(value):
+    """Normalize query/snippet terms, including `10am` vs `10 a.m.` forms."""
+    text = (value or "").lower()
+    text = re.sub(r"\b([ap])\s*\.\s*m\.?", r"\1m", text)
+    text = re.sub(r"(?<=\d)(?=[a-z])|(?<=[a-z])(?=\d)", " ", text)
+    return set(re.findall(r"[a-z0-9]+", text))
+
+
+def _best_snippet_query(text, matched_queries, fallback=""):
+    """Choose the matched variant whose own evidence window covers it best.
+
+    Multi-search variants target separate answer facets. Using only the broad
+    parent question can retrieve the right chunk but display the wrong sentence.
+    """
+    variants = _merge_unique_values(matched_queries)
+    if not variants:
+        return fallback or ""
+    best_query = variants[0]
+    best_score = (-1.0, -1)
+    for candidate_query in variants:
+        terms = _snippet_terms(candidate_query)
+        window = make_snippet(text, SNIPPET_MAX_CHARS, query=candidate_query)
+        covered = terms & _snippet_terms(window)
+        score = (len(covered) / len(terms) if terms else 0.0, len(covered))
+        if score > best_score:
+            best_query = candidate_query
+            best_score = score
+    return best_query
+
+
 def finalize_ranked_results(ranked, snippet_chars=SNIPPET_DEFAULT_CHARS, query=""):
+    enrichment_fields = (
+        'year', 'playlist_family', 'video_number', 'lesson_type',
+        'primary_concept', 'session_tag', 'is_definition', 'is_example',
+        'is_warning', 'is_rule',
+    )
     out = []
     for c in ranked:
         sources = _merge_unique_values(c.get('retrieval_sources'), c.get('source'), c.get('method'))
-        # Use passed query, or fall back to matched_queries from the candidate
-        sq = query or ""
-        if not sq:
-            mq = _merge_unique_values(c.get('matched_queries'))
-            if mq:
-                sq = mq[0] if isinstance(mq, list) else str(mq)
+        full_text = _cand_text(c)
+        sq = _best_snippet_query(full_text, c.get('matched_queries'), fallback=query)
         item = {
             'title': c.get('title', ''),
             'video_id': c.get('video_id', ''),
             'timestamp': c.get('start_ts') or c.get('timestamp') or '',
             'start_ts': c.get('start_ts') or c.get('timestamp') or '',
             'end_ts': c.get('end_ts') or '',
+            'start_seconds': c.get('start_seconds'),
+            'end_seconds': c.get('end_seconds'),
+            'timing_precision': c.get('timing_precision') or 'legacy_unspecified',
             'playlist': c.get('playlist', ''),
             'method': "+".join(sources) if sources else (c.get('method') or c.get('source') or ''),
             'retrieval_sources': sources,
             'matched_queries': _merge_unique_values(c.get('matched_queries')),
-            'snippet': make_snippet(_cand_text(c), snippet_chars, query=sq),
+            'snippet': make_snippet(full_text, snippet_chars, query=sq),
         }
         if c.get('result_ref'):
             item['result_ref'] = c['result_ref']
+        for field in enrichment_fields:
+            if field in c:
+                item[field] = c[field]
         if c.get('video_id'):
-            item['video_url'] = youtube_link(c.get('video_id'), item['timestamp'])
+            item['video_url'] = youtube_link(
+                c.get('video_id'), item['timestamp'], item['start_seconds'])
         out.append(item)
     return out
 
@@ -1790,6 +1989,53 @@ def estimate_multi_search_work_units(db, question, queries, kg=True, semantic=Tr
     return units
 
 
+def _prioritize_query_variant_coverage(ranked, variants, top_k,
+                                       max_per_video=MAX_RESULTS_PER_VIDEO):
+    """Reserve up to one strong keyword/semantic result per query variant.
+
+    The remaining slots keep normal global RRF order. This makes multi-search
+    variants behave as answer facets while preserving the existing ranker and
+    video-diversity cap.
+    """
+    ranked = list(ranked or [])
+    variants = list(variants or [])
+    variant_count = len(variants)
+    if top_k <= 0 or variant_count <= 1 or not ranked:
+        return ranked
+    reserved = []
+    used = set()
+    video_counts = {}
+    for idx in range(1, min(int(variant_count), int(top_k)) + 1):
+        variant = f"q{idx}"
+        options = []
+        for position, candidate in enumerate(ranked):
+            key = _cand_key(candidate)
+            if key in used:
+                continue
+            score = float((candidate.get('_variant_scores') or {}).get(variant, 0.0))
+            if score <= 0:
+                continue
+            video_id = candidate.get('video_id') or ''
+            if video_id and video_counts.get(video_id, 0) >= max_per_video:
+                continue
+            query_terms = _snippet_terms(variants[idx - 1])
+            text_terms = _snippet_terms(_cand_text(candidate))
+            coverage = (len(query_terms.intersection(text_terms)) / len(query_terms)
+                        if query_terms else 0.0)
+            options.append((coverage, score, -position, candidate))
+        if not options:
+            continue
+        chosen = max(options, key=lambda item: (item[0], item[1], item[2]))[3]
+        used.add(_cand_key(chosen))
+        video_id = chosen.get('video_id') or ''
+        if video_id:
+            video_counts[video_id] = video_counts.get(video_id, 0) + 1
+        reserved.append(chosen)
+    for priority, candidate in enumerate(reserved[::-1], start=1):
+        candidate['_variant_priority'] = priority
+    return reserved + [c for c in ranked if _cand_key(c) not in used]
+
+
 def collect_multi_search_candidates(db, semantic_retriever, question, queries, top_k=5,
                                     playlist=None, kg=True, research_mode=False):
     """Retrieve raw candidates for every query variant, then fuse and rerank once.
@@ -1836,6 +2082,7 @@ def collect_multi_search_candidates(db, semantic_retriever, question, queries, t
     pool_k = max(top_k * DIVERSITY_RERANK_POOL_MULT, top_k + DIVERSITY_RERANK_POOL_EXTRA)
     pool_k = min(pool_k, max(len(candidates), top_k))
     ranked = rerank(question, candidates, pool_k) if candidates else []
+    ranked = _prioritize_query_variant_coverage(ranked, variants, top_k)
     ranked, diversity = diversify_by_video(ranked, top_k=top_k)
     diversity = dict(diversity or {})
     diversity['research_mode'] = bool(research_mode)
@@ -1875,6 +2122,11 @@ class ResultRefStore:
                 'source_file': candidate.get('source_file'),
                 'chunk_index': candidate.get('chunk_index'),
                 'start_ts': candidate.get('start_ts') or candidate.get('timestamp'),
+                'end_ts': candidate.get('end_ts'),
+                'timestamp': candidate.get('timestamp') or candidate.get('start_ts'),
+                'start_seconds': candidate.get('start_seconds'),
+                'end_seconds': candidate.get('end_seconds'),
+                'timing_precision': candidate.get('timing_precision'),
                 'title': candidate.get('title'),
                 'video_id': candidate.get('video_id'),
                 'playlist': candidate.get('playlist'),
@@ -1884,6 +2136,18 @@ class ResultRefStore:
             'uses': 0,
         }
         return ref
+
+    def peek(self, ref, now=None):
+        """Resolve without consuming a use (for size-only planning)."""
+        now = time.time() if now is None else now
+        self._sweep(now)
+        item = self._refs.get(ref)
+        if not item:
+            raise VaultError("Invalid or expired result_ref.")
+        if item['uses'] >= self.max_uses:
+            self._refs.pop(ref, None)
+            raise VaultError("This result_ref has already been expanded.")
+        return dict(item['candidate'])
 
     def resolve(self, ref, now=None):
         now = time.time() if now is None else now
@@ -2007,6 +2271,9 @@ class VaultSession:
                             'start_ts': m.get('start_ts', ''),
                             'timestamp': m.get('start_ts', ''),
                             'end_ts': m.get('end_ts', ''),
+                            'start_seconds': m.get('start_seconds'),
+                            'end_seconds': m.get('end_seconds'),
+                            'timing_precision': m.get('timing_precision', ''),
                             'chunk_index': m.get('chunk_index'),
                             'playlist': m.get('playlist', ''),
                             'source_file': m.get('source_file', ''),
@@ -2102,14 +2369,9 @@ def run_doctor(vault_file=VAULT_FILE, license_file=LICENSE_FILE):
             check(f"vault opens & decrypts ({n} videos, licensed to {who})", True)
         except Exception as e:
             check("vault opens & decrypts", False, str(e))
-    # Preload the reranker now (one-time ~90MB) so the first real search is fast.
-    # Not a hard requirement — search still works (unranked) if it can't load.
-    print("  … preparing the reranker model (one-time download, ~90MB)…")
-    if warm_reranker():
-        check("reranker model ready", True)
-    else:
-        print("  ⚠ reranker model unavailable — search still works, just unranked "
-              "(install sentence-transformers to enable it)")
+    # Production ranking is deterministic RRF-only. The buyer's LLM performs the
+    # final relevance judgement; no cross-encoder download or warm-up is needed.
+    print("  ✓ retrieval ranking: deterministic RRF-only (cross-encoder disabled by design)")
     print("\n" + ("✅ All good — add the MCP config to your AI agent and start asking questions."
                   if ok else "Some checks failed; fix the items above and re-run."))
     return 0 if ok else 1
@@ -2155,12 +2417,14 @@ def fast_search(db, semantic_retriever, query, top_k=3):
         h = hydrate_candidate_text(db, c)
         snip = (h.get('_full_text') or c.get('text') or '')[:500]
         ts = c.get('start_ts') or c.get('timestamp') or ''
+        start_seconds = c.get('start_seconds')
         results.append({
             'video_id': c.get('video_id'),
             'timestamp': ts,
+            'start_seconds': start_seconds,
             'title': (c.get('title') or '')[:150],
             'snippet': snip,
-            'video_url': youtube_link(c.get('video_id'), ts),
+            'video_url': youtube_link(c.get('video_id'), ts, start_seconds),
             'retrieval_sources': ['keyword', 'semantic'],
             'matched_queries': [query],
         })

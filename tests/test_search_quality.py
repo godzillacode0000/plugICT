@@ -36,6 +36,19 @@ def test_evaluate_miss():
     assert not m["top1"] and not m["top5"]
 
 
+def test_timestamp_provenance_requires_precision_seconds_and_matching_deeplink():
+    valid = {
+        "video_id": "v",
+        "timing_precision": "next_segment_inferred",
+        "start_seconds": 60,
+        "start_ts": "1:00",
+        "video_url": "https://youtu.be/v?t=60",
+    }
+    assert bench._valid_timestamp_provenance(valid)
+    assert not bench._valid_timestamp_provenance({**valid, "timing_precision": "legacy_unspecified"})
+    assert not bench._valid_timestamp_provenance({**valid, "video_url": "https://youtu.be/v?t=61"})
+
+
 def test_benchmark_queries_file_valid():
     spec = json.loads((Path(__file__).resolve().parent / "benchmark_queries.json").read_text())
     assert len(spec["queries"]) >= 40

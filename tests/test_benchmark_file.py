@@ -21,3 +21,9 @@ def test_benchmark_wellformed():
         seen.add(case["q"])
         # Every query must survive FTS sanitisation without raising / going empty.
         assert vc.sanitize_fts(case["q"]) is not None
+    timestamp_cases = [case for case in spec["queries"] if case.get("expected_timestamp")]
+    assert timestamp_cases, "at least one exact timestamp label is required"
+    assert all(case.get("expected_video_id") for case in timestamp_cases)
+    no_answer_cases = [case for case in spec["queries"] if case.get("no_answer")]
+    assert len(no_answer_cases) >= 2
+    assert all(case.get("expect_terms") == [] for case in no_answer_cases)

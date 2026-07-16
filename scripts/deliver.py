@@ -16,20 +16,98 @@ Two modes:
 Never upload a per-buyer folder publicly: it contains a real license.key.
 """
 
+import hashlib
+import hmac
+import re
+import tempfile
 import sys, os, shutil
 from pathlib import Path
 from datetime import datetime
 
-# Seller content (vault, licenses, docs) — override with ICT_SOURCE_DIR.
-VAULT_DIR = Path(os.environ.get("ICT_SOURCE_DIR", r"C:\Users\kevin\Hermes ICT Selling Idea"))
+from artifact_paths import resolve_artifact_dir
+
+# Source transcripts/docs and built encrypted artifacts may live separately.
+SOURCE_DIR = Path(os.environ.get("ICT_SOURCE_DIR", r"C:\Users\kevin\Hermes ICT Selling Idea"))
+ARTIFACT_DIR = resolve_artifact_dir(SOURCE_DIR)
 # The buyer-facing code ships from this repo's scripts/ dir (next to deliver.py).
 SCRIPT_DIR = Path(__file__).parent.resolve()
 # Buyers get the AI-agent (MCP) product only — no CLI search tool.
-CODE_FILES = ["mcp_server.py", "vault_core.py"]
-DELIVERY_ROOT = VAULT_DIR / "delivery"
+CODE_FILES = ["mcp_server.py", "vault_core.py", "metadata_enricher.py"]
+ROOT_ASSET_FILES = ["VAULT.md"]
+DELIVERY_ROOT = Path(os.environ.get("ICT_DELIVERY_DIR", ARTIFACT_DIR / "delivery"))
 
 
 # ── shared packaging steps ───────────────────────────────────────────────────
+
+
+def _parse_license_text(text):
+    fields = {}
+    for line in text.splitlines():
+        if "=" in line and not line.lstrip().startswith("#"):
+            key, value = line.split("=", 1)
+            fields[key.strip()] = value.strip()
+    return fields
+
+
+def _parse_license_fields(license_file):
+    return _parse_license_text(Path(license_file).read_text(encoding="utf-8"))
+
+
+def _file_sha256(path):
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as source:
+        while True:
+            block = source.read(1024 * 1024)
+            if not block:
+                return digest.hexdigest()
+            digest.update(block)
+
+
+def _verify_buyer_license(license_file, vault_file, buyer_email, purchase_id):
+    license_bytes = Path(license_file).read_bytes()
+    fields = _parse_license_text(license_bytes.decode("utf-8"))
+    expected_hash = fields.get("VAULT_HASH", "")
+    if not re.fullmatch(r"[0-9a-fA-F]{64}", expected_hash):
+        raise RuntimeError("selected license has a missing or malformed VAULT_HASH")
+    actual_hash = _file_sha256(vault_file)
+    if not hmac.compare_digest(expected_hash.lower(), actual_hash):
+        raise RuntimeError("selected license VAULT_HASH does not match ict-vault.kevin")
+    if fields.get("LICENSED_TO") != buyer_email:
+        raise RuntimeError("selected license identity does not match the requested buyer")
+    if fields.get("PURCHASE_ID") != purchase_id:
+        raise RuntimeError("selected license purchase ID does not match the requested order")
+    return fields
+
+
+def _snapshot_verified_vault(vault_file, expected_hash):
+    """Copy the licensed artifact once, then bind the snapshot bytes to its hash."""
+    ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
+    fd, raw_path = tempfile.mkstemp(prefix=".delivery-vault-", suffix=".tmp",
+                                    dir=str(ARTIFACT_DIR))
+    snapshot = Path(raw_path)
+    digest = hashlib.sha256()
+    try:
+        with Path(vault_file).open("rb") as source, os.fdopen(fd, "wb") as target:
+            while True:
+                block = source.read(1024 * 1024)
+                if not block:
+                    break
+                target.write(block)
+                digest.update(block)
+            target.flush()
+            os.fsync(target.fileno())
+        if not hmac.compare_digest(expected_hash.lower(), digest.hexdigest()):
+            raise RuntimeError(
+                "ict-vault.kevin changed while creating the licensed delivery snapshot")
+        return snapshot
+    except BaseException:
+        try:
+            os.close(fd)
+        except OSError:
+            pass
+        snapshot.unlink(missing_ok=True)
+        raise
+
 
 def _fresh_dir(name):
     d = DELIVERY_ROOT / name
@@ -42,8 +120,8 @@ def _fresh_dir(name):
     return d
 
 
-def _copy_vault(delivery_dir):
-    vault_file = VAULT_DIR / "ict-vault.kevin"
+def _copy_vault(delivery_dir, vault_file=None):
+    vault_file = Path(vault_file) if vault_file else ARTIFACT_DIR / "ict-vault.kevin"
     if not vault_file.exists():
         print("ERROR: ict-vault.kevin not found. Run build.py first.")
         sys.exit(1)
@@ -61,6 +139,13 @@ def _copy_code(delivery_dir):
         else:
             print(f"  ERROR: {name} not found next to deliver.py — aborting.")
             sys.exit(1)
+    for name in ROOT_ASSET_FILES:
+        src = SCRIPT_DIR.parent / name
+        if not src.is_file():
+            print(f"  ERROR: required buyer asset missing: {src}")
+            sys.exit(1)
+        shutil.copy2(src, delivery_dir / name)
+        print(f"  OK {name}")
 
 
 def _write_requirements(delivery_dir):
@@ -182,7 +267,7 @@ def _write_examples(delivery_dir):
 def _copy_docs(delivery_dir):
     docs_dir = delivery_dir / "docs"
     docs_dir.mkdir(exist_ok=True)
-    src_docs = VAULT_DIR / "docs"
+    src_docs = SOURCE_DIR / "docs"
     if src_docs.exists():
         for doc in src_docs.glob("*.md"):
             shutil.copy2(doc, docs_dir / doc.name)
@@ -190,7 +275,7 @@ def _copy_docs(delivery_dir):
 
 
 _README_BODY = """
-Your AI agent, upgraded with 576 ICT videos. Ask it anything about ICT and it
+Your AI agent, upgraded with 581 ICT videos. Ask it anything about ICT and it
 answers with exact video sources and timestamps.
 
 ## 1. Set up (one time)
@@ -220,7 +305,7 @@ Full walkthrough: `docs/AI-AGENT-GUIDE.md`.
 
 > "How does ICT teach the Silver Bullet entry?"
 
-Your AI searches all 576 videos and answers with cited timestamps.
+Your AI searches all 581 videos and answers with cited timestamps.
 
 ## License
 
@@ -318,20 +403,49 @@ def deliver(buyer_email, purchase_id):
 
     safe_email = buyer_email.replace('@', '_at_').replace('.', '_')
 
-    license_files = list(VAULT_DIR.glob(f"license_{safe_email}*.key"))
+    license_files = list(ARTIFACT_DIR.glob(f"license_{safe_email}*.key"))
     if not license_files:
         print("ERROR: License key not found. Run generate_key.py first:")
         print(f"   python generate_key.py \"{buyer_email}\" \"{purchase_id}\"")
         sys.exit(1)
     license_file = license_files[0]
+    vault_file = ARTIFACT_DIR / "ict-vault.kevin"
+    if not vault_file.is_file():
+        print("ERROR: ict-vault.kevin not found. Run build.py first.")
+        sys.exit(1)
+    try:
+        license_fields = _verify_buyer_license(
+            license_file, vault_file, buyer_email, purchase_id)
+        license_bytes = license_file.read_bytes()
+        if _parse_license_text(license_bytes.decode("utf-8")) != license_fields:
+            raise RuntimeError("selected license changed while creating delivery snapshot")
+        vault_snapshot = _snapshot_verified_vault(
+            vault_file, license_fields["VAULT_HASH"])
+    except RuntimeError as exc:
+        print(f"ERROR: {exc}")
+        print("Refresh or regenerate the buyer license before delivery.")
+        sys.exit(1)
 
-    delivery_dir = _fresh_dir(safe_email)
+    delivery_dir = None
+    try:
+        delivery_dir = _fresh_dir(safe_email)
 
-    print("[1/6] Copying encrypted vault...")
-    _copy_vault(delivery_dir)
+        print("[1/6] Copying encrypted vault...")
+        _copy_vault(delivery_dir, vault_snapshot)
+        copied_hash = _file_sha256(delivery_dir / "ict-vault.kevin")
+        if not hmac.compare_digest(
+                copied_hash, license_fields["VAULT_HASH"].lower()):
+            raise RuntimeError("copied vault bytes do not match the selected license")
+    except RuntimeError as exc:
+        if delivery_dir is not None:
+            shutil.rmtree(delivery_dir, ignore_errors=True)
+        print(f"ERROR: {exc}")
+        sys.exit(1)
+    finally:
+        vault_snapshot.unlink(missing_ok=True)
 
     print("[2/6] Copying license key...")
-    shutil.copy2(license_file, delivery_dir / "license.key")
+    (delivery_dir / "license.key").write_bytes(license_bytes)
     print("  OK license.key")
 
     print("[3/6] Copying application code...")
@@ -347,10 +461,7 @@ def deliver(buyer_email, purchase_id):
     print("[6/6] Copying documentation...")
     docs_dir = _copy_docs(delivery_dir)
 
-    lic_id = "unknown"
-    for line in license_file.read_text().strip().split('\n'):
-        if line.startswith('LICENSE_ID='):
-            lic_id = line.split('=', 1)[1].strip()
+    lic_id = license_fields.get("LICENSE_ID", "unknown")
 
     (docs_dir / "README.md").write_text("# ICT Knowledge Vault\n" + _README_BODY.format(
         license_step="",
