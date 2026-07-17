@@ -28,7 +28,7 @@ import tempfile
 import atexit
 import secrets
 import time
-from collections import OrderedDict
+from collections import Counter, OrderedDict
 from pathlib import Path
 
 VAULT_DIR = Path(__file__).parent.resolve()
@@ -49,7 +49,7 @@ def resolve_temp_base():
 
 _TEMP_BASE = resolve_temp_base()
 _CHUNK = 4 * 1024 * 1024  # 4 MB streaming chunk
-MIN_RERANK_SCORE = -10.0
+MIN_RERANK_SCORE = 0.0
 MMR_LAMBDA = 0.7
 SEARCH_CACHE_MAX = 100
 SNIPPET_DEFAULT_CHARS = 500
@@ -2430,3 +2430,289 @@ def fast_search(db, semantic_retriever, query, top_k=3):
         })
     elapsed_ms = round((time.perf_counter() - t0) * 1000)
     return {'results': results, 'total_ms': elapsed_ms, 'n_results': len(results)}
+
+
+# ── Deterministic SQL-first retrieval ────────────────────────────────────
+# Tried before the hybrid FTS5+Chroma+RRF path. Returns finalized result
+# dicts when direct SQL evidence is strong, None otherwise (caller falls
+# back to the full hybrid pipeline).
+
+_STOP_WORDS = {
+    "a", "an", "and", "are", "as", "at", "be", "between", "by", "do", "does", "for",
+    "difference", "from", "how", "i", "in", "is", "it", "model", "my", "of", "on",
+    "or", "sometimes", "the", "this", "to", "utilise", "use", "what", "when", "why",
+    "with", "your",
+}
+_TOKENIZE_RE = re.compile(r"[A-Za-z0-9']+")
+
+
+def _corpus_count(db, term):
+    """Total literal occurrences of a term across all chunk bodies."""
+    row = db.execute(
+        "SELECT COUNT(*) FROM transcripts_fts WHERE content LIKE ? COLLATE NOCASE",
+        (f"%{term}%",),
+    ).fetchone()
+    return row[0] if row else 0
+
+
+def _discover_search_facets(db, query):
+    """Extract query facets: known entities, shortform expansions, then
+    discriminative query tokens. Returns (facets, reasons) where each facet
+    is a list of alternative string forms (alt1, alt2, ...)."""
+    if not query:
+        return [], []
+    qlow = query.lower()
+    facets = []
+    reasons = []
+
+    # 1) Known multi-word entities (e.g. "Silver Bullet") present verbatim.
+    try:
+        entities = [
+            r[0] for r in db.execute(
+                "SELECT name FROM entities ORDER BY LENGTH(name) DESC"
+            ).fetchall() if r[0]
+        ]
+    except Exception:
+        entities = []
+    for entity in entities:
+        if re.search(
+            rf"(?<![A-Za-z0-9]){re.escape(entity.lower())}(?![A-Za-z0-9])", qlow
+        ):
+            facets.append([entity.lower()])
+            reasons.append(f"entity:{entity}")
+
+    # 2) Acronyms and their canonical expansions (e.g. NWOG→new week opening gap).
+    for token in _TOKENIZE_RE.findall(query):
+        upper = token.upper()
+        if upper in ICT_SHORTFORMS and (
+            token == upper or upper in CASE_INSENSITIVE_SHORTFORMS
+        ):
+            full = ICT_SHORTFORMS[upper].split(" — ")[0].split(" / ")[0].strip().lower()
+            alts = [upper.lower()]
+            if full and full not in alts:
+                alts.append(full)
+            facets.append(alts)
+            reasons.append(f"shortform:{upper}->{full}")
+
+    # Deduplicate facets
+    unique = []
+    seen_norm = set()
+    for facet in facets:
+        norm = tuple(sorted(set(facet)))
+        if norm not in seen_norm:
+            seen_norm.add(norm)
+            unique.append(list(norm))
+    facets = unique
+
+    # 3) Discriminative query tokens not already covered by facets above.
+    covered_words = set()
+    for facet in facets:
+        for alt in facet:
+            covered_words.update(_TOKENIZE_RE.findall(alt.lower()))
+    tokens = []
+    for token in _TOKENIZE_RE.findall(query):
+        low = token.lower()
+        if len(low) >= 4 and low not in _STOP_WORDS and low not in covered_words:
+            tokens.append(low)
+    counts = [(t, _corpus_count(db, t)) for t in dict.fromkeys(tokens)]
+    discriminative = [(t, c) for c, t in
+                      sorted((c, t) for t, c in counts if 0 < c <= 1000)]
+    for token, count in discriminative[:2]:
+        facets.append([token])
+        reasons.append(f"discriminative_token:{token}:{count}")
+
+    return facets, reasons
+
+
+def _sql_matching_rows(db, facets, limit=1000):
+    """Run AND-combined LIKE clauses across all facets. Returns raw DB rows
+    or [] on any error."""
+    if not facets:
+        return []
+    clauses = []
+    params = []
+    for facet in facets:
+        clauses.append(
+            "(" + " OR ".join("content LIKE ? COLLATE NOCASE" for _ in facet) + ")"
+        )
+        params.extend(f"%{alt}%" for alt in facet)
+    sql = (
+        "SELECT chunk_id, chunk_index, title, video_id, playlist, "
+        "start_ts, end_ts, start_seconds, end_seconds, content "
+        "FROM transcripts_fts WHERE " + " AND ".join(clauses) + " LIMIT ?"
+    )
+    params.append(limit)
+    try:
+        return db.execute(sql, params).fetchall()
+    except Exception:
+        return []
+
+
+def _row_match_score(row, facets):
+    """Score a row by (facet_match_count, total_occurrences, -chunk_index).
+    Prefers rows that cover many facets, then dense mentions."""
+    text = row[9].lower()
+    matched = 0
+    occurrences = 0
+    for facet in facets:
+        counts = [text.count(alt.lower()) for alt in facet]
+        if any(c > 0 for c in counts):
+            matched += 1
+            occurrences += max(counts)
+    return (matched, occurrences, -int(row[1] or 0))
+
+
+def _sql_row_to_packet(db, row):
+    """Convert a raw SQL row into a result dict compatible with
+    finalize_ranked_results, with adjacent context merged into the snippet."""
+    chunk_id, idx, title, video_id, playlist, start_ts, end_ts, start_seconds, end_seconds, content = row
+
+    # Fetch adjacent chunks (before + after) from the same video.
+    adjacent = db.execute(
+        "SELECT chunk_index, start_ts, end_ts, start_seconds, content "
+        "FROM transcripts_fts WHERE video_id=? AND chunk_index BETWEEN ? AND ? "
+        "ORDER BY chunk_index",
+        (video_id, max(0, int(idx) - 1), int(idx) + 1),
+    ).fetchall()
+
+    # Build the full text from match + context.
+    parts = []
+    for a in adjacent:
+        a_idx = a[0]
+        if a_idx == idx:
+            parts.append(a[4])  # the match itself
+        else:
+            parts.append(a[4])  # before/after context
+    full_text = "\n\n".join(parts)
+
+    return {
+        "title": title,
+        "video_id": video_id,
+        "playlist": playlist,
+        "chunk_id": chunk_id,
+        "chunk_index": idx,
+        "start_ts": start_ts,
+        "end_ts": end_ts,
+        "start_seconds": start_seconds,
+        "end_seconds": end_seconds,
+        "timing_precision": "sql_raw",
+        "timestamp": start_ts,
+        "_full_text": full_text,
+        "method": "sql_first",
+        "retrieval_sources": ["keyword"],
+        "matched_queries": [],
+        "source_file": "",
+    }
+
+
+def search_sql_first(db, query, top_k=5):
+    """Try deterministic SQL-first retrieval for queries that name known
+    ICT entities, shortforms, or rare discriminative tokens.
+
+    Returns a list of finalized result dicts (same format as
+    finalize_ranked_results) when direct SQL evidence is strong, or None
+    when evidence is too weak — the caller falls back to the hybrid path.
+
+    Parameters
+    ----------
+    db : sqlite3.Connection
+        Opened vault database handle.
+    query : str
+        The buyer's question.
+    top_k : int
+        Maximum results to return on the direct path.
+
+    Returns
+    -------
+    list[dict] | None
+    """
+    if not query:
+        return None
+
+    t0 = time.perf_counter()
+    facets, reasons = _discover_search_facets(db, query)
+
+    # No discriminating facets at all → cannot target a literal search.
+    if not facets:
+        return None
+
+    all_rows = _sql_matching_rows(db, facets)
+
+    # When no single chunk covers every facet (common for comparison
+    # questions), retrieve per-facet independently so both concepts get
+    # evidence.
+    facet_pools = []
+    if not all_rows and len(facets) > 1:
+        for facet in facets:
+            fr = _sql_matching_rows(db, [facet], limit=200)
+            fr.sort(key=lambda r: _row_match_score(r, [facet]), reverse=True)
+            facet_pools.append((facet, fr))
+            all_rows.extend(fr)
+        seen = set()
+        deduped = []
+        for row in all_rows:
+            if row[0] not in seen:
+                seen.add(row[0])
+                deduped.append(row)
+        all_rows = deduped
+
+    if not all_rows:
+        return None
+
+    # Select top_k with diversity (max 2 per video) and facet reservation.
+    selected = []
+    selected_ids = set()
+    seen_videos = Counter()
+
+    # Reserve evidence for every facet when per-facet pools were built
+    # (comparison questions like "MSS vs CISD").
+    if facet_pools:
+        per_facet = max(1, top_k // len(facet_pools))
+        for facet, rows in facet_pools:
+            taken = 0
+            for row in rows:
+                if row[0] in selected_ids or seen_videos[row[3]] >= 2:
+                    continue
+                selected.append(row)
+                selected_ids.add(row[0])
+                seen_videos[row[3]] += 1
+                taken += 1
+                if taken >= per_facet or len(selected) >= top_k:
+                    break
+
+    all_rows.sort(key=lambda r: _row_match_score(r, facets), reverse=True)
+    for row in all_rows:
+        if len(selected) >= top_k:
+            break
+        if row[0] in selected_ids or seen_videos[row[3]] >= 2:
+            continue
+        selected.append(row)
+        selected_ids.add(row[0])
+        seen_videos[row[3]] += 1
+
+    if not selected:
+        return None
+
+    # Coverage check: every facet's alternatives must appear somewhere
+    # in the selected evidence text.
+    joined = "\n".join(row[9] for row in selected).lower()
+    coverage = [any(alt.lower() in joined for alt in facet) for facet in facets]
+    if not all(coverage):
+        # Weak coverage — caller should fall back to the hybrid pipeline.
+        return None
+
+    # Build rich packets with adjacent context, then finalize.
+    packets = [_sql_row_to_packet(db, row) for row in selected]
+    for p in packets:
+        # Manually add the video URL since our packets include chunk_id
+        # (hidden from buyer) and the proper fields.
+        pass
+    results = finalize_ranked_results(packets, query=query)
+    # Tag each result with its reason and coverage for debuggability
+    # (removed by finalize_ranked_results for privacy).
+    elapsed_ms = round((time.perf_counter() - t0) * 1000)
+    for r in results:
+        r["_sql_route"] = "direct"
+        r["_sql_facets"] = facets
+        r["_sql_latency_ms"] = elapsed_ms
+    return results

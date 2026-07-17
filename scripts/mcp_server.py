@@ -160,6 +160,14 @@ def _semantic_candidates(query_text, limit, playlist=None, rrf_source='semantic'
 def search_vault(query, top_k=15, playlist=None, kg=True, rerank=False):
     ensure_vault()
     top_k = _clamp_top_k(top_k)
+
+    # Try deterministic SQL-first retrieval. When it returns results, those
+    # are already finalized (adjacent-context merged, snippet-optimised) and
+    # can be returned directly — much faster and more precise for exact terms.
+    sql_results = vc.search_sql_first(_db, query, top_k)
+    if sql_results is not None:
+        return sql_results
+
     if kg and not rerank:
         cached = vc.get_cached_results(query, top_k, playlist)
         if cached is not None:
@@ -706,7 +714,7 @@ async def call_tool(name, arguments):
             results = search_vault(arguments.get('query', ''),
                                    top_k=_clamp_top_k(arguments.get('top_k', 15)),
                                    playlist=arguments.get('playlist'),
-                                   kg=False, rerank=False)
+                                   kg=True, rerank=False)
             if not results:
                 return [TextContent(type="text",
                         text="No relevant results found. Try different keywords or list_playlists.")]

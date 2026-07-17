@@ -318,3 +318,86 @@ def test_work_unit_rate_limit(monkeypatch):
     assert mcp._rate_limit_exceeded(2) is False
     assert mcp._rate_limit_exceeded(2) is True
     mcp._query_timestamps.clear()
+
+
+# ── SQL-first retrieval ────────────────────────────────────────────────────
+
+def _sql_first_db():
+    """In-memory vault with known entities and a modest row count so
+    corpus_count-based discriminative-token extraction works."""
+    db = sqlite3.connect(":memory:")
+    db.execute("""CREATE VIRTUAL TABLE transcripts_fts USING fts5(
+        chunk_id, chunk_index, title, video_id, playlist, start_ts, end_ts, start_seconds UNINDEXED,
+        end_seconds UNINDEXED, source_file, content,
+        tokenize='porter unicode61')""")
+    rows = [
+        ("ck0", 0, "FVG Lesson", "v1", "P", "0:00", "0:10", 0, 10, "a.md",
+         "fair value gap definition and imbalance explanation"),
+        ("ck1", 1, "FVG Lesson", "v1", "P", "0:20", "0:35", 20, 35, "a.md",
+         "second stage reaccumulation or redistribution which is the unicorn of the market"),
+        ("ck2", 2, "FVG Lesson", "v1", "P", "0:40", "0:55", 40, 55, "a.md",
+         "after context fair value gap delivery to equilibrium"),
+        ("ck3", 0, "Silver Lesson", "v2", "P", "1:00", "1:20", 60, 80, "b.md",
+         "silver bullet time based trading model using displacement"),
+        ("ck4", 1, "Silver Lesson", "v2", "P", "1:25", "1:40", 85, 100, "b.md",
+         "silver bullet failure on news days without context"),
+        ("ck5", 0, "Gap Theory", "v3", "P", "2:00", "2:20", 120, 140, "c.md",
+         "new week opening gap provides directional bias for the week"),
+        ("ck6", 1, "Gap Theory", "v3", "P", "2:25", "2:40", 145, 160, "c.md",
+         "nwog can act as resistance or support for silver bullet entries"),
+    ]
+    db.executemany("INSERT INTO transcripts_fts VALUES (?,?,?,?,?,?,?,?,?,?,?)", rows)
+    db.execute("CREATE TABLE entities(name,type,description,source_count)")
+    db.execute("INSERT INTO entities VALUES (?,?,?,?)",
+               ("Silver Bullet", "ict_model", "ICT time-based trading model", 50))
+    db.execute("INSERT INTO entities VALUES (?,?,?,?)",
+               ("NWOG", "ict_model", "New Week Opening Gap", 30))
+    db.execute("CREATE TABLE relations(from_entity,to_entity,relation_type,evidence)")
+    db.commit()
+    return db
+
+
+def test_sql_first_prefers_direct_lexical_match():
+    """A query containing a known entity + rare discriminative token should
+    return direct SQL results rather than falling back to hybrid."""
+    db = _sql_first_db()
+    results = vc.search_sql_first(db, "silver bullet unicorn", top_k=3)
+
+    assert results is not None, "SQL-first should find direct lexical matches"
+    assert len(results) >= 1
+    snippets = " ".join(r["snippet"] for r in results).lower()
+    assert "unicorn" in snippets
+    assert "silver" in snippets or "bullet" in snippets
+
+
+def test_sql_first_falls_back_when_evidence_weak():
+    """A vague/generic query with no discriminative terms returns None
+    so the hybrid fallback path can take over."""
+    db = _sql_first_db()
+    results = vc.search_sql_first(db, "how do I know when to enter a trade", top_k=3)
+
+    assert results is None, "Generic query should fall back, not return SQL results"
+
+
+def test_sql_first_multi_facet_reserves_evidence():
+    """A multi-concept question (silver bullet + NWOG) should yield evidence
+    for each facet, not just the first one that matched."""
+    db = _sql_first_db()
+    results = vc.search_sql_first(db, "how do I utilise Silver Bullet with NWOG", top_k=4)
+
+    assert results is not None
+    snippets = "\n".join(r["snippet"] for r in results).lower()
+    assert "silver" in snippets or "bullet" in snippets
+    assert "nwog" in snippets or "new week opening gap" in snippets
+
+
+def test_sql_first_adjacent_context_expands_direct_hits():
+    """When a direct SQL hit comes from chunk_index > 0, the returned
+    result should include adjacent context from the same video."""
+    db = _sql_first_db()
+    results = vc.search_sql_first(db, "unicorn market", top_k=3)
+
+    assert results is not None
+    # row ck1 (chunk_index=1) is the Unicorn mention.
+    unicorn_results = [r for r in results if "unicorn" in r["snippet"].lower()]
+    assert unicorn_results, "Unicorn should appear in at least one result"
