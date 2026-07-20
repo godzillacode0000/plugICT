@@ -377,6 +377,13 @@ window.PLUGICT = {
   .kg-edge-label{font:600 2.6px var(--mono); fill:rgba(255,153,96,.82); letter-spacing:.04em; text-shadow:0 0 5px rgba(34,197,94,.48); pointer-events:none}
   .kg-edge-label.support{fill:rgba(249,250,251,.44)}
   @keyframes kg-draw{to{stroke-dashoffset:0}}
+  /* continuous "current flowing" overlay — a short bright segment travels
+     each edge on a loop, like current in a circuit trace */
+  .kg-edge-flow{fill:none; stroke-linecap:round; pointer-events:none;
+    stroke-dasharray:.05 1; stroke-dashoffset:1; animation:kg-flow linear infinite}
+  .kg-edge-flow.primary{stroke:rgba(180,255,210,.95); stroke-width:1.7; filter:drop-shadow(0 0 4px rgba(74,222,128,.9))}
+  .kg-edge-flow.support{stroke:rgba(180,255,210,.65); stroke-width:1.1; filter:drop-shadow(0 0 3px rgba(74,222,128,.6))}
+  @keyframes kg-flow{to{stroke-dashoffset:-1}}
   .kg-nodes{position:absolute; inset:0; z-index:5}
   .kg-node{position:absolute; transform:translate(-50%,-50%) scale(.97);
     display:grid; grid-template-columns:24px minmax(0,1fr) auto; align-items:center; column-gap:10px; row-gap:2px;
@@ -388,7 +395,10 @@ window.PLUGICT = {
     box-shadow:inset 0 1px 0 rgba(249,250,251,.07), inset 0 -12px 18px rgba(0,0,0,.24), 0 10px 22px -18px #000}
   .kg-node.is-ready{transform:translate(-50%,-50%) scale(1)}
   .kg-node .port{position:absolute; width:7px; height:7px; border-radius:50%; background:rgba(34,197,94,.7); right:-4px; top:50%; transform:translateY(-50%);
-    box-shadow:0 0 0 3px rgba(34,197,94,.08), 0 0 12px rgba(34,197,94,.45)}
+    box-shadow:0 0 0 3px rgba(34,197,94,.08), 0 0 12px rgba(34,197,94,.45);
+    animation:kg-spark 2.6s ease-in-out infinite}
+  @keyframes kg-spark{0%,100%{opacity:.55; box-shadow:0 0 0 3px rgba(34,197,94,.08), 0 0 12px rgba(34,197,94,.45)}
+    50%{opacity:1; box-shadow:0 0 0 4px rgba(34,197,94,.16), 0 0 18px rgba(74,222,128,.8)}}
   .kg-node .icon{grid-row:1 / span 2; display:grid; place-items:center; width:24px; height:24px; color:rgba(74,222,128,.88)}
   .kg-node .icon svg{width:21px; height:21px; stroke:currentColor; fill:none; stroke-width:1.5}
   .kg-node .label{grid-column:2; min-width:0; overflow:visible; text-overflow:clip; white-space:normal; font-family:var(--serif); font-size:17px; line-height:1.06; color:#f6ecdc}
@@ -462,6 +472,8 @@ window.PLUGICT = {
   @media (prefers-reduced-motion: reduce){
     .kg-edge.draw{animation:none; stroke-dashoffset:0}
     .kg-node,.kg-caption,.kg-edge,.kg-route-glow{transition:none}
+    .kg-edge-flow{display:none}
+    .kg-node .port{animation:none}
   }
   .cv-badges{display:flex; flex-wrap:wrap; gap:8px}
   .cv-badges span{border:1px solid var(--line); border-radius:6px; padding:8px 14px; font:400 12px var(--mono); color:var(--ink-soft)}
@@ -930,6 +942,7 @@ window.PLUGICT = {
             <svg class="kg-edges" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
               <path class="kg-route-glow" data-route-glow d="M0,0"/>
               <g data-kg-edges></g>
+              <g data-kg-flow aria-hidden="true"></g>
               <g data-kg-labels></g>
               <circle class="kg-pulse" r="1.35" data-pulse cx="0" cy="0"></circle>
             </svg>
@@ -1543,6 +1556,7 @@ window.PLUGICT = {
     const nodeLayer=root.querySelector('[data-kg-nodes]');
     const edgeLayer=root.querySelector('[data-kg-edges]');
     const labelLayer=root.querySelector('[data-kg-labels]');
+    const flowLayer=root.querySelector('[data-kg-flow]');
     const pulse=root.querySelector('[data-pulse]');
     const routeGlow=root.querySelector('[data-route-glow]');
     const caption=root.querySelector('[data-kg-caption]');
@@ -1626,17 +1640,31 @@ window.PLUGICT = {
       nodeLayer.textContent='';
       edgeLayer.textContent='';
       if(labelLayer) labelLayer.textContent='';
+      if(flowLayer) flowLayer.textContent='';
       edgeMap={};
       adj={};
 
-      edgeData.forEach(function(e){
+      edgeData.forEach(function(e, ei){
         if(!byId[e.from] || !byId[e.to]) return;
+        const d=pathFor(e, byId);
         const path=document.createElementNS(svgNS,'path');
         path.setAttribute('class','kg-edge '+e.type);
         path.setAttribute('data-edge',e.id);
         path.setAttribute('pathLength','1');
-        path.setAttribute('d',pathFor(e, byId));
+        path.setAttribute('d',d);
         edgeLayer.appendChild(path);
+        // Ambient "current" traveling this trace on a loop — skipped
+        // entirely under reduced motion (no DOM/animation cost).
+        if(flowLayer && !reduced){
+          const flow=document.createElementNS(svgNS,'path');
+          flow.setAttribute('class','kg-edge-flow '+e.type);
+          flow.setAttribute('pathLength','1');
+          flow.setAttribute('d',d);
+          const dur=(e.type==='primary' ? 1.7 : 2.6) + (ei%5)*0.18;
+          flow.style.animationDuration=dur.toFixed(2)+'s';
+          flow.style.animationDelay=(-(ei*0.37)).toFixed(2)+'s';
+          flowLayer.appendChild(flow);
+        }
         if(labelLayer && e.lp && (!mobileMq.matches || e.type==='primary')){
           const lp=(mobileMq.matches && e.mlp) ? e.mlp : e.lp;
           const txt=document.createElementNS(svgNS,'text');
@@ -1665,6 +1693,7 @@ window.PLUGICT = {
         const port=document.createElement('span');
         port.className='port';
         port.setAttribute('aria-hidden','true');
+        if(!reduced) port.style.animationDelay=(-(i*0.53)).toFixed(2)+'s';
         const icon=document.createElement('span');
         icon.className='icon';
         icon.innerHTML=iconSvg(n.icon);
