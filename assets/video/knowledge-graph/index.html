@@ -67,25 +67,34 @@ const mix3 = (a,b,u)=>[lerp(a[0],b[0],u),lerp(a[1],b[1],u),lerp(a[2],b[2],u)];
 /* ---------- concept nodes ---------- */
 /* order = ignition order (narrative build) */
 const CONCEPTS = [
-  ['FVG',                    [  40,-140, -80], 'cyan'  ],
-  ['IFVG',                   [ 150,-210, -10], 'cyan'  ],
-  ['Liquidity',              [ 430,  30, 120], 'teal'  ],
-  ['Displacement',           [-240,-130, -60], 'blue'  ],
-  ['Market Structure Shift', [-400, -10,  60], 'blue'  ],
-  ['Order Block',            [-460,-190, -40], 'blue'  ],
-  ['Breaker',                [-580, -40, 160], 'blue'  ],
-  ['Mitigation Block',       [-520,-280, 120], 'blue'  ],
-  ['Premium / Discount',     [ -60,  60, 300], 'violet'],
-  ['OTE',                    [  90,  -10, 380], 'violet'],
-  ['Judas Swing',            [ 480, 170, -40], 'teal'  ],
-  ['Kill Zone',              [ 180, 270,-170], 'ice'   ],
-  ['Silver Bullet',          [ 330, 340,-250], 'ice'   ],
-  ['Draw on Liquidity',      [ 600, -80, 220], 'teal'  ],
-  ['Rebalancing',            [ -60,-230,-140], 'cyan'  ],
-  ['Consequent Encroachment',[ 120,-100,-220], 'cyan'  ],
-  ['Accumulation',           [-260, 200,-280], 'indigo'],
-  ['Manipulation',           [-140, 260,-350], 'indigo'],
-  ['Distribution',           [ -20, 320,-280], 'indigo'],
+  ['FVG',                     [  40,-140, -80], 'cyan'  ],
+  ['IFVG',                    [ 150,-210, -10], 'cyan'  ],
+  ['Liquidity',               [ 430,  30, 120], 'teal'  ],
+  ['Displacement',            [-240,-130, -60], 'blue'  ],
+  ['Market Structure Shift · MSS', [-400, -10, 60], 'blue' ],
+  ['Order Block',             [-460,-190, -40], 'blue'  ],
+  ['Breaker',                 [-580, -40, 160], 'blue'  ],
+  ['Mitigation Block',        [-520,-280, 120], 'blue'  ],
+  ['Premium / Discount',      [ -60,  60, 300], 'violet'],
+  ['OTE',                     [  90,  -10, 380], 'violet'],
+  ['Judas Swing',             [ 480, 170, -40], 'teal'  ],
+  ['Kill Zone',               [ 180, 270,-170], 'ice'   ],
+  ['Silver Bullet',           [ 330, 340,-250], 'ice'   ],
+  ['Draw on Liquidity',       [ 600, -80, 220], 'teal'  ],
+  ['Rebalancing',             [ -60,-230,-140], 'cyan'  ],
+  ['Consequent Encroachment', [ 120,-100,-220], 'cyan'  ],
+  ['Accumulation',            [-260, 200,-280], 'indigo'],
+  ['Manipulation',            [-140, 260,-350], 'indigo'],
+  ['Distribution',            [ -20, 320,-280], 'indigo'],
+  /* ── round 2 additions ── */
+  ['CISD',                    [  80,-330,-120], 'blue'  ],
+  ['Unicorn Model',           [-330,  90, 250], 'ice'   ],
+  ['SMT Divergence',          [ 630, 130, -30], 'teal'  ],
+  ['Liquidity Sweep',         [ 560, 250,  70], 'teal'  ],
+  ['Turtle Soup',             [ 420,-190,-210], 'cyan'  ],
+  ['Power of 3',              [-210, 350,-410], 'indigo'],
+  ['BPR',                     [ 235, -90,-160], 'cyan'  ],
+  ['Equal Highs / Lows',      [ 505, -40, 300], 'teal'  ],
 ];
 
 const EDGES = [ /* [a, b, key] — key edges pulse visibly */
@@ -94,9 +103,9 @@ const EDGES = [ /* [a, b, key] — key edges pulse visibly */
   ['FVG','Rebalancing',0],
   ['FVG','Consequent Encroachment',0],
   ['IFVG','Consequent Encroachment',0],
-  ['Displacement','Market Structure Shift',1],
-  ['Market Structure Shift','Order Block',0],
-  ['Market Structure Shift','Breaker',0],
+  ['Displacement','Market Structure Shift · MSS',1],
+  ['Market Structure Shift · MSS','Order Block',0],
+  ['Market Structure Shift · MSS','Breaker',0],
   ['Order Block','Breaker',1],
   ['Order Block','Mitigation Block',0],
   ['Breaker','Mitigation Block',0],
@@ -113,6 +122,24 @@ const EDGES = [ /* [a, b, key] — key edges pulse visibly */
   ['Accumulation','Manipulation',1],
   ['Manipulation','Distribution',1],
   ['Distribution','Draw on Liquidity',0],
+  /* ── round 2 relationships ── */
+  ['CISD','Market Structure Shift · MSS',1],
+  ['CISD','Displacement',0],
+  ['Unicorn Model','Breaker',1],
+  ['Unicorn Model','FVG',1],
+  ['SMT Divergence','Liquidity',1],
+  ['SMT Divergence','Draw on Liquidity',0],
+  ['Liquidity Sweep','Liquidity',1],
+  ['Liquidity Sweep','Judas Swing',0],
+  ['Turtle Soup','Liquidity',0],
+  ['Turtle Soup','Market Structure Shift · MSS',0],
+  ['Power of 3','Accumulation',1],
+  ['Power of 3','Manipulation',1],
+  ['Power of 3','Distribution',1],
+  ['BPR','FVG',1],
+  ['BPR','IFVG',0],
+  ['Equal Highs / Lows','Liquidity',1],
+  ['Equal Highs / Lows','Draw on Liquidity',0],
 ];
 
 /* ---------- scene assembly ---------- */
@@ -128,7 +155,7 @@ let pool    = [];        // full morph particle pool
 CONCEPTS.forEach((c,i)=>{
   nodes.push({
     name:c[0], base:c[1], col:PAL[c[2]],
-    tIgn: T_BUILD + i*0.515 + rng()*0.12,
+    tIgn: T_BUILD + i*0.36 + rng()*0.12,   /* tightened stagger fits 27 nodes before T_ALIVE */
     ph: rng()*Math.PI*2,
     r: 6.2 + rng()*1.6,
   });
@@ -141,9 +168,9 @@ edges = EDGES.map(e=>({a:byName[e[0]], b:byName[e[1]], key:e[2],
 for(let i=0;i<46;i++){
   const host = nodes[Math.floor(rng()*nodes.length)];
   const s = {
-    base:[ host.base[0]+(rng()*2-1)*185,
-           host.base[1]+(rng()*2-1)*165,
-           host.base[2]+(rng()*2-1)*185 ],
+    base:[ host.base[0]+(rng()*2-1)*135,
+           host.base[1]+(rng()*2-1)*120,
+           host.base[2]+(rng()*2-1)*135 ],
     col: mix3(host.col, PAL.blue, rng()*0.5),
     tIgn: 3.2 + rng()*9.0,
     ph: rng()*Math.PI*2,
@@ -176,11 +203,13 @@ for(let i=0;i<380;i++){
 }
 
 /* ---------- camera : catmull-rom orbit path ---------- */
-const CAM_KEYS = { /* t : [azimuth, elevation, radius] */
-  t:[0,     3,     7,    11,    14.5,  17.2,  20.7,  26],
-  az:[-0.25,-0.05, 0.45, 1.05,  1.50,  1.72,  1.82,  1.86],
-  el:[0.06,  0.02, 0.14,-0.04,  0.12,  0.05,  0.03,  0.03],
-  r:[2100,  1500,  950,  820,  1050,  1450,  1600,  1650],
+const CAM_KEYS = { /* t : [azimuth, elevation, radius]
+   Smooth Catmull-Rom orbit that keeps the whole graph framed (fills without
+   leaking) — no close fly-through, so nothing clips as concepts appear. */
+  t:[0,     2.4,   6,     10,    13,    17.2,  20.7,  26],
+  az:[-0.30,-0.18, 0.02,  0.30,  0.52,  0.72,  0.82,  0.88],
+  el:[0.08,  0.06,  0.05,  0.05,  0.05,  0.04,  0.03,  0.03],
+  r:[2200,  1720,  1250,  1120,  1150,  1360,  1560,  1640],
 };
 function camChannel(ch, t){
   const ts = CAM_KEYS.t, vs = CAM_KEYS[ch];
@@ -260,12 +289,12 @@ const noiseCv=document.createElement('canvas'); noiseCv.width=noiseCv.height=512
 
 /* ---------- golden "plug ICT" lockup + morph targets ---------- */
 const LOCKUP = {
-  plug:{ text:'plug', font:'italic 300 158px "Inter"',  ls:'3px'  },
-  ict: { text:'ICT',  font:'700 196px "Space Grotesk"', ls:'10px' },
-  gap: 26, cx: W/2, baseY: 552, tilt: 0,
+  plug:{ text:'plug', font:'italic 300 200px "Inter"',  ls:'4px'  },
+  ict: { text:'ICT',  font:'700 250px "Space Grotesk"', ls:'12px' },
+  gap: 32, cx: W/2, baseY: 556, tilt: 0,
 };
-const TAGLINE = { text:'Search the ICT vault', font:'300 30px "Inter"',
-                  track: 9, y: 672 };
+const TAGLINE = { text:'Search the ICT vault', font:'300 33px "Inter"',
+                  track: 10, y: 690 };
 const SWEEP_T0 = 20.6, SWEEP_T1 = 21.9;   /* forge-reveal sweep window */
 let lockGeom = null;
 let sweepOn = false, sweepX = 0;
@@ -277,7 +306,7 @@ function measureLockup(g){
   const wIct=g.measureText(LOCKUP.ict.text).width;
   const total=wPlug+LOCKUP.gap+wIct;
   lockGeom={ wPlug, wIct, total, x0:LOCKUP.cx-total/2,
-             top:LOCKUP.baseY-172, bottom:LOCKUP.baseY+26 };
+             top:LOCKUP.baseY-218, bottom:LOCKUP.baseY+34 };
 }
 function goldGrad(g){
   const gr=g.createLinearGradient(0,lockGeom.top,0,lockGeom.bottom);
@@ -311,8 +340,8 @@ function buildTargets(){
   const pts=[];
   const jr=mulberry32(31);
   const gTop=[255,243,214], gMid=[255,181,74], gBot=[168,90,14];
-  for(let y=320;y<720;y+=5){
-    for(let x=360;x<1580;x+=5){
+  for(let y=300;y<740;y+=5){
+    for(let x=330;x<1600;x+=5){
       if(id[(y*W+x)*4]>120){
         const v=clamp((y-lockGeom.top)/(lockGeom.bottom-lockGeom.top),0,1);
         const col = v<0.5 ? mix3(gTop,gMid,v*2) : mix3(gMid,gBot,(v-0.5)*2);
@@ -630,17 +659,26 @@ function renderFrame(frame){
       const fs=clamp(17*pr.s,12.5,25);
       ctx.font=`600 ${fs.toFixed(1)}px "Inter"`;
       ctx.letterSpacing='1.3px';
-      ctx.textAlign='left'; ctx.textBaseline='middle';
+      ctx.textBaseline='middle';
       const off=clamp(n.r*pr.s*2.6,9,20);
       const tw=ctx.measureText(n.name).width;
-      const rect={x0:pr.x+off, y0:pr.y-2-fs*0.75, x1:pr.x+off+7+tw+6, y1:pr.y-2+fs*0.75};
+      const M=30;                                   /* keep labels off the frame edge */
+      /* flip the label to the node's left when the right side would leak off-frame */
+      const flip = (pr.x+off+7+tw+6) > (W-M);
+      const ly = clamp(pr.y-2, M+fs*0.6, H-M-fs*0.6);
+      const rect = flip
+        ? {x0:pr.x-off-7-tw-6, y0:ly-fs*0.75, x1:pr.x-off,       y1:ly+fs*0.75}
+        : {x0:pr.x+off,        y0:ly-fs*0.75, x1:pr.x+off+7+tw+6, y1:ly+fs*0.75};
+      /* skip if even the flipped side leaks (node itself too close to an edge) */
+      if(rect.x0 < M || rect.x1 > W-M) continue;
       let hit=false;
       for(const r of placed){
         if(rect.x0<r.x1 && rect.x1>r.x0 && rect.y0<r.y1 && rect.y1>r.y0){hit=true;break;}
       }
       if(hit) continue;   /* farther label yields to nearer one */
       placed.push(rect);
-      const lx=pr.x+off+7, ly=pr.y-2;
+      ctx.textAlign = flip ? 'right' : 'left';
+      const lx = flip ? (pr.x-off-7) : (pr.x+off+7);
       /* bright white glyphs wrapped in a bold black outline for legibility */
       const oA=Math.min(1,1.15*lblA);
       ctx.save();
@@ -661,7 +699,8 @@ function renderFrame(frame){
       ctx.strokeStyle=rgba(n.col,0.45*lblA);
       ctx.lineWidth=1;
       ctx.beginPath();
-      ctx.moveTo(pr.x+off, pr.y-2); ctx.lineTo(pr.x+off+5, pr.y-2);
+      const tk = flip ? -1 : 1;
+      ctx.moveTo(pr.x+off*tk, ly); ctx.lineTo(pr.x+(off+5)*tk, ly);
       ctx.stroke();
     }
     ctx.globalCompositeOperation='lighter';
@@ -730,7 +769,7 @@ function renderFrame(frame){
     const dg=smooth(21.5,22.4,t);
     if(dg>0.01){
       ctx.globalCompositeOperation='source-over';
-      const span=760, gx=W/2-0.16*span, dy=LOCKUP.baseY+56;
+      const span=900, gx=W/2-0.16*span, dy=LOCKUP.baseY+78;
       const halfL=0.42*span*easeOutCubic(dg), halfR=0.58*span*easeOutCubic(dg);
       const lg=ctx.createLinearGradient(gx-halfL,0,gx+halfR,0);
       lg.addColorStop(0,'rgba(200,120,30,0)');
