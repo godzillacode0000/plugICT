@@ -1,9 +1,19 @@
 # PlugICT — Knowledge Graph Brand Film
 
-A 26-second, 1080p30 cinematic animation that presents PlugICT's ICT concept
-vault as a glowing, living knowledge graph, ending on the golden *plug* **ICT**
-lockup and the "Search the ICT vault" tagline. Final output:
+A 1080p30 cinematic animation that presents PlugICT's ICT concept vault as a
+glowing, living knowledge graph of 27 concepts, ending on the golden *plug*
+**ICT** lockup and the "Search the ICT vault" tagline. Final output:
 `assets/video/plugict-knowledge-graph.mp4`.
+
+The renderer produces a 26s master; the shipped video is encoded with
+`HEAD=1.5` (see `encode.sh`), trimming the first 1.5s of intro darkness so the
+network appears sooner — final length **24.5s**.
+
+Concepts shown: FVG, IFVG, Liquidity, Displacement, Market Structure Shift · MSS,
+Order Block, Breaker, Mitigation Block, Premium/Discount, OTE, Judas Swing,
+Kill Zone, Silver Bullet, Draw on Liquidity, Rebalancing, Consequent
+Encroachment, Accumulation, Manipulation, Distribution, CISD, Unicorn Model,
+SMT Divergence, Liquidity Sweep, Turtle Soup, Power of 3, BPR, Equal Highs/Lows.
 
 ## Narrative timeline
 
