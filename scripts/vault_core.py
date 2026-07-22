@@ -965,6 +965,21 @@ def open_vault(vault_file=VAULT_FILE, license_file=LICENSE_FILE, on_progress=Non
     Streaming + low memory. Supports format v1 (raw) and v2 (zstd). Verifies
     the vault hash from the license when present.
     """
+    # ── Guard: reject direct imports from scripts / interactive shells ──────
+    # Only mcp_server.py (or test files with $ICT_OPEN_VAULT_BYPASS=1) may
+    # call open_vault.  This prevents a casual "copy-paste the function name"
+    # bulk dump.  A determined coder can still bypass it (the source is
+    # readable), but the guard raises the effort from ~10 s to ~5 min.
+    if not os.environ.get("ICT_OPEN_VAULT_BYPASS"):
+        import traceback as _tb
+        _stack = _tb.extract_stack()
+        _caller_files = {_f.filename.replace("\\", "/") for _f in _stack}
+        if not any(x in _f for x in ("mcp_server.py", "test_") for _f in _caller_files):
+            raise RuntimeError(
+                "Direct vault access is not supported. "
+                "Use the ICT Knowledge Vault MCP server to query transcripts."
+            )
+
     global vault_hash
     if not vault_file.exists():
         raise VaultError(
