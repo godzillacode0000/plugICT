@@ -238,6 +238,26 @@ footer .disc{color:#92929d}
   .band-card{padding:24px}
 }
 
+/* Refined scroll reveal: the existing IntersectionObserver adds .infade.
+   This only changes the entrance feel; it does not touch layout, copy, or theme. */
+.fadeup{
+  will-change:transform,opacity,filter;
+  filter:blur(5px);
+  transform:translateY(26px);
+  transition:opacity .82s cubic-bezier(.22,1,.36,1),transform .82s cubic-bezier(.22,1,.36,1),filter .82s cubic-bezier(.22,1,.36,1);
+}
+.fadeup.infade{filter:blur(0)}
+html:not(.js) .fadeup{filter:none}
+
+/* The proof band is one observed element; cascade its four existing facts after it enters. */
+.proof-item{opacity:0;transform:translateY(18px);transition:opacity .68s cubic-bezier(.22,1,.36,1),transform .68s cubic-bezier(.22,1,.36,1)}
+.proof-grid.infade .proof-item{opacity:1;transform:none}
+.proof-grid.infade .proof-item:nth-child(2){transition-delay:.08s}
+.proof-grid.infade .proof-item:nth-child(3){transition-delay:.16s}
+.proof-grid.infade .proof-item:nth-child(4){transition-delay:.24s}
+html:not(.js) .proof-item{opacity:1;transform:none}
+
 @media(prefers-reduced-motion:reduce){
   .hero-video,.hero h1{transform:none!important}
+  .fadeup,.proof-item{filter:none!important;opacity:1!important;transform:none!important}
 }
