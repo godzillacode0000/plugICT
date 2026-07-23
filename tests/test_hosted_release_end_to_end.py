@@ -74,6 +74,8 @@ def packaged_buyer_dir(tmp_path, monkeypatch):
     monkeypatch.setenv("ICT_SOURCE_DIR", str(source))
     monkeypatch.delenv("ICT_BUILD_DIR", raising=False)
     monkeypatch.setenv("ICT_DELIVERY_DIR", str(tmp_path / "delivery"))
+    # Production packaging must verify the manifest before it is shipped.
+    monkeypatch.setattr(vc, "RELEASE_TRUSTED_KEYS", {key_id: pub.hex()})
     import deliver
     importlib.reload(deliver)
     zip_path = deliver.deliver_hosted()

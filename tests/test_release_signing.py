@@ -52,6 +52,17 @@ def _file_hash(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+# ── Production trust-store integrity ──────────────────────────────────────────
+
+def test_production_trusted_key_ids_match_public_keys():
+    """A copy-paste mistake in the committed public pin must fail CI, not buyers."""
+    assert vc.RELEASE_TRUSTED_KEYS, "production release trust store must be pinned"
+    for key_id, public_hex in vc.RELEASE_TRUSTED_KEYS.items():
+        public_bytes = bytes.fromhex(public_hex)
+        assert len(public_bytes) == 32
+        assert vc.release_key_id(public_bytes) == key_id
+
+
 # ── verify_release_manifest: the fail-closed matrix ──────────────────────────
 
 def test_valid_signature_passes(tmp_path):
