@@ -895,9 +895,11 @@ RELEASE_SIG_DOMAIN = "plugict-release-v1"
 # Trusted seller release-signing keys: {key_id: ed25519 public key hex}.
 # key_id = first 16 hex chars of sha256(raw 32-byte public key). Populate from
 # `python scripts/sign_release.py --init` output (run on the seller machine —
-# the private key is never committed or bundled). While this dict is empty the
-# manifest path is disabled and only the exact license VAULT_HASH is accepted.
-RELEASE_TRUSTED_KEYS = {}
+# the private key is never committed or bundled). This public key is safe to
+# ship: it lets buyers verify only releases signed by the seller's private key.
+RELEASE_TRUSTED_KEYS = {
+    "65ac3c1386ace1be": "166d536066210cc7038e9550976205d2df6068fe282406f8817aacdb908d6e27",
+}
 
 _RELEASE_REQUIRED_FIELDS = ("product", "tag", "vault_sha256", "key_id", "algo", "sig")
 

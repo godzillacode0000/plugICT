@@ -52,6 +52,9 @@ def hosted_zip(tmp_path, monkeypatch):
     monkeypatch.setenv("ICT_SOURCE_DIR", str(tmp_path))
     monkeypatch.delenv("ICT_BUILD_DIR", raising=False)
     monkeypatch.setenv("ICT_DELIVERY_DIR", str(tmp_path / "delivery"))
+    # Dummy packaging fixtures are deliberately unsigned; production signature
+    # enforcement is covered separately with a pinned throwaway key below.
+    monkeypatch.setattr(vc, "RELEASE_TRUSTED_KEYS", {})
     import deliver
     importlib.reload(deliver)  # re-read ICT_SOURCE_DIR
     return deliver.deliver_hosted()
@@ -116,6 +119,8 @@ def test_hosted_zip_uses_exact_isolated_build_artifact_over_source_decoy(tmp_pat
         env.setenv("ICT_SOURCE_DIR", str(source))
         env.setenv("ICT_BUILD_DIR", str(build))
         env.setenv("ICT_DELIVERY_DIR", str(delivery))
+        # This test isolates artifact selection, not cryptographic signing.
+        env.setattr(vc, "RELEASE_TRUSTED_KEYS", {})
         importlib.reload(deliver)
         zip_path = deliver.deliver_hosted()
         with zipfile.ZipFile(zip_path) as archive:
@@ -124,7 +129,7 @@ def test_hosted_zip_uses_exact_isolated_build_artifact_over_source_decoy(tmp_pat
             # not the source decoy.
             manifest = json.loads(archive.read("plugict/release.sig.json"))
             assert manifest["vault_sha256"] == hashlib.sha256(b"ISOLATED-V3").hexdigest()
-    importlib.reload(deliver)
+
 
 
 def test_hosted_zip_contains_release_manifest(hosted_zip):
