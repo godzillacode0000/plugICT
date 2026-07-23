@@ -11,6 +11,7 @@ import zipfile
 from pathlib import Path
 
 import pytest
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 SCRIPTS = Path(__file__).resolve().parent.parent / "scripts"
 sys.path.insert(0, str(SCRIPTS))
@@ -170,6 +171,52 @@ def test_hosted_packaging_fails_when_manifest_hash_mismatches(tmp_path, monkeypa
     try:
         with pytest.raises(SystemExit):
             deliver.deliver_hosted()
+    finally:
+        importlib.reload(deliver)
+
+
+def test_hosted_packaging_fails_on_invalid_signature_when_trust_store_pinned(
+        tmp_path, monkeypatch):
+    # The production posture: buyers pin a seller key. A manifest that matches
+    # product + vault hash but carries an INVALID signature must be rejected at
+    # packaging time — a buyer with the pinned key would refuse it, so shipping
+    # it would hand out an unopenable vault. Guards the populated-trust-store
+    # branch of _copy_release_manifest that the empty-store tests never reach.
+    import deliver
+    vault_bytes = b"dummy-encrypted-vault"
+    vault_hash = hashlib.sha256(vault_bytes).hexdigest()
+    (tmp_path / "ict-vault.kevin").write_bytes(vault_bytes)
+    (tmp_path / "docs").mkdir()
+    (tmp_path / "docs" / "AI-AGENT-GUIDE.md").write_text("# guide")
+
+    key = Ed25519PrivateKey.generate()
+    pub = key.public_key().public_bytes_raw()
+    key_id = vc.release_key_id(pub)
+    manifest = {
+        "product": vc.RELEASE_PRODUCT,
+        "tag": "v1.0.0",
+        "vault_sha256": vault_hash,
+        "key_id": key_id,
+        "algo": "ed25519",
+    }
+    # Sign correctly, then corrupt the signature so verification must fail.
+    good_sig = bytearray(key.sign(vc.release_manifest_payload(manifest)))
+    good_sig[0] ^= 0xFF
+    manifest["sig"] = good_sig.hex()
+    (tmp_path / vc.RELEASE_MANIFEST_NAME).write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    monkeypatch.setenv("ICT_SOURCE_DIR", str(tmp_path))
+    monkeypatch.delenv("ICT_BUILD_DIR", raising=False)
+    monkeypatch.setenv("ICT_DELIVERY_DIR", str(tmp_path / "delivery"))
+    # Buyers pin this exact key -> the invalid signature is now a hard failure.
+    monkeypatch.setattr(vc, "RELEASE_TRUSTED_KEYS", {key_id: pub.hex()})
+    importlib.reload(deliver)
+    try:
+        with pytest.raises(SystemExit):
+            deliver.deliver_hosted()
+        # Nothing must have been zipped for shipment.
+        assert not (tmp_path / "delivery" / "plugict.zip").exists()
     finally:
         importlib.reload(deliver)
 
