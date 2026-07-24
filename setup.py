@@ -147,7 +147,7 @@ def verify():
     try:
         result = subprocess.run(
             [str(runtime_python()), "-E", "-X", "utf8", str(doctor), "--doctor"],
-            capture_output=True, text=True, timeout=30
+            capture_output=True, text=True, timeout=180
         )
         if result.returncode == 0:
             print("  ✅ Doctor check passed")
@@ -155,6 +155,18 @@ def verify():
             print(f"  ⚠️ Doctor check: {result.stdout.strip()[:200]}")
     except Exception as e:
         print(f"  ⚠️ Doctor check unavailable: {e}")
+
+
+def write_mcp_configs():
+    """Generate config files with paths for this exact buyer installation."""
+    generator = HERE / "examples" / "make_configs.py"
+    if not generator.exists():
+        print("  ⚠️ Config generator not found — use the MCP config printed below")
+        return
+    subprocess.check_call([
+        str(runtime_python()), "-E", "-X", "utf8", str(generator)
+    ])
+    print("  AI-agent config files generated")
 
 def print_mcp_config():
     abs_path = HERE / "mcp_server.py"
@@ -218,6 +230,8 @@ def main():
             install_deps()
             step("Verifying installation")
             verify()
+            step("Generating MCP config files")
+            write_mcp_configs()
             print_mcp_config()
             print("\n✅ Already set up. Just paste the MCP config above into your AI agent.")
             return
@@ -254,6 +268,9 @@ def main():
 
     step("Verifying installation")
     verify()
+
+    step("Generating MCP config files")
+    write_mcp_configs()
 
     step("MCP Configuration")
     print_mcp_config()

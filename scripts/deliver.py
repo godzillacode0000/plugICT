@@ -317,7 +317,7 @@ setup.bat            # Windows  — builds an isolated environment + verifies
 ```
 
 Something off? Re-run and read the check, or:
-`.venv\\Scripts\\python mcp_server.py --doctor`
+`.venv\\Scripts\\python -E -X utf8 mcp_server.py --doctor`
 
 ## 2. Connect your AI agent
 
