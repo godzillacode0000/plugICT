@@ -707,7 +707,7 @@ window.PLUGICT = {
 
 <nav aria-label="Main">
   <div class="wrap">
-    <div class="brand"><svg class="mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 2v5"/><path d="M15 2v5"/><path d="M7 7h10v4a5 5 0 0 1-10 0V7z"/><path d="M12 16v3a3 3 0 0 1-3 3"/></svg> PlugICT</div>
+    <a class="brand" href="#top" aria-label="PlugICT — back to top"><svg class="mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 2v5"/><path d="M15 2v5"/><path d="M7 7h10v4a5 5 0 0 1-10 0V7z"/><path d="M12 16v3a3 3 0 0 1-3 3"/></svg> PlugICT</a>
     <div class="nav-right">
       <div class="navlinks" id="navmenu">
         <a href="#capabilities">Product</a>
@@ -720,7 +720,8 @@ window.PLUGICT = {
       </div>
       <a class="btn primary small" href="#pricing">Get access</a>
       <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="navmenu">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/></svg>
+        <svg class="ico-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/></svg>
+        <svg class="ico-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 5l14 14"/><path d="M19 5L5 19"/></svg>
       </button>
     </div>
   </div>
@@ -731,12 +732,12 @@ window.PLUGICT = {
 <main>
 
 <!-- ═══ HERO ═══ -->
-<div class="hero-frame">
+<div class="hero-frame" id="top">
 <header class="hero">
   <canvas id="hero-canvas" aria-hidden="true"></canvas>
   <div class="wrap hero-stack">
     <div class="hero-copy">
-      <div class="eyebrow fadeup">775 ICT videos. Searchable by your AI.</div>
+      <div class="eyebrow fadeup">All curated Inner Circle Trader videos by Michael J. Huddleston. The genius himself.</div>
       <h1 class="fadeup" data-delay=".06"><span class="hero-line">Stop scrubbing.</span><em>Find what ICT actually said.</em></h1>
       <div class="cta fadeup" data-delay=".18">
         <div class="cta-card">
@@ -747,7 +748,6 @@ window.PLUGICT = {
           </a>
         </div>
       </div>
-      <div class="fine fadeup" data-delay=".24">One payment · local vault · buyer-owned AI · timestamped sources</div>
     </div>
   </div>
 </header>
