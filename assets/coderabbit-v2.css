@@ -261,3 +261,30 @@ html:not(.js) .proof-item{opacity:1;transform:none}
   .hero-video,.hero h1{transform:none!important}
   .fadeup,.proof-item{filter:none!important;opacity:1!important;transform:none!important}
 }
+
+/* ══ Framed hero panel ═══════════════════════════════════════════════════════
+   The panel starts at the very top of the page and the floating nav OVERLAYS
+   it, so the panel's rounded corners run up behind the bar and the whole thing
+   reads as one frame (instead of a nav pill stacked above a separate panel). */
+nav{position:fixed;left:0;right:0;top:14px;margin:0 auto;padding:0}
+/* one glass bar only: the <nav> is the bar, so neutralise the inner duplicate */
+nav .wrap{background:none;border:none;box-shadow:none;border-radius:0;
+  backdrop-filter:none;-webkit-backdrop-filter:none;padding:0 12px 0 20px}
+.hero{margin:12px 12px 0;border-radius:26px;overflow:hidden;
+  border:1px solid rgba(255,255,255,.09);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 34px 90px -46px rgba(0,0,0,.9)}
+/* hero content has to clear the bar that now floats over the panel */
+.hero .wrap.hero-stack{padding-top:118px}
+/* affiliate strip pins above the floating nav */
+.ref-banner.on{position:fixed;top:0;left:0;right:0;z-index:21}
+body:has(.ref-banner.on) nav{top:44px}
+body:has(.ref-banner.on) .hero{margin-top:42px}
+@media(max-width:1000px){
+  nav{top:10px}
+  nav .wrap{padding:0 12px}
+  .hero{margin:10px 8px 0;border-radius:20px}
+  .hero .wrap.hero-stack{padding-top:96px}
+}
+@media(max-width:760px){
+  nav.nav-open::before{top:74px}
+}
