@@ -151,8 +151,8 @@ window.PLUGICT = {
   .hero::before{content:""; position:absolute; top:-30%; right:-15%; width:70%; height:130%; pointer-events:none; z-index:1;
     background:radial-gradient(50% 50% at 60% 40%, rgba(34,197,94,.12), transparent 70%)}
   /* hero background video stays subtle under the content */
-  .hero-bg-video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; pointer-events:none; z-index:0; opacity:.22;
-    filter:brightness(1.02) saturate(1) contrast(1.03) blur(.25px); transform:scale(1.06); transform-origin:center; object-position:center center;}
+  .hero-bg-video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; pointer-events:none; z-index:0; opacity:.42;
+    filter:brightness(1.04) saturate(1.06) contrast(1.02) blur(0px); transform:scale(1.04); transform-origin:center; object-position:center center;}
   /* faint engineering grid */
   .hero::after{content:""; position:absolute; inset:0; pointer-events:none; z-index:1; opacity:.35;
     background:
@@ -735,8 +735,8 @@ window.PLUGICT = {
 <!-- ═══ HERO ═══ -->
 <div class="hero-frame" id="top">
 <header class="hero">
-  <video id="hero-bg-video" class="hero-bg-video" autoplay loop muted playsinline preload="metadata" poster="assets/video/hero-background-poster.jpg" aria-hidden="true">
-    <source src="assets/video/hero-background.mp4" type="video/mp4">
+  <video id="hero-bg-video" class="hero-bg-video" autoplay loop muted playsinline preload="metadata" poster="assets/video/hero-background-poster.jpg?v=20260725c" aria-hidden="true">
+    <source src="assets/video/hero-background.mp4?v=20260725c" type="video/mp4">
   </video>
   <div class="wrap hero-stack">
     <div class="hero-copy">
