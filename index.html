@@ -731,13 +731,13 @@ window.PLUGICT = {
 <main>
 
 <!-- ═══ HERO ═══ -->
+<div class="hero-frame">
 <header class="hero">
   <canvas id="hero-canvas" aria-hidden="true"></canvas>
   <div class="wrap hero-stack">
     <div class="hero-copy">
       <div class="eyebrow fadeup">775 ICT videos. Searchable by your AI.</div>
       <h1 class="fadeup" data-delay=".06"><span class="hero-line">Stop scrubbing.</span><em>Find what ICT actually said.</em></h1>
-      <p class="sub fadeup" data-delay=".12">PlugICT gives your own AI a local vault of ICT lessons. Ask normally, get the matching video, exact timestamp, and enough context to verify it yourself.</p>
       <div class="cta fadeup" data-delay=".18">
         <div class="cta-card">
           <a class="btn primary" href="#pricing" data-buy-link>Get PlugICT</a>
@@ -749,7 +749,14 @@ window.PLUGICT = {
       </div>
       <div class="fine fadeup" data-delay=".24">One payment · local vault · buyer-owned AI · timestamped sources</div>
     </div>
+  </div>
+</header>
+</div>
 
+<!-- product stage sits below the opening panel so the panel's rounded corners
+     land at the bottom of the first screen -->
+<section class="hero-stage">
+  <div class="wrap">
     <div class="hero-video fadeup" data-delay=".28">
       <div class="hero-video-frame">
         <span class="hero-video-dot"></span><span class="hero-video-dot"></span><span class="hero-video-dot"></span>
@@ -763,7 +770,7 @@ window.PLUGICT = {
       </div>
     </div>
   </div>
-</header>
+</section>
 
 
 <!-- ═══ PROOF ═══ -->
