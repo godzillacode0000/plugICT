@@ -150,8 +150,9 @@ window.PLUGICT = {
       0 34px 90px -46px rgba(0,0,0,.9)}
   .hero::before{content:""; position:absolute; top:-30%; right:-15%; width:70%; height:130%; pointer-events:none; z-index:1;
     background:radial-gradient(50% 50% at 60% 40%, rgba(34,197,94,.12), transparent 70%)}
-  /* particles stay subtle above earth */
-  #hero-canvas{position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1; opacity:.18}
+  /* hero background video stays subtle under the content */
+  .hero-bg-video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; pointer-events:none; z-index:0; opacity:.12;
+    filter:brightness(.22) saturate(.72) contrast(1.16) blur(.9px); transform:scale(1.08); transform-origin:center; object-position:center center;}
   /* faint engineering grid */
   .hero::after{content:""; position:absolute; inset:0; pointer-events:none; z-index:1; opacity:.35;
     background:
@@ -697,7 +698,7 @@ window.PLUGICT = {
     *,*::before,*::after{animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important}
     .fadeup{opacity:1 !important; transform:none !important}
     .rv{opacity:1 !important; transform:none !important}
-    #hero-canvas{display:none} #spotlight{display:none !important}
+    #hero-bg-video{display:none} #spotlight{display:none !important}
   }
 </style>
 <link rel="stylesheet" href="assets/coderabbit-v2.css?v=scroll-reveal-1">
@@ -734,7 +735,9 @@ window.PLUGICT = {
 <!-- ═══ HERO ═══ -->
 <div class="hero-frame" id="top">
 <header class="hero">
-  <canvas id="hero-canvas" aria-hidden="true"></canvas>
+  <video id="hero-bg-video" class="hero-bg-video" autoplay loop muted playsinline preload="metadata" poster="assets/video/hero-background-poster.jpg" aria-hidden="true">
+    <source src="assets/video/hero-background.mp4" type="video/mp4">
+  </video>
   <div class="wrap hero-stack">
     <div class="hero-copy">
       <div class="eyebrow fadeup">All curated Inner Circle Trader videos by Michael J. Huddleston. The genius himself.</div>
@@ -1463,16 +1466,25 @@ window.PLUGICT = {
   (function(){
     if(REDUCED) return;
     const hero=document.querySelector('.hero'); if(!hero) return;
-    const cv=document.getElementById('hero-canvas');
+    const bg=document.getElementById('hero-bg-video');
     const term=hero.querySelector('.terminal');
     let raf=0;
     function upd(){ raf=0; const y=scrollY;
       if(y>hero.offsetHeight+120) return;
-      if(cv) cv.style.transform='translateY('+(y*0.18)+'px)';
+      if(bg) bg.style.transform='translateY('+(y*0.05)+'px) scale(1.08)';
       if(term && innerWidth>1000) term.style.transform=
         'perspective(1400px) rotateY(-7deg) rotateX(1.5deg) translateY('+(y*-0.05)+'px)';
     }
     addEventListener('scroll',()=>{ if(!raf) raf=requestAnimationFrame(upd); },{passive:true});
+  })();
+
+  /* ── 4b. slow hero video playback (subtle, premium motion) ── */
+  (function(){
+    if(REDUCED) return;
+    const bg=document.getElementById('hero-bg-video'); if(!bg) return;
+    const rate=.78;
+    const apply=()=>{ try{ bg.playbackRate=rate; }catch(e){} };
+    if(bg.readyState>=1) apply(); else bg.addEventListener('loadedmetadata', apply, {once:true});
   })();
 
   /* ── 5. directional scroll-reveal for .rv elements ── */
