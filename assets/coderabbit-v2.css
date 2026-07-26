@@ -326,3 +326,26 @@ body:has(.ref-banner.on) .hero-frame{padding-top:42px}
 @media(max-width:760px){
   nav.nav-open::before{top:62px}
 }
+
+/* ══ Mobile menu ═════════════════════════════════════════════════════════════
+   A floating glass card under the bar: no rules between the links, a single
+   divider above the actions, and the two CTAs sitting at the bottom. */
+.navlinks-cta{display:none}
+@media(max-width:960px){
+  .navlinks{top:calc(100% + 8px);padding:16px 20px 18px;
+    background:rgba(20,20,24,.72);
+    backdrop-filter:blur(24px) saturate(170%);-webkit-backdrop-filter:blur(24px) saturate(170%);
+    border:1px solid rgba(255,255,255,.12);border-radius:18px;
+    box-shadow:0 24px 60px -24px rgba(0,0,0,.8)}
+  /* links are spaced by padding alone — no separators, as in the reference */
+  .navlinks a{width:100%;padding:9px 0;border:0;
+    font-size:17px;line-height:1.3;color:var(--ink);letter-spacing:-.01em}
+  .navlinks-cta{display:flex;gap:10px;width:100%;margin-top:12px;padding-top:16px;
+    border-top:1px solid rgba(255,255,255,.13)}
+  .navlinks-cta .btn{padding:11px 18px;font-size:14px;border-radius:11px;white-space:nowrap}
+  .navlinks-cta .btn.ghost{background:rgba(255,255,255,.06);border-color:transparent}
+}
+@media(max-width:720px){
+  .navlinks{border-radius:16px}
+  .navlinks-cta .btn{flex:1;justify-content:center;padding:11px 10px;font-size:13px}
+}
