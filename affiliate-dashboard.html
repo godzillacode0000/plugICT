@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#070709">
+<title>Affiliate dashboard — PlugICT</title>
+<meta name="description" content="Private PlugICT affiliate analytics dashboard.">
+<link rel="canonical" href="https://plugict.com/affiliate-dashboard">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#070709; --paper-alt:#0d0d10; --card:#121216; --dark:#050506;
+    --ink:#f7f7f8; --ink-soft:#aaaab4; --ink-mut:#858590;
+    --line:#282832; --line-soft:rgba(255,255,255,.08);
+    --green:#22c55e; --green-bright:#4ade80; --green-deep:#16a34a;
+    --glow:rgba(34,197,94,.24); --sans:'Geist','Inter',system-ui,sans-serif;
+    --mono:'JetBrains Mono','IBM Plex Mono',ui-monospace,monospace;
+    --maxw:1180px;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{min-height:100vh;background:var(--paper);color:var(--ink);font:400 16px/1.6 var(--sans);-webkit-font-smoothing:antialiased}
+  a{color:inherit}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px}
+  nav{position:sticky;top:14px;z-index:10;width:calc(100% - 40px);max-width:1280px;margin:14px auto 0;border:1px solid rgba(255,255,255,.1);border-radius:18px;background:rgba(22,22,27,.62);backdrop-filter:blur(20px) saturate(160%);box-shadow:0 16px 44px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.06)}
+  nav .wrap{height:68px;display:flex;align-items:center;justify-content:space-between;max-width:none}
+  .brand{display:flex;align-items:center;gap:10px;text-decoration:none;font-size:20px;font-weight:600;letter-spacing:-.025em}
+  .brand svg{width:21px;height:21px;color:var(--green)}
+  .nav-right{display:flex;gap:24px;align-items:center}
+  .nav-right a{color:var(--ink-soft);text-decoration:none;font-size:14px}
+  .nav-right a:hover{color:var(--ink)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:4px;padding:12px 20px;border:1px solid var(--line);background:rgba(255,255,255,.025);color:var(--ink);cursor:pointer;font:500 14px var(--sans);text-decoration:none;transition:.18s ease}
+  .btn:hover{border-color:#4b4b58;background:#151519;transform:translateY(-1px)}
+  .btn.primary{border-color:var(--green);background:var(--green);color:#041006}
+  .btn.primary:hover{background:var(--green-bright);box-shadow:0 0 32px rgba(34,197,94,.18)}
+  .btn.small{padding:9px 16px;font-size:13px}
+  main{padding:82px 0 96px}
+  .hero{position:relative;padding:0 28px 58px;text-align:center;overflow:hidden}
+  .hero::before{content:"";position:absolute;top:-220px;left:50%;width:720px;height:500px;transform:translateX(-50%);background:radial-gradient(circle,rgba(34,197,94,.14),transparent 68%);pointer-events:none}
+  .eyebrow{position:relative;display:inline-flex;align-items:center;gap:8px;padding:5px 10px;border:1px solid rgba(34,197,94,.28);border-radius:999px;background:rgba(34,197,94,.07);color:var(--green-bright);font:600 10px var(--mono);letter-spacing:.12em;text-transform:uppercase}
+  .eyebrow::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--green-bright);box-shadow:0 0 10px rgba(74,222,128,.8)}
+  h1{position:relative;margin:22px auto 0;font-size:clamp(38px,5.8vw,72px);line-height:1;letter-spacing:-.055em;max-width:820px}
+  h1 em{font-style:normal;color:var(--green-bright)}
+  .hero p{position:relative;max-width:610px;margin:20px auto 0;color:var(--ink-soft);font-size:17px}
+  .notice{max-width:760px;margin:28px auto 0;padding:14px 18px;border:1px solid rgba(255,255,255,.1);border-radius:6px;background:rgba(255,255,255,.025);color:var(--ink-soft);font-size:14px;text-align:left}
+  .notice strong{color:var(--ink)}
+  .notice.error{border-color:rgba(248,113,113,.32);color:#fca5a5}
+  .dashboard{max-width:var(--maxw);margin:0 auto;padding:0 28px}
+  .topline{display:flex;align-items:flex-end;justify-content:space-between;gap:22px;margin-bottom:28px}
+  .topline h2{font-size:clamp(25px,3vw,38px);line-height:1;letter-spacing:-.04em}
+  .topline p{margin-top:8px;color:var(--ink-mut);font:12px var(--mono)}
+  .actions{display:flex;gap:10px;flex-wrap:wrap}
+  .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  .stat{min-height:150px;padding:24px;background:var(--card);border:1px solid var(--line);border-radius:6px}
+  .stat-label{color:var(--ink-mut);font:500 10px var(--mono);letter-spacing:.09em;text-transform:uppercase}
+  .stat-value{margin-top:22px;font-size:clamp(30px,4vw,46px);font-weight:600;line-height:1;letter-spacing:-.05em}
+  .stat-value.green{color:var(--green-bright)}
+  .stat-note{margin-top:12px;color:var(--ink-mut);font-size:12px}
+  .lower-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:12px;margin-top:12px}
+  .panel{padding:28px;background:var(--card);border:1px solid var(--line);border-radius:6px}
+  .panel h3{font-size:18px;letter-spacing:-.025em}
+  .panel .sub{margin-top:5px;color:var(--ink-mut);font-size:13px}
+  .link-row{display:flex;gap:10px;margin-top:24px}
+  .link-row input{flex:1;min-width:0;background:#0a0a0d;color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:12px 13px;font:12px var(--mono)}
+  .link-row input:focus{outline:2px solid var(--green);outline-offset:2px}
+  .rules{margin-top:22px;padding-top:20px;border-top:1px solid var(--line-soft);color:var(--ink-soft);font-size:13px}
+  .rules li{margin:7px 0 0 18px}
+  .login{max-width:560px;margin:0 auto;padding:28px;background:var(--card);border:1px solid var(--line);border-radius:6px;text-align:left}
+  .login h2{font-size:24px;letter-spacing:-.035em}
+  .login p{margin-top:8px;color:var(--ink-soft);font-size:14px}
+  .login label{display:block;margin-top:22px;color:var(--ink-mut);font:500 10px var(--mono);letter-spacing:.09em;text-transform:uppercase}
+  .login input{width:100%;margin-top:8px;background:#0a0a0d;color:var(--ink);border:1px solid var(--line);border-radius:4px;padding:13px;font:13px var(--mono)}
+  .login .btn{margin-top:14px;width:100%}
+  .hidden{display:none!important}
+  footer{border-top:1px solid var(--line);background:var(--paper-alt);padding:38px 28px;color:var(--ink-mut);font-size:12px}
+  footer .wrap{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+  footer a{color:var(--ink-soft)}
+  @media(max-width:860px){.stats-grid{grid-template-columns:repeat(2,1fr)}.lower-grid{grid-template-columns:1fr}}
+  @media(max-width:640px){nav{width:calc(100% - 24px);top:10px;margin-top:10px;border-radius:14px}nav .wrap{height:62px;padding:0 14px}.nav-right a{display:none}.brand{font-size:18px}.brand svg{width:18px;height:18px}main{padding-top:66px}.hero{padding:0 20px 44px}.dashboard{padding:0 20px}.topline{align-items:flex-start;flex-direction:column}.stats-grid{grid-template-columns:1fr 1fr;gap:8px}.stat{min-height:130px;padding:18px}.stat-value{margin-top:18px;font-size:30px}.panel{padding:22px}.link-row{flex-direction:column}.link-row .btn{width:100%}}
+</style>
+<link rel="stylesheet" href="assets/coderabbit-v2.css?v=affiliate-dashboard-1">
+</head>
+<body>
+<nav aria-label="Main">
+  <div class="wrap">
+    <a class="brand" href="/"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 2v5"/><path d="M15 2v5"/><path d="M7 7h10v4a5 5 0 0 1-10 0V7z"/><path d="M12 16v3a3 3 0 0 1-3 3"/></svg> PlugICT</a>
+    <div class="nav-right"><a href="/affiliate">Affiliate program</a><a href="/">Back to PlugICT</a></div>
+  </div>
+</nav>
+
+<main>
+  <header class="hero">
+    <div class="eyebrow">Private affiliate dashboard</div>
+    <h1>Your numbers, <em>not guesswork.</em></h1>
+    <p>See referral clicks, paid purchases, conversion rate, and commission status in one place.</p>
+  </header>
+
+  <section id="login-view" class="login">
+    <h2>Open your dashboard</h2>
+    <p>Paste the private dashboard token sent to you by PlugICT. We do not show buyer names or emails here.</p>
+    <div id="config-notice" class="notice hidden"><strong>Dashboard backend is not connected yet.</strong> The page is ready, but the private API still needs to be deployed by the owner.</div>
+    <form id="login-form">
+      <label for="access-token">Private access token</label>
+      <input id="access-token" name="token" type="password" autocomplete="off" placeholder="Paste your token">
+      <button class="btn primary" type="submit">Open dashboard</button>
+    </form>
+    <div id="login-error" class="notice error hidden"></div>
+  </section>
+
+  <section id="dashboard-view" class="dashboard hidden" aria-live="polite">
+    <div class="topline">
+      <div><h2 id="affiliate-name">Affiliate</h2><p id="affiliate-code">CODE</p></div>
+      <div class="actions"><button id="refresh-btn" class="btn small" type="button">Refresh</button><button id="signout-btn" class="btn small" type="button">Sign out</button></div>
+    </div>
+    <div class="stats-grid">
+      <article class="stat"><div class="stat-label">Total clicks</div><div id="clicks" class="stat-value">—</div><div class="stat-note">Referral link visits</div></article>
+      <article class="stat"><div class="stat-label">Unique clicks</div><div id="unique-clicks" class="stat-value">—</div><div class="stat-note">Approximate unique visitors</div></article>
+      <article class="stat"><div class="stat-label">Purchases</div><div id="purchases" class="stat-value green">—</div><div class="stat-note">Paid, valid Stripe sales</div></article>
+      <article class="stat"><div class="stat-label">Conversion rate</div><div id="conversion" class="stat-value">—</div><div class="stat-note">Purchases ÷ unique clicks</div></article>
+    </div>
+    <div class="lower-grid">
+      <article class="panel"><h3>Your referral link</h3><p class="sub">Share this link with people who genuinely need PlugICT.</p><div class="link-row"><input id="referral-link" type="text" readonly aria-label="Referral link"><button id="copy-link" class="btn primary" type="button">Copy link</button></div><div id="copy-status" class="stat-note" role="status"></div></article>
+      <article class="panel"><h3>Commission status</h3><p class="sub">Refunded, disputed, duplicate, or fraudulent sales do not qualify.</p><div class="rules"><div><span class="stat-label">Pending / batched</span><div id="pending-commission" class="stat-value green">—</div></div><div style="margin-top:22px"><span class="stat-label">Paid</span><div id="paid-commission" class="stat-value">—</div></div><div style="margin-top:22px"><span class="stat-label">Voided purchases</span><div id="voided-purchases" class="stat-value">—</div></div></div></article>
+    </div>
+    <div id="dashboard-error" class="notice error hidden"></div>
+  </section>
+</main>
+
+<footer><div class="wrap"><span>PlugICT affiliate analytics</span><span>Need help? <a href="https://t.me/plugict" target="_blank" rel="noopener noreferrer">DM on Telegram</a></span></div></footer>
+
+<script src="assets/affiliate-config.js?v=affiliate-dashboard-1"></script>
+<script>
+(function () {
+  'use strict';
+  /* Set this to the deployed API origin. Empty means fail closed and shows setup state. */
+  window.PLUGICT_AFFILIATE_API = window.PLUGICT_AFFILIATE_API || '';
+  var api = window.PLUGICT_AFFILIATE_API.replace(/\/$/, '');
+  var tokenKey = 'plugict_affiliate_dashboard_token';
+  var loginView = document.getElementById('login-view');
+  var dashboardView = document.getElementById('dashboard-view');
+  var loginForm = document.getElementById('login-form');
+  var loginError = document.getElementById('login-error');
+  var dashboardError = document.getElementById('dashboard-error');
+  var configNotice = document.getElementById('config-notice');
+  var params = new URLSearchParams(window.location.search);
+  var queryToken = params.get('token');
+  if (queryToken) {
+    try { sessionStorage.setItem(tokenKey, queryToken); } catch (_) {}
+    history.replaceState({}, document.title, window.location.pathname);
+  }
+  var token = queryToken || (function () { try { return sessionStorage.getItem(tokenKey) || ''; } catch (_) { return ''; } }());
+
+  function showError(el, message) { el.textContent = message; el.classList.remove('hidden'); }
+  function hideError(el) { el.textContent = ''; el.classList.add('hidden'); }
+  function money(cents) { return '$' + (Number(cents || 0) / 100).toFixed(2); }
+  function setText(id, value) { document.getElementById(id).textContent = value; }
+  function render(data) {
+    setText('affiliate-name', data.affiliate.name);
+    setText('affiliate-code', 'CODE · ' + data.affiliate.code);
+    setText('clicks', data.clicks.toLocaleString());
+    setText('unique-clicks', data.unique_clicks.toLocaleString());
+    setText('purchases', data.purchases.toLocaleString());
+    setText('conversion', data.conversion_rate.toFixed(2) + '%');
+    setText('pending-commission', money(data.pending_commission_cents));
+    setText('paid-commission', money(data.paid_commission_cents));
+    setText('voided-purchases', data.voided_purchases.toLocaleString());
+    document.getElementById('referral-link').value = data.referral_url;
+  }
+  async function load() {
+    hideError(dashboardError);
+    if (!api) {
+      showError(dashboardError, 'Analytics API is not configured yet. The dashboard UI is ready, but the owner still needs to deploy the private API.');
+      return;
+    }
+    var response = await fetch(api + '/api/affiliate/stats', { headers: { Authorization: 'Bearer ' + token }, cache: 'no-store' });
+    if (!response.ok) throw new Error(response.status === 401 ? 'This access token is invalid or expired.' : 'The dashboard could not load right now.');
+    render(await response.json());
+  }
+  function openDashboard() {
+    loginView.classList.add('hidden');
+    dashboardView.classList.remove('hidden');
+    load().catch(function (error) { showError(dashboardError, error.message); });
+  }
+  loginForm.addEventListener('submit', function (event) {
+    event.preventDefault();
+    hideError(loginError);
+    token = document.getElementById('access-token').value.trim();
+    if (!token) { showError(loginError, 'Paste your private access token first.'); return; }
+    try { sessionStorage.setItem(tokenKey, token); } catch (_) {}
+    openDashboard();
+  });
+  document.getElementById('refresh-btn').addEventListener('click', function () { load().catch(function (error) { showError(dashboardError, error.message); }); });
+  document.getElementById('signout-btn').addEventListener('click', function () { try { sessionStorage.removeItem(tokenKey); } catch (_) {} window.location.reload(); });
+  document.getElementById('copy-link').addEventListener('click', async function () {
+    var input = document.getElementById('referral-link');
+    try { await navigator.clipboard.writeText(input.value); document.getElementById('copy-status').textContent = 'Copied.'; }
+    catch (_) { input.select(); document.execCommand('copy'); document.getElementById('copy-status').textContent = 'Copied.'; }
+  });
+
+  if (!api) configNotice.classList.remove('hidden');
+  if (token) openDashboard();
+}());
+</script>
+</body>
+</html>
