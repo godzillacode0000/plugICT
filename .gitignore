@@ -9,6 +9,8 @@ __pycache__/
 *.pyc
 .venv/
 .pytest_cache/
+store/affiliate_ledger.sqlite3
+store/affiliate_ledger.sqlite3-*
 
 # Seller secrets & issued licenses — NEVER commit
 store/issued/
