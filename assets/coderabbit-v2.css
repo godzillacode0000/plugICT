@@ -324,7 +324,10 @@ body:has(.ref-banner.on) .hero-frame{padding-top:42px}
   .hero-stage{padding:0 10px}
 }
 @media(max-width:760px){
-  nav.nav-open::before{top:62px}
+  /* keep the page behind bright: the light glass panel samples it through
+     backdrop-filter, so a heavy scrim would darken the panel itself */
+  nav.nav-open::before{top:62px;background:rgba(0,0,0,.14);
+    backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
 }
 
 /* ══ Mobile menu ═════════════════════════════════════════════════════════════
@@ -332,18 +335,23 @@ body:has(.ref-banner.on) .hero-frame{padding-top:42px}
    divider above the actions, and the two CTAs sitting at the bottom. */
 .navlinks-cta{display:none}
 @media(max-width:960px){
+  /* light frosted glass, as in the reference — the panel lightens what is
+     behind it, so its contents flip to dark ink for contrast */
   .navlinks{top:calc(100% + 8px);padding:16px 20px 18px;
-    background:rgba(20,20,24,.72);
-    backdrop-filter:blur(24px) saturate(170%);-webkit-backdrop-filter:blur(24px) saturate(170%);
-    border:1px solid rgba(255,255,255,.12);border-radius:18px;
-    box-shadow:0 24px 60px -24px rgba(0,0,0,.8)}
+    background:rgba(255,255,255,.76);
+    backdrop-filter:blur(28px) saturate(180%);-webkit-backdrop-filter:blur(28px) saturate(180%);
+    border:1px solid rgba(255,255,255,.6);border-radius:18px;
+    box-shadow:0 24px 60px -24px rgba(0,0,0,.55)}
   /* links are spaced by padding alone — no separators, as in the reference */
   .navlinks a{width:100%;padding:9px 0;border:0;
-    font-size:17px;line-height:1.3;color:var(--ink);letter-spacing:-.01em}
+    font-size:17px;line-height:1.3;color:#14141b;letter-spacing:-.01em}
+  .navlinks a:hover{color:#000}
   .navlinks-cta{display:flex;gap:10px;width:100%;margin-top:12px;padding-top:16px;
-    border-top:1px solid rgba(255,255,255,.13)}
+    border-top:1px solid rgba(0,0,0,.16)}
   .navlinks-cta .btn{padding:11px 18px;font-size:14px;border-radius:11px;white-space:nowrap}
-  .navlinks-cta .btn.ghost{background:rgba(255,255,255,.06);border-color:transparent}
+  .navlinks-cta .btn.ghost{background:rgba(255,255,255,.88);border-color:transparent;color:#14141b}
+  .navlinks-cta .btn.ghost.telegram{color:#0f5f8c}
+  .navlinks-cta .btn.ghost:hover{background:#fff;color:#000}
 }
 @media(max-width:720px){
   .navlinks{border-radius:16px}
