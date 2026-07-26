@@ -339,9 +339,15 @@ body:has(.ref-banner.on) .hero-frame{padding-top:42px}
      behind it, so its contents flip to dark ink for contrast */
   /* `nav.nav-open .navlinks` in the inline sheet pins a 6px radius and outranks
      a bare .navlinks selector, so the open state is matched here too */
+  /* An element with backdrop-filter becomes a backdrop root, so the bar's own
+     filter would leave the panel's blur nothing to sample and the page behind
+     would stay sharp. Drop it while the menu is open and make the bar opaque
+     instead, so the panel can actually blur what is behind it. */
+  nav.nav-open{backdrop-filter:none;-webkit-backdrop-filter:none;
+    background:rgba(20,20,24,.94)}
   .navlinks,nav.nav-open .navlinks{top:calc(100% + 8px);padding:16px 20px 18px;
-    background:rgba(255,255,255,.76);
-    backdrop-filter:blur(28px) saturate(180%);-webkit-backdrop-filter:blur(28px) saturate(180%);
+    background:rgba(255,255,255,.68);
+    backdrop-filter:blur(40px) saturate(180%);-webkit-backdrop-filter:blur(40px) saturate(180%);
     border:1px solid rgba(255,255,255,.6);border-radius:20px;
     box-shadow:0 24px 60px -24px rgba(0,0,0,.55)}
   /* links are spaced by padding alone — no separators, as in the reference */
