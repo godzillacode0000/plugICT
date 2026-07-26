@@ -274,7 +274,8 @@ nav{position:fixed;left:0;right:0;top:20px;width:calc(100% - 64px);max-width:120
 /* one glass bar only: the <nav> is the bar, so neutralise the inner duplicate */
 nav .wrap{height:56px;background:none;border:none;box-shadow:none;border-radius:0;
   backdrop-filter:none;-webkit-backdrop-filter:none;padding:0 12px 0 20px}
-.hero{margin:0;border-radius:26px;overflow:hidden;
+/* scoped to the framed opening panel so other pages keep a plain hero section */
+.hero-frame .hero{margin:0;border-radius:26px;overflow:hidden;
   min-height:calc(100vh - 24px);min-height:calc(100svh - 24px);
   display:flex;align-items:center;
   border:1px solid rgba(255,255,255,.09);
@@ -316,7 +317,7 @@ body:has(.ref-banner.on) .hero-frame{padding-top:42px}
   nav{top:16px;width:calc(100% - 54px)}
   nav .wrap{height:46px;padding:0 10px 0 14px}
   .hero-frame{padding:10px}
-  .hero{border-radius:20px;min-height:calc(100vh - 20px);min-height:calc(100svh - 20px)}
+  .hero-frame .hero{border-radius:20px;min-height:calc(100vh - 20px);min-height:calc(100svh - 20px)}
   .hero .wrap.hero-stack{padding:76px 16px 44px}
   .hero h1{font-size:clamp(26px,7.4vw,32px)}
   .hero-copy .eyebrow{font-size:6.5px;letter-spacing:.08em;padding:3px 8px}
