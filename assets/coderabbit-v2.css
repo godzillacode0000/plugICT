@@ -280,6 +280,11 @@ nav .wrap{height:56px;background:none;border:none;box-shadow:none;border-radius:
   display:flex;align-items:center;
   border:1px solid rgba(255,255,255,.09);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+/* the panel centres a single full-width block, whatever the page puts inside.
+   background-color (not the shorthand) so a page's own gradient layer survives
+   while the panel still sits on a dark base rather than the light surround */
+.hero-frame .hero{background-color:var(--paper)}
+.hero-frame .hero > .wrap{width:100%}
 /* logo returns to the top of the page */
 .brand{text-decoration:none;color:inherit}
 /* hamburger becomes an X while the menu is open */
