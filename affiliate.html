@@ -126,6 +126,9 @@
     section{padding:72px 20px}
   }
 </style>
+<!-- shared design system: must load after the inline styles above so the nav,
+     menu, buttons and type match the main page exactly -->
+<link rel="stylesheet" href="assets/coderabbit-v2.css?v=scroll-reveal-1">
 </head>
 <body>
 
@@ -141,10 +144,17 @@
         <a href="/#pricing">Pricing</a>
         <a href="/#faq">FAQ</a>
         <a href="/affiliate" aria-current="page">Affiliate</a>
+        <div class="navlinks-cta">
+          <a class="btn primary" href="/#pricing">Get PlugICT
+            <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7"/><path d="M9 7h8v8"/></svg>
+          </a>
+          <a class="btn ghost telegram" href="https://telegram.me/plugICT_here" target="_blank" rel="noopener noreferrer">View Telegram</a>
+        </div>
       </div>
       <a class="btn primary small" href="/#pricing">Get access</a>
       <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="navmenu">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/></svg>
+        <svg class="ico-menu" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h18"/><path d="M3 12h18"/><path d="M3 18h18"/></svg>
+        <svg class="ico-close" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 5l14 14"/><path d="M19 5L5 19"/></svg>
       </button>
     </div>
   </div>
