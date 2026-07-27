@@ -11,4 +11,4 @@ ANALYTICS_MODE = "preview"
 [[d1_databases]]
 binding = "DB"
 database_name = "plugict-affiliate-analytics-preview"
-database_id = "00000000-0000-0000-0000-000000000000"
+database_id = "29e37c14-8888-4a8f-b266-2f435dfc6659"
