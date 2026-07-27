@@ -297,8 +297,19 @@ nav .wrap{height:56px;background:none;border:none;box-shadow:none;border-radius:
 .asset-track .pill{display:inline-flex;align-items:center;gap:10px;margin-right:14px;
   padding:12px 22px;border-radius:999px;background:#16161c;border:1px solid #2f2f3a;
   font:500 15px var(--sans);color:#d6d6de;white-space:nowrap}
-.asset-track .pill i{width:22px;height:22px;border-radius:50%;flex-shrink:0;
-  display:inline-block;background:linear-gradient(140deg,var(--terracotta-bright),#0f5132)}
+/* paired instruments carry two overlapping discs, single contracts carry one —
+   abstract colour discs rather than any third-party mark */
+.asset-track .pill .ico{display:inline-flex;align-items:center;flex-shrink:0}
+.asset-track .pill .ico i{width:22px;height:22px;border-radius:50%;display:block;
+  border:1.5px solid #16161c}
+.asset-track .pill .ico i + i{margin-left:-9px}
+.c-ict{background:linear-gradient(140deg,var(--terracotta-bright),#0f5132)}
+.c-usd{background:linear-gradient(140deg,#4a6ad4,#b5303f)}
+.c-eur{background:linear-gradient(140deg,#3665c9,#0d2a68)}
+.c-gbp{background:linear-gradient(140deg,#4863c4,#a92b3a)}
+.c-gold{background:linear-gradient(140deg,#f3c945,#a9791a)}
+.c-btc{background:linear-gradient(140deg,#f7931a,#a85708)}
+.c-idx{background:linear-gradient(140deg,#6270dc,#28337d)}
 .ar-a{animation:ar-L 46s linear infinite}
 .ar-b{animation:ar-R 52s linear infinite}
 @keyframes ar-L{from{transform:translateX(0)}to{transform:translateX(-50%)}}
@@ -312,7 +323,8 @@ nav .wrap{height:56px;background:none;border:none;box-shadow:none;border-radius:
   .assets-band{padding:12px 10px 0}
   .asset-card{border-radius:16px;padding:22px 0 4px}
   .asset-track .pill{padding:10px 16px;font-size:13px;gap:8px;margin-right:10px}
-  .asset-track .pill i{width:18px;height:18px}
+  .asset-track .pill .ico i{width:18px;height:18px;border-width:1.25px}
+  .asset-track .pill .ico i + i{margin-left:-7px}
   .asset-copy{padding:34px 20px 24px}
 }
 
