@@ -1,0 +1,12 @@
+name = "plugict-affiliate-preview"
+compatibility_date = "2026-07-27"
+pages_build_output_dir = "dist"
+
+[vars]
+ANALYTICS_MODE = "preview"
+ALLOWED_ORIGINS = "http://localhost:8788,http://127.0.0.1:8788"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "plugict-affiliate-analytics-preview"
+database_id = "00000000-0000-0000-0000-000000000000"

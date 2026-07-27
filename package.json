@@ -2,8 +2,11 @@
   "name": "plugict-static-site",
   "private": true,
   "version": "1.0.0",
+  "type": "module",
   "scripts": {
     "build:site": "node scripts/build_cloudflare_site.mjs",
-    "test:build-site": "node cloudflare/tests/build-site.test.js"
+    "test:build-site": "node cloudflare/tests/build-site.test.js",
+    "test:cloudflare": "node --test cloudflare/tests/click.test.js cloudflare/tests/affiliate-stats.test.js cloudflare/tests/retention.test.js cloudflare/tests/schema.test.js cloudflare/tests/static-route-contract.test.js cloudflare/tests/frontend-contract.test.js",
+    "test": "npm run test:build-site && npm run test:cloudflare"
   }
 }

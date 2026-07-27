@@ -1,5 +1,5 @@
 /* Privacy-first referral click beacon for the static PlugICT pages.
-   Configure window.PLUGICT_AFFILIATE_API after deploying the API service.
+   Configure window.PLUGICT_AFFILIATE_API only during approved activation.
    With an empty URL, this is intentionally inert. */
 (function () {
   'use strict';
@@ -9,9 +9,8 @@
 
   var params = new URLSearchParams(window.location.search);
   var ref = (params.get('ref') || '').trim().toLowerCase();
-  if (!/^[a-z0-9_-]{1,64}$/.test(ref)) {
-    try { ref = (localStorage.getItem('plugict_ref') || '').trim().toLowerCase(); } catch (_) {}
-  }
+  /* A stored referral keeps checkout attribution alive, but must not create
+     another analytics click on later visits. */
   if (!/^[a-z0-9_-]{1,64}$/.test(ref)) return;
 
   function persistentId(key) {
@@ -42,16 +41,12 @@
   var endpoint = api + '/api/affiliate/click';
 
   try {
-    if (navigator.sendBeacon) {
-      navigator.sendBeacon(endpoint, new Blob([body], { type: 'application/json' }));
-    } else {
-      fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: body,
-        keepalive: true,
-        credentials: 'omit'
-      }).catch(function () {});
-    }
+    fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+      body: body,
+      keepalive: true,
+      credentials: 'omit'
+    }).catch(function () {});
   } catch (_) {}
 }());

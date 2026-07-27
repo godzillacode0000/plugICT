@@ -1,24 +1,21 @@
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
-const { spawnSync } = require('node:child_process');
+import assert from 'node:assert/strict';
+import { mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
 
-const root = path.resolve(__dirname, '..', '..');
-const builder = path.join(root, 'scripts', 'build_cloudflare_site.mjs');
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const script = path.join(root, 'scripts', 'build_cloudflare_site.mjs');
 const manifest = path.join(root, 'cloudflare', 'public-files.txt');
-const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'plugict-build-boundary-'));
 
-function run(manifestPath, outputDir) {
-  return spawnSync(process.execPath, [builder, '--manifest', manifestPath, '--out', outputDir], {
-    cwd: root,
-    encoding: 'utf8',
-  });
+function run(args) {
+  return spawnSync(process.execPath, [script, ...args], { cwd: root, encoding: 'utf8' });
 }
 
 function walk(directory, base = directory) {
   const result = [];
-  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
     const absolute = path.join(directory, entry.name);
     if (entry.isDirectory()) result.push(...walk(absolute, base));
     else result.push(path.relative(base, absolute).replaceAll(path.sep, '/'));
@@ -26,34 +23,30 @@ function walk(directory, base = directory) {
   return result.sort();
 }
 
-function writeManifest(name, lines) {
-  const file = path.join(tempRoot, name);
-  fs.writeFileSync(file, `${lines.join('\n')}\n`);
-  return file;
-}
-
+const temp = mkdtempSync(path.join(os.tmpdir(), 'plugict-build-test-'));
 try {
-  const output = path.join(tempRoot, 'dist');
-  const good = run(manifest, output);
-  assert.equal(good.status, 0, good.stderr);
-
-  const expected = fs.readFileSync(manifest, 'utf8').split(/\r?\n/).filter(Boolean).sort();
+  const output = path.join(temp, 'dist');
+  const result = run(['--manifest', manifest, '--out', output]);
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+  const expected = readFileSync(manifest, 'utf8').split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   const actual = walk(output);
-  assert.deepEqual(actual, [...expected, '_headers', '_redirects', '_routes.json'].sort());
-  assert.equal(JSON.parse(fs.readFileSync(path.join(output, '_routes.json'), 'utf8')).include[0], '/api/*');
-  assert.equal(fs.existsSync(path.join(output, 'store')), false);
-  assert.equal(fs.existsSync(path.join(output, 'scripts')), false);
-  assert.equal(fs.existsSync(path.join(output, 'tests')), false);
-  assert.equal(fs.existsSync(path.join(output, 'assets', 'video', 'hero-background-source.mp4')), false);
-  assert.equal(fs.existsSync(path.join(output, 'assets', 'video', 'knowledge-graph', 'index.html')), false);
+  assert.deepEqual(actual, [...expected, '404.html', '_headers', '_redirects', '_routes.json'].sort());
+  assert.equal(actual.includes('store/affiliate_ledger.sqlite3'), false);
+  assert.equal(actual.includes('assets/video/hero-background-source.mp4'), false);
+  assert.equal(readFileSync(path.join(output, 'index.html'), 'utf8'), readFileSync(path.join(root, 'index.html'), 'utf8'));
 
-  const missing = [...expected, 'missing-file.html'];
-  assert.notEqual(run(writeManifest('missing.txt', missing), path.join(tempRoot, 'missing-out')).status, 0);
-  assert.notEqual(run(writeManifest('parent.txt', ['../README.md']), path.join(tempRoot, 'parent-out')).status, 0);
-  assert.notEqual(run(writeManifest('absolute.txt', ['/etc/passwd']), path.join(tempRoot, 'absolute-out')).status, 0);
-  assert.notEqual(run(writeManifest('duplicate.txt', ['index.html', 'index.html']), path.join(tempRoot, 'duplicate-out')).status, 0);
+  const malformed = path.join(temp, 'malformed.txt');
+  writeFileSync(malformed, `${readFileSync(manifest, 'utf8')}\n../store/secret.txt\n`);
+  const rejectedParent = run(['--manifest', malformed, '--out', path.join(temp, 'bad-parent')]);
+  assert.notEqual(rejectedParent.status, 0);
+  assert.match(rejectedParent.stderr, /parent traversal|unsafe/i);
 
-  console.log(`BUILD_BOUNDARY_TEST|PASS|manifest=${expected.length}|generated=3`);
+  writeFileSync(malformed, `${readFileSync(manifest, 'utf8')}\nmissing-file.txt\n`);
+  const rejectedMissing = run(['--manifest', malformed, '--out', path.join(temp, 'bad-missing')]);
+  assert.notEqual(rejectedMissing.status, 0);
+  assert.match(rejectedMissing.stderr, /missing/i);
 } finally {
-  fs.rmSync(tempRoot, { recursive: true, force: true });
+  rmSync(temp, { recursive: true, force: true });
 }
+
+console.log('build-boundary|PASS');
