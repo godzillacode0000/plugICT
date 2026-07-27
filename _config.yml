@@ -1,0 +1,27 @@
+exclude:
+  - AGENTS.md
+  - CLAUDE.md
+  - HERMES.md
+  - LAUNCH.md
+  - PLUGICT-AGENT-SKILL.md
+  - README.md
+  - VAULT.md
+  - install.py
+  - setup.py
+  - setup.sh
+  - setup.bat
+  - render.yaml
+  - requirements.txt
+  - store/
+  - scripts/
+  - tests/
+  - docs/
+  - benchmarks/
+  - __pycache__/
+  - assets/video/knowledge-graph/
+  - cloudflare/
+  - functions/
+  - graphify-out/
+  - tmpplugict-release-v362/
+  - .hermes/
+  - .github/
