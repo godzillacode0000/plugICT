@@ -64,6 +64,8 @@ for (const entry of entries) {
 
 // These are deployment metadata, not public source files. They are generated
 // after the allowlist copy and contain no repository content or credentials.
+fs.writeFileSync(path.join(outputDir, '404.html'), `<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>PlugICT — Not found</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#070709;color:#f7f7f8;font:16px system-ui,sans-serif}main{text-align:center}a{color:#4ade80}</style></head><body><main><h1>Page not found</h1><p><a href="/">Back to PlugICT</a></p></main></body></html>`);
 fs.writeFileSync(path.join(outputDir, '_routes.json'), `${JSON.stringify({
   version: 1,
   include: ['/api/*'],
@@ -74,4 +76,4 @@ fs.writeFileSync(path.join(outputDir, '_redirects'), `/affiliate              /a
 
 console.log(`ALLOWLIST_BUILD|files=${entries.length}|output=${path.relative(repoRoot, outputDir)}`);
 for (const entry of entries) console.log(`COPIED|${entry}`);
-console.log('GENERATED|_routes.json|_headers|_redirects');
+console.log('GENERATED|404.html|_routes.json|_headers|_redirects');

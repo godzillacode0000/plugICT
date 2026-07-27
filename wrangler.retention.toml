@@ -1,0 +1,14 @@
+name = "plugict-affiliate-retention-preview"
+main = "cloudflare/retention-worker/src/index.js"
+compatibility_date = "2026-07-27"
+
+[triggers]
+crons = ["0 3 * * *"]
+
+[vars]
+ANALYTICS_MODE = "preview"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "plugict-affiliate-analytics-preview"
+database_id = "00000000-0000-0000-0000-000000000000"

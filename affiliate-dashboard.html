@@ -94,7 +94,7 @@
   <header class="hero">
     <div class="eyebrow">Private affiliate dashboard</div>
     <h1>Your numbers, <em>not guesswork.</em></h1>
-    <p>See referral clicks, paid purchases, conversion rate, and commission status in one place.</p>
+    <p>See fresh referral clicks and approximate visitors in one place. Payment and commission fields stay unavailable until the finance sync is connected.</p>
   </header>
 
   <section id="login-view" class="login">
@@ -144,28 +144,24 @@
   var loginError = document.getElementById('login-error');
   var dashboardError = document.getElementById('dashboard-error');
   var configNotice = document.getElementById('config-notice');
-  var params = new URLSearchParams(window.location.search);
-  var queryToken = params.get('token');
-  if (queryToken) {
-    try { sessionStorage.setItem(tokenKey, queryToken); } catch (_) {}
-    history.replaceState({}, document.title, window.location.pathname);
-  }
-  var token = queryToken || (function () { try { return sessionStorage.getItem(tokenKey) || ''; } catch (_) { return ''; } }());
+  var token = (function () { try { return sessionStorage.getItem(tokenKey) || ''; } catch (_) { return ''; } }());
 
   function showError(el, message) { el.textContent = message; el.classList.remove('hidden'); }
   function hideError(el) { el.textContent = ''; el.classList.add('hidden'); }
-  function money(cents) { return '$' + (Number(cents || 0) / 100).toFixed(2); }
+  function money(cents) { return cents == null ? 'Not connected' : '$' + (Number(cents) / 100).toFixed(2); }
+  function metric(value) { return value == null ? 'Not connected' : Number(value).toLocaleString(); }
+  function percent(value) { return value == null ? 'Not connected' : Number(value).toFixed(2) + '%'; }
   function setText(id, value) { document.getElementById(id).textContent = value; }
   function render(data) {
     setText('affiliate-name', data.affiliate.name);
     setText('affiliate-code', 'CODE · ' + data.affiliate.code);
-    setText('clicks', data.clicks.toLocaleString());
-    setText('unique-clicks', data.unique_clicks.toLocaleString());
-    setText('purchases', data.purchases.toLocaleString());
-    setText('conversion', data.conversion_rate.toFixed(2) + '%');
+    setText('clicks', metric(data.clicks));
+    setText('unique-clicks', metric(data.unique_clicks));
+    setText('purchases', metric(data.purchases));
+    setText('conversion', percent(data.conversion_rate));
     setText('pending-commission', money(data.pending_commission_cents));
     setText('paid-commission', money(data.paid_commission_cents));
-    setText('voided-purchases', data.voided_purchases.toLocaleString());
+    setText('voided-purchases', metric(data.voided_purchases));
     document.getElementById('referral-link').value = data.referral_url;
   }
   async function load() {

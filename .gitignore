@@ -29,3 +29,5 @@ graphify-out/
 # Generated allowlist deployment artifact and local Node dependencies
 dist/
 node_modules/
+.wrangler/
+.dev.vars

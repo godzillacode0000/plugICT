@@ -115,3 +115,45 @@ affiliate URL
 → refund/dispute invalidation
 → manual payout batch
 ```
+
+## Gate B Cloudflare preview operations
+
+Gate B adds a preview-only Pages Functions + D1 analytics plane. It does not replace the SQLite ledger, Stripe read-only monitor, or manual payout flow.
+
+- D1 stores affiliate code/status/token hashes and privacy-safe click events only.
+- D1 never receives buyer email, raw IP, raw user-agent, Stripe IDs, commission amounts, payout state, or license data.
+- Clicks are approximate operational analytics, not payout proof.
+- The public beacon remains disabled until the separate hosting/activation gates are approved.
+- Affiliate dashboard tokens are entered into a password field and held in session-only browser storage; query-string token bootstrapping is prohibited.
+- Finance fields remain `null`/`Not connected` until an authoritative read-only sync is separately approved.
+
+Apply local preview schema:
+
+```bash
+npm run build:site
+npx wrangler d1 execute plugict-affiliate-analytics-preview \
+  --local --config wrangler.toml --file=cloudflare/schema.sql
+```
+
+Mirror the exact existing private ledger path fail-closed:
+
+```bash
+python scripts/sync_affiliate_to_d1.py \
+  --ledger C:/private/exact/affiliate_ledger.sqlite3 \
+  --database plugict-affiliate-analytics-preview --dry-run
+```
+
+Remote execution is restricted to preview and requires explicit confirmation:
+
+```bash
+python scripts/sync_affiliate_to_d1.py \
+  --ledger C:/private/exact/affiliate_ledger.sqlite3 \
+  --database plugict-affiliate-analytics-preview \
+  --remote --confirm-preview
+```
+
+The retention Worker deletes only click rows older than 90 days, in bounded batches, and has no public maintenance route. Do not schedule it through Hermes cron during Gate B.
+
+## Disablement / rollback
+
+Keep `assets/affiliate-config.js` empty to disable public collection. To roll back preview, stop the preview Pages/Worker deployment, revoke preview affiliate tokens, and leave GitHub Pages, DNS, Stripe, and the private SQLite ledger unchanged. Do not delete or alter the financial ledger as part of analytics rollback.
