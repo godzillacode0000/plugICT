@@ -1,0 +1,9 @@
+{
+  "name": "plugict-static-site",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "build:site": "node scripts/build_cloudflare_site.mjs",
+    "test:build-site": "node cloudflare/tests/build-site.test.js"
+  }
+}
