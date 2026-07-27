@@ -1197,18 +1197,22 @@ window.PLUGICT = {
 
   // Concepts x instruments rails: same duplicate-once trick as the ticker above.
   (function(){
-    // [label, ...discs] — pairs carry two overlapping discs, single contracts one
+    // Reuses the .asset-chip system above so both rails share one chip style.
+    // Concepts get a plain green bubble; instruments get flag/coin glyphs.
+    function icoHtml(icons){
+      if(!icons) return '<span class="ico single"><span class="bubble bubble-ict"></span></span>';
+      if(icons.length===1) return '<span class="ico single"><span class="bubble">'+icons[0]+'</span></span>';
+      return '<span class="ico duo">'+icons.map(i=>'<span class="bubble">'+i+'</span>').join('')+'</span>';
+    }
     function fill(el,rows){el.innerHTML=(rows.map(function(r){
-      var ico=r.slice(1).map(c=>'<i class="'+c+'"></i>').join('');
-      return '<span class="pill"><span class="ico">'+ico+'</span>'+r[0]+'</span>';
+      return '<span class="asset-chip">'+icoHtml(r[1])+'<span class="label">'+r[0]+'</span></span>';
     }).join('')).repeat(2);}
     const a=document.getElementById('ar1'), b=document.getElementById('ar2'); if(!a||!b) return;
-    fill(a,[["Fair Value Gap","c-ict"],["Order Block","c-ict"],["Liquidity Sweep","c-ict"],
-            ["Silver Bullet","c-ict"],["Breaker Block","c-ict"],["Optimal Trade Entry","c-ict"],
-            ["Market Structure Shift","c-ict"]]);
-    fill(b,[["EUR/USD","c-eur","c-usd"],["GBP/USD","c-gbp","c-usd"],["XAU/USD","c-gold","c-usd"],
-            ["BTC/USD","c-btc","c-usd"],["NAS100","c-idx"],["US30","c-idx"],
-            ["S&P 500 (ES)","c-idx"],["Nasdaq (NQ)","c-idx"]]);
+    fill(a,[["Fair Value Gap"],["Order Block"],["Liquidity Sweep"],["Silver Bullet"],
+            ["Breaker Block"],["Optimal Trade Entry"],["Market Structure Shift"]]);
+    fill(b,[["EUR/USD",['🇪🇺','🇺🇸']],["GBP/USD",['🇬🇧','🇺🇸']],["XAU/USD",['🪙','🇺🇸']],
+            ["BTC/USD",['₿','🇺🇸']],["Japanese Yen (6J)",['🇯🇵']],["British Pound (6B)",['🇬🇧']],
+            ["Canadian Dollar (6C)",['🇨🇦']],["Euro FX (6E)",['🇪🇺']]]);
     document.addEventListener('visibilitychange',function(){
       [a,b].forEach(t=>t.style.animationPlayState=document.hidden?'paused':'running');});
   })();
