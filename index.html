@@ -218,19 +218,35 @@ window.PLUGICT = {
     font:500 14px var(--sans); color:var(--ink-mut)}
   .stats i{color:var(--terracotta); font-style:normal}
 
-  /* ── concept ticker (kinetic marquee) ─────────────────────── */
-  .ticker{padding:36px 0; margin-top:56px; overflow:hidden; background:var(--paper-alt);
-    border-top:1px solid var(--line-soft); border-bottom:1px solid var(--line-soft);
-    -webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);
-            mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}
+  /* ── market chip ticker (FundedNext-style marquee) ────────── */
+  .ticker{padding:34px 28px 0; margin-top:56px}
+  .ticker-shell{max-width:var(--maxw); margin:0 auto; padding:18px 16px 20px; overflow:hidden;
+    background:linear-gradient(180deg, rgba(16,16,16,.98), rgba(10,10,10,.98));
+    border:1px solid rgba(255,255,255,.07); border-radius:18px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.04), 0 24px 64px -40px rgba(0,0,0,.88);
+    -webkit-mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent);
+            mask-image:linear-gradient(90deg,transparent,#000 5%,#000 95%,transparent)}
   .tk-row{overflow:hidden; white-space:nowrap}
-  .tk-row + .tk-row{margin-top:8px}
-  .tk-track{display:inline-block; will-change:transform}
-  .tk-track span{display:inline-block; font:500 clamp(5.5px,1.25vw,10.5px)/1 var(--serif);
-     letter-spacing:-.01em; color:var(--ink); padding:0 .3em}
-  .tk-track .tk-dot{color:var(--terracotta); font-style:normal}
-  .tk-a{animation:tk-L 38s linear infinite}
-  .tk-b{animation:tk-R 44s linear infinite}
+  .tk-row + .tk-row{margin-top:12px}
+  .tk-track{display:inline-flex; align-items:center; gap:12px; will-change:transform}
+  .tk-track span{flex-shrink:0}
+  .asset-chip{display:inline-flex; align-items:center; gap:10px; min-height:44px; padding:11px 16px 11px 12px;
+    border-radius:999px; background:linear-gradient(180deg, rgba(20,20,20,.98), rgba(12,12,12,.98));
+    border:1px solid rgba(255,255,255,.07); box-shadow:inset 0 1px 0 rgba(255,255,255,.04), 0 10px 22px rgba(0,0,0,.3);
+    color:var(--ink-soft);}
+  .asset-chip .ico{position:relative; display:inline-flex; align-items:center; justify-content:center; width:26px; height:26px;
+    border-radius:50%; background:radial-gradient(circle at 30% 28%, rgba(38,38,38,.98), rgba(16,16,16,.98) 65%, rgba(8,8,8,.98) 100%);
+    border:1px solid rgba(255,255,255,.08); box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+  .asset-chip .ico.single{font-size:14px; line-height:1}
+  .asset-chip .ico.duo{gap:0; width:auto; min-width:38px; padding:0 3px}
+  .asset-chip .ico.duo .bubble{width:18px; height:18px; margin-left:-6px}
+  .asset-chip .ico.duo .bubble:first-child{margin-left:0}
+  .asset-chip .bubble{display:grid; place-items:center; width:20px; height:20px; border-radius:50%;
+    background:linear-gradient(180deg, rgba(255,255,255,.09), rgba(255,255,255,.03));
+    border:1px solid rgba(255,255,255,.08); font-size:12px; line-height:1; box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+  .asset-chip .label{font:600 clamp(11px,1.58vw,14px)/1 var(--sans); letter-spacing:-.01em; color:rgba(249,250,251,.78); white-space:nowrap}
+  .tk-a{animation:tk-L 36s linear infinite}
+  .tk-b{animation:tk-R 42s linear infinite}
   @keyframes tk-L{from{transform:translateX(0)}to{transform:translateX(-50%)}}
   @keyframes tk-R{from{transform:translateX(-50%)}to{transform:translateX(0)}}
   @media(prefers-reduced-motion:reduce){.tk-a,.tk-b{animation:none}}
@@ -804,10 +820,12 @@ window.PLUGICT = {
   </div>
 </section>
 
-<!-- ═══ CONCEPT TICKER ═══ -->
+<!-- ═══ MARKET CHIP TICKER ═══ -->
 <div class="ticker fadeup" aria-hidden="true">
-  <div class="tk-row"><div class="tk-track tk-a" id="tk1"></div></div>
-  <div class="tk-row"><div class="tk-track tk-b" id="tk2"></div></div>
+  <div class="ticker-shell">
+    <div class="tk-row"><div class="tk-track tk-a" id="tk1"></div></div>
+    <div class="tk-row"><div class="tk-track tk-b" id="tk2"></div></div>
+  </div>
 </div>
 
 <!-- ═══ PROBLEM ═══ -->
@@ -1130,13 +1148,33 @@ window.PLUGICT = {
   document.querySelectorAll('[data-year]').forEach(e=>e.textContent=new Date().getFullYear());
   const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  // Concept ticker: fill both marquee rows with real ICT concepts, duplicated
-  // once so the -50% translate loops seamlessly. Pauses when tab is hidden.
+  // Market chip ticker: fill both marquee rows with FundedNext-style chips,
+  // duplicated once so the -50% translate loops seamlessly. Pauses when tab is hidden.
   (function(){
-    function fill(el,w){el.innerHTML=(w.map(x=>'<span>'+x+'</span><span class="tk-dot">&bull;</span>').join('')).repeat(2);}
+    function icoHtml(icons){
+      if(!icons || !icons.length) return '';
+      if(icons.length === 1) return '<span class="ico single"><span class="bubble">'+icons[0]+'</span></span>';
+      return '<span class="ico duo">'+icons.map(icon=>'<span class="bubble">'+icon+'</span>').join('')+'</span>';
+    }
+    function chip(item){
+      return '<span class="asset-chip">'+icoHtml(item.icons)+'<span class="label">'+item.label+'</span></span>';
+    }
+    function fill(el,items){el.innerHTML=(items.map(chip).join('')).repeat(2);}
     const t1=document.getElementById('tk1'), t2=document.getElementById('tk2'); if(!t1||!t2) return;
-    fill(t1,["FAIR VALUE GAP","ORDER BLOCK","LIQUIDITY","SILVER BULLET","BREAKER BLOCK","OPTIMAL TRADE ENTRY","MARKET STRUCTURE SHIFT"]);
-    fill(t2,["SMT DIVERGENCE","JUDAS SWING","POWER OF 3","MITIGATION BLOCK","KILL ZONE","BALANCED PRICE RANGE","CISD"]);
+    fill(t1,[
+      {label:'XAU/USD',icons:['🪙','🇺🇸']},
+      {label:'EUR/USD',icons:['🇪🇺','🇺🇸']},
+      {label:'BTC/USD',icons:['₿','🇺🇸']},
+      {label:'XRP/USD',icons:['✕','🇺🇸']},
+      {label:'XAU/USD',icons:['🪙','🇺🇸']}
+    ]);
+    fill(t2,[
+      {label:'Australian Dollar (6A)',icons:['🇦🇺']},
+      {label:'British Pound (6B)',icons:['🇬🇧']},
+      {label:'Canadian Dollar (6C)',icons:['🇨🇦']},
+      {label:'Euro FX (6E)',icons:['🇪🇺']},
+      {label:'Japanese Yen (6J)',icons:['🇯🇵']}
+    ]);
     document.addEventListener('visibilitychange',function(){
       [t1,t2].forEach(t=>t.style.animationPlayState=document.hidden?'paused':'running');});
   })();
