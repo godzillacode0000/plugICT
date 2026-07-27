@@ -5,6 +5,7 @@ pages_build_output_dir = "dist"
 [vars]
 ANALYTICS_MODE = "preview"
 ALLOWED_ORIGINS = "http://localhost:8788,http://127.0.0.1:8788"
+CLICK_HASH_SALT = "preview-click-salt"
 
 [[d1_databases]]
 binding = "DB"
