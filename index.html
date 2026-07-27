@@ -1197,10 +1197,18 @@ window.PLUGICT = {
 
   // Concepts x instruments rails: same duplicate-once trick as the ticker above.
   (function(){
-    function fill(el,w){el.innerHTML=(w.map(x=>'<span class="pill"><i></i>'+x+'</span>').join('')).repeat(2);}
+    // [label, ...discs] — pairs carry two overlapping discs, single contracts one
+    function fill(el,rows){el.innerHTML=(rows.map(function(r){
+      var ico=r.slice(1).map(c=>'<i class="'+c+'"></i>').join('');
+      return '<span class="pill"><span class="ico">'+ico+'</span>'+r[0]+'</span>';
+    }).join('')).repeat(2);}
     const a=document.getElementById('ar1'), b=document.getElementById('ar2'); if(!a||!b) return;
-    fill(a,["Fair Value Gap","Order Block","Liquidity Sweep","Silver Bullet","Breaker Block","Optimal Trade Entry","Market Structure Shift"]);
-    fill(b,["EUR/USD","GBP/USD","XAU/USD","BTC/USD","NAS100","US30","S&P 500 (ES)","Nasdaq (NQ)"]);
+    fill(a,[["Fair Value Gap","c-ict"],["Order Block","c-ict"],["Liquidity Sweep","c-ict"],
+            ["Silver Bullet","c-ict"],["Breaker Block","c-ict"],["Optimal Trade Entry","c-ict"],
+            ["Market Structure Shift","c-ict"]]);
+    fill(b,[["EUR/USD","c-eur","c-usd"],["GBP/USD","c-gbp","c-usd"],["XAU/USD","c-gold","c-usd"],
+            ["BTC/USD","c-btc","c-usd"],["NAS100","c-idx"],["US30","c-idx"],
+            ["S&P 500 (ES)","c-idx"],["Nasdaq (NQ)","c-idx"]]);
     document.addEventListener('visibilitychange',function(){
       [a,b].forEach(t=>t.style.animationPlayState=document.hidden?'paused':'running');});
   })();
