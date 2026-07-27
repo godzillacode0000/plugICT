@@ -282,6 +282,40 @@ nav .wrap{height:56px;background:none;border:none;box-shadow:none;border-radius:
   display:flex;align-items:center;
   border:1px solid rgba(255,255,255,.09);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+/* ══ Concepts × instruments card ══════════════════════════════════════════════
+   Two pill rails scrolling in opposite directions, edge-masked, with the copy
+   sitting underneath — reuses the concept ticker's marquee approach. */
+.assets-band{padding:14px 12px 0;background:var(--paper)}
+.assets-band .inner{max-width:1200px;margin:0 auto}
+.asset-card{position:relative;overflow:hidden;border-radius:20px;
+  background:#111115;border:1px solid #292932;padding:30px 0 8px}
+.asset-rails{display:flex;flex-direction:column;gap:14px;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);
+  mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
+.asset-row{overflow:hidden;white-space:nowrap}
+.asset-track{display:inline-block;will-change:transform}
+.asset-track .pill{display:inline-flex;align-items:center;gap:10px;margin-right:14px;
+  padding:12px 22px;border-radius:999px;background:#16161c;border:1px solid #2f2f3a;
+  font:500 15px var(--sans);color:#d6d6de;white-space:nowrap}
+.asset-track .pill i{width:22px;height:22px;border-radius:50%;flex-shrink:0;
+  display:inline-block;background:linear-gradient(140deg,var(--terracotta-bright),#0f5132)}
+.ar-a{animation:ar-L 46s linear infinite}
+.ar-b{animation:ar-R 52s linear infinite}
+@keyframes ar-L{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes ar-R{from{transform:translateX(-50%)}to{transform:translateX(0)}}
+@media(prefers-reduced-motion:reduce){.ar-a,.ar-b{animation:none}}
+.asset-copy{padding:44px 32px 30px}
+.asset-copy h3{font:600 clamp(26px,3vw,38px)/1.12 var(--sans);letter-spacing:-.03em;color:var(--ink)}
+.asset-copy p{margin-top:12px;max-width:540px;color:var(--ink-soft);
+  font-size:clamp(15px,1.4vw,17px);line-height:1.6}
+@media(max-width:700px){
+  .assets-band{padding:12px 10px 0}
+  .asset-card{border-radius:16px;padding:22px 0 4px}
+  .asset-track .pill{padding:10px 16px;font-size:13px;gap:8px;margin-right:10px}
+  .asset-track .pill i{width:18px;height:18px}
+  .asset-copy{padding:34px 20px 24px}
+}
+
 /* Affiliate hero: match the main page's small badge and pill buttons.
    `.hero .wrap > .eyebrow` selects the affiliate page only — on the main page
    the badge sits inside .hero-copy rather than directly under .wrap. */
