@@ -924,6 +924,22 @@ window.PLUGICT = {
   </div>
 </section>
 
+<!-- ═══ CONCEPTS × INSTRUMENTS CARD ═══ -->
+<section class="assets-band">
+  <div class="inner">
+    <div class="asset-card fadeup">
+      <div class="asset-rails" aria-hidden="true">
+        <div class="asset-row"><div class="asset-track ar-a" id="ar1"></div></div>
+        <div class="asset-row"><div class="asset-track ar-b" id="ar2"></div></div>
+      </div>
+      <div class="asset-copy">
+        <h3>Utilise ICT Concepts</h3>
+        <p>Implement it with popular CFD instruments and Future contracts</p>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- ═══ BUYER-OWNED AI WORKFLOW ═══ -->
 <section id="agents" class="agent-section">
   <div class="inner">
@@ -1177,6 +1193,16 @@ window.PLUGICT = {
     ]);
     document.addEventListener('visibilitychange',function(){
       [t1,t2].forEach(t=>t.style.animationPlayState=document.hidden?'paused':'running');});
+  })();
+
+  // Concepts x instruments rails: same duplicate-once trick as the ticker above.
+  (function(){
+    function fill(el,w){el.innerHTML=(w.map(x=>'<span class="pill"><i></i>'+x+'</span>').join('')).repeat(2);}
+    const a=document.getElementById('ar1'), b=document.getElementById('ar2'); if(!a||!b) return;
+    fill(a,["Fair Value Gap","Order Block","Liquidity Sweep","Silver Bullet","Breaker Block","Optimal Trade Entry","Market Structure Shift"]);
+    fill(b,["EUR/USD","GBP/USD","XAU/USD","BTC/USD","NAS100","US30","S&P 500 (ES)","Nasdaq (NQ)"]);
+    document.addEventListener('visibilitychange',function(){
+      [a,b].forEach(t=>t.style.animationPlayState=document.hidden?'paused':'running');});
   })();
 
   // Mobile nav: hamburger toggles the section links dropdown.
