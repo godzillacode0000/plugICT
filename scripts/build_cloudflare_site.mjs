@@ -72,7 +72,11 @@ fs.writeFileSync(path.join(outputDir, '_routes.json'), `${JSON.stringify({
   exclude: [],
 }, null, 2)}\n`);
 fs.writeFileSync(path.join(outputDir, '_headers'), `/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=()\n\n/affiliate-dashboard*\n  Cache-Control: no-store\n  Referrer-Policy: no-referrer\n`);
-fs.writeFileSync(path.join(outputDir, '_redirects'), `/affiliate              /affiliate.html              200\n/affiliate-dashboard    /affiliate-dashboard.html    200\n`);
+fs.writeFileSync(path.join(outputDir, '_redirects'), '');
+fs.mkdirSync(path.join(outputDir, 'affiliate'), { recursive: true });
+fs.copyFileSync(path.join(outputDir, 'affiliate.html'), path.join(outputDir, 'affiliate', 'index.html'));
+fs.mkdirSync(path.join(outputDir, 'affiliate-dashboard'), { recursive: true });
+fs.copyFileSync(path.join(outputDir, 'affiliate-dashboard.html'), path.join(outputDir, 'affiliate-dashboard', 'index.html'));
 
 console.log(`ALLOWLIST_BUILD|files=${entries.length}|output=${path.relative(repoRoot, outputDir)}`);
 for (const entry of entries) console.log(`COPIED|${entry}`);
