@@ -127,6 +127,16 @@ section h2{font:600 clamp(34px,4.6vw,60px)/1.03 var(--sans);letter-spacing:-.045
 .kg-pulse{fill:#4ade80}
 .kg-caption{background:#101014;border-color:rgba(34,197,94,.25)}
 
+/* The knowledge-graph card is visual-first — a compact label, then the film.
+   With no body copy left, `.cap-visual`'s auto top margin and the .cv-graph
+   32px offset would open a gap exactly where the text used to be, so both
+   get pinned shut. */
+.kg-card{padding:22px}
+.kg-label{display:flex;flex-direction:column;gap:5px;margin-bottom:16px}
+.kg-label .eyebrow{font-size:10px;letter-spacing:.12em}
+.kg-label p{margin:0;font-size:13px;line-height:1.4;color:var(--ink-mut)}
+.kg-card .cap-visual.cv-graph{margin-top:0;padding-top:0}
+
 /* Buyer-owned AI section mirrors CodeRabbit's workflow/flexibility chapters. */
 .agent-section{background:#0d0d10;border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft)}
 .agent-head{display:grid;grid-template-columns:.82fr 1.18fr;gap:64px;align-items:end}
@@ -230,6 +240,17 @@ footer .disc{color:#92929d}
   .cap-row{margin-bottom:12px;min-height:0}
   .cap-row:nth-child(4){padding:20px 12px}
   .cv-graph{min-height:370px}
+  /* On mobile the film is the point of this section, so the card bleeds past
+     the section gutter to reach ~93% of the viewport. The bleed stays inside
+     the viewport width, so nothing scrolls sideways. */
+  #capabilities .kg-card{margin-left:-10px;margin-right:-10px;padding:14px 6px 6px}
+  .kg-label{margin-bottom:11px;padding:0 8px}
+  .kg-label p{font-size:12px}
+  /* 4/3 with the existing object-fit:cover crops the source to its middle 75%
+     and buys a third more height. Checked against the film: the graph occupies
+     22-80% of frame width and the closing wordmark 27-72%, both well inside the
+     12.5-87.5% the crop keeps, so nothing gets clipped. */
+  .cv-video .kg-video{aspect-ratio:4/3}
   .agent-grid{margin-top:34px}
   .agent-picker{padding:12px}
   .flow-body{padding:18px}
