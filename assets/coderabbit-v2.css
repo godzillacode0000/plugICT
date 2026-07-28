@@ -336,6 +336,10 @@ nav .wrap{height:56px;background:none;border:none;box-shadow:none;border-radius:
   box-shadow:0 2px 6px rgba(0,0,0,.45)}
 .asset-track .asset-chip .ico.duo .bubble{width:38px;height:38px;font-size:34px;margin-left:-13px}
 .asset-track .asset-chip .ico.duo .bubble:first-child{margin-left:0}
+/* a drawn mark already carries its own disc and colour, so it fills the bubble
+   completely and only the ring is kept */
+.asset-track .asset-chip .bubble.coin{background:none;padding:0}
+.asset-track .asset-chip .bubble.coin svg{display:block;width:100%;height:100%}
 /* the concept bubble has no glyph, so it stays a small brand dot rather than a
    big empty disc — and it has to restate its gradient, since the coin rule
    above shares its specificity and would otherwise win on source order */
