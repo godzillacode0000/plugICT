@@ -30,10 +30,13 @@ try {
   assert.equal(result.status, 0, result.stderr || result.stdout);
   const expected = readFileSync(manifest, 'utf8').split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
   const actual = walk(output);
-  assert.deepEqual(actual, [...expected, '404.html', '_headers', '_redirects', '_routes.json'].sort());
+  assert.deepEqual(actual, [...expected, '404.html', '_headers', '_redirects', '_routes.json', 'affiliate/index.html', 'affiliate-dashboard/index.html'].sort());
   assert.equal(actual.includes('store/affiliate_ledger.sqlite3'), false);
   assert.equal(actual.includes('assets/video/hero-background-source.mp4'), false);
   assert.equal(readFileSync(path.join(output, 'index.html'), 'utf8'), readFileSync(path.join(root, 'index.html'), 'utf8'));
+  assert.equal(readFileSync(path.join(output, 'affiliate', 'index.html'), 'utf8'), readFileSync(path.join(root, 'affiliate.html'), 'utf8'));
+  assert.equal(readFileSync(path.join(output, 'affiliate-dashboard', 'index.html'), 'utf8'), readFileSync(path.join(root, 'affiliate-dashboard.html'), 'utf8'));
+  assert.equal(readFileSync(path.join(output, '_redirects'), 'utf8').trim(), '');
 
   const malformed = path.join(temp, 'malformed.txt');
   writeFileSync(malformed, `${readFileSync(manifest, 'utf8')}\n../store/secret.txt\n`);
