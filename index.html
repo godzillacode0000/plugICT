@@ -718,7 +718,7 @@ window.PLUGICT = {
     #hero-bg-video{display:none} #spotlight{display:none !important}
   }
 </style>
-<link rel="stylesheet" href="assets/coderabbit-v2.css?v=20260728-cards">
+<link rel="stylesheet" href="assets/coderabbit-v2.css?v=20260728-crypto">
 </head>
 <body>
 <div id="spotlight" aria-hidden="true"></div>
@@ -1199,20 +1199,49 @@ window.PLUGICT = {
   // Concepts x instruments rails: same duplicate-once trick as the ticker above.
   (function(){
     // Reuses the .asset-chip system above so both rails share one chip style.
-    // Concepts get a plain green bubble; instruments get flag/coin glyphs.
+    // Countries come from flag emoji; crypto has to be drawn, since ₿ is the
+    // only coin with a character and it renders as text rather than a mark.
+    const coin={
+      btc:'<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#f7931a"/>'+
+        '<path fill="#fff" d="M13.2 7.4h2.1v3h-2.1zM16.9 7.4H19v3h-2.1zM13.2 21.6h2.1v3h-2.1zM16.9 21.6H19v3h-2.1z"/>'+
+        '<path fill="#fff" d="M10.6 10.2h7.2c2.9 0 4.7 1.3 4.7 3.6 0 1.5-.8 2.5-2.2 3 1.8.4 2.9 1.7 2.9 3.5 0 2.6-2 4-5.3 4h-7.3zm3.2 2.8v3.2h3.4c1.3 0 2.1-.6 2.1-1.6s-.8-1.6-2.1-1.6zm0 5.7v3.6h4c1.4 0 2.3-.7 2.3-1.8s-.9-1.8-2.3-1.8z"/></svg>',
+      eth:'<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#627eea"/><g fill="#fff">'+
+        '<path fill-opacity=".6" d="M16.5 4v8.9l7.5 3.35z"/><path d="M16.5 4L9 16.25l7.5-3.35z"/>'+
+        '<path fill-opacity=".6" d="M16.5 21.97V28L24 17.62z"/><path d="M16.5 28v-6.03L9 17.62z"/>'+
+        '<path fill-opacity=".2" d="M16.5 20.57l7.5-4.35-7.5-3.32z"/>'+
+        '<path fill-opacity=".6" d="M9 16.22l7.5 4.35v-7.67z"/></g></svg>',
+      // Solana's mark is a gradient; three sampled solids avoid a <defs> id,
+      // which would collide the moment the rail duplicates its chips.
+      sol:'<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#0b0b12"/>'+
+        '<path fill="#9945ff" d="M9.6 8.05a.7.7 0 0 1 .5-.2h14a.35.35 0 0 1 .25.6l-2.75 2.75a.7.7 0 0 1-.5.2H7.1a.35.35 0 0 1-.25-.6z"/>'+
+        '<path fill="#7962e7" d="M21.85 14.2a.7.7 0 0 0-.5-.2H7.1a.35.35 0 0 0-.25.6l2.75 2.75a.7.7 0 0 0 .5.2h14a.35.35 0 0 0 .25-.6z"/>'+
+        '<path fill="#14f195" d="M9.6 20.4a.7.7 0 0 1 .5-.2h14a.35.35 0 0 1 .25.6l-2.75 2.75a.7.7 0 0 1-.5.2H7.1a.35.35 0 0 1-.25-.6z"/></svg>',
+      xrp:'<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#23292f"/>'+
+        '<path fill="#fff" d="M22.4 8.4h2.9l-6 5.95a4.9 4.9 0 0 1-6.9 0l-6-5.95h2.9l4.55 4.5a2.9 2.9 0 0 0 4 0zM9.3 23.6H6.4l6.05-6a4.9 4.9 0 0 1 6.9 0l6.05 6h-2.9l-4.6-4.55a2.9 2.9 0 0 0-4 0z"/></svg>',
+      bnb:'<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#f3ba2f"/>'+
+        '<path fill="#fff" d="M16 6.2l3.3 3.3-3.3 3.3-3.3-3.3zM9.5 12.7l3.3 3.3-3.3 3.3-3.3-3.3zM22.5 12.7l3.3 3.3-3.3 3.3-3.3-3.3zM16 19.2l3.3 3.3-3.3 3.3-3.3-3.3zM16 12.9l3.1 3.1-3.1 3.1-3.1-3.1z"/></svg>',
+      doge:'<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#c2a633"/>'+
+        '<path fill="#fff" d="M12.6 8h4.6c4.4 0 7.2 3.1 7.2 8s-2.8 8-7.2 8h-4.6v-6.4H10v-3.2h2.6zm3.3 3.1v3.3h2.2v3.2h-2.2v3.3h1.1c2.5 0 4-1.9 4-4.9s-1.5-4.9-4-4.9z"/></svg>',
+      ltc:'<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="16" fill="#345d9d"/>'+
+        '<path fill="#fff" d="M13.9 6.9h4.4l-2.5 9.3 3-1-.65 2.5-3 1-1.1 4.1h8.2l-.85 3.3H9.7l1.65-6.2-2.55.85.66-2.5 2.55-.85z"/></svg>'
+    };
+    // Drawn marks fill their bubble edge to edge; emoji sit inside it.
+    function bubble(g){return '<span class="bubble'+(g.charAt(0)==='<'?' coin':'')+'">'+g+'</span>';}
     function icoHtml(icons){
       if(!icons) return '<span class="ico single"><span class="bubble bubble-ict"></span></span>';
-      if(icons.length===1) return '<span class="ico single"><span class="bubble">'+icons[0]+'</span></span>';
-      return '<span class="ico duo">'+icons.map(i=>'<span class="bubble">'+i+'</span>').join('')+'</span>';
+      if(icons.length===1) return '<span class="ico single">'+bubble(icons[0])+'</span>';
+      return '<span class="ico duo">'+icons.map(bubble).join('')+'</span>';
     }
     function fill(el,rows){el.innerHTML=(rows.map(function(r){
       return '<span class="asset-chip">'+icoHtml(r[1])+'<span class="label">'+r[0]+'</span></span>';
     }).join('')).repeat(2);}
     const a=document.getElementById('ar1'), b=document.getElementById('ar2'); if(!a||!b) return;
-    fill(a,[["Fair Value Gap"],["Order Block"],["Liquidity Sweep"],["Silver Bullet"],
-            ["Breaker Block"],["Optimal Trade Entry"],["Market Structure Shift"]]);
+    fill(a,[["BTC/USD",[coin.btc,'🇺🇸']],["ETH/USD",[coin.eth,'🇺🇸']],["SOL/USD",[coin.sol,'🇺🇸']],
+            ["XRP/USD",[coin.xrp,'🇺🇸']],["BNB/USD",[coin.bnb,'🇺🇸']],["DOGE/USD",[coin.doge,'🇺🇸']],
+            ["LTC/USD",[coin.ltc,'🇺🇸']]]);
+    // BTC/USD moved up to the crypto rail, so it comes out of this one.
     fill(b,[["EUR/USD",['🇪🇺','🇺🇸']],["GBP/USD",['🇬🇧','🇺🇸']],["XAU/USD",['🪙','🇺🇸']],
-            ["BTC/USD",['₿','🇺🇸']],["Japanese Yen (6J)",['🇯🇵']],["British Pound (6B)",['🇬🇧']],
+            ["Japanese Yen (6J)",['🇯🇵']],["British Pound (6B)",['🇬🇧']],
             ["Canadian Dollar (6C)",['🇨🇦']],["Euro FX (6E)",['🇪🇺']]]);
     document.addEventListener('visibilitychange',function(){
       [a,b].forEach(t=>t.style.animationPlayState=document.hidden?'paused':'running');});
