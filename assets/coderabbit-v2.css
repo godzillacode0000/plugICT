@@ -34,6 +34,9 @@ nav .wrap{height:68px;max-width:100%}
 .btn.ghost{border-color:var(--line);color:var(--ink-soft);background:rgba(255,255,255,.025)}
 .btn.ghost:hover{background:#151519;border-color:#4b4b58;color:var(--ink)}
 .hero .cta .btn{border-radius:999px}
+/* the nav CTA takes the same corner as the hero's Get PlugICT button, rather
+   than the squared-off 4px every other .btn gets */
+nav .btn.primary.small{border-radius:13px}
 
 /* Hero: centered promise followed by a large product stage, matching the reference rhythm. */
 .hero{min-height:auto;border-bottom:1px solid var(--line-soft)}
