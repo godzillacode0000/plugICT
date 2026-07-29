@@ -676,32 +676,6 @@ window.PLUGICT = {
   body.spot-on #spotlight{opacity:1}
   @media(hover:none){ #spotlight{display:none} }
 
-  /* ── about section ─────────────────────────────────────── */
-  .about-sec{background:var(--paper)}
-  .about-wrap{display:grid; grid-template-columns:1.1fr .9fr; gap:48px; align-items:center; margin-top:36px}
-  @media(max-width:900px){ .about-wrap{grid-template-columns:1fr} }
-  .about-sub{font-size:15.5px; line-height:1.75; margin-top:16px}
-  .about-signoff{margin-top:32px; display:flex; flex-direction:column; gap:4px}
-  .about-name{font:500 18px var(--serif); font-style:italic; color:var(--terracotta); letter-spacing:-.01em}
-  .about-loc{font:400 12px var(--mono); color:var(--ink-mut); letter-spacing:.08em}
-  .about-visual{display:flex; justify-content:center}
-  .about-card{background:var(--card); border:1px solid rgba(34,197,94,.35); border-radius:6px; padding:40px 36px;
-    text-align:center; max-width:340px; width:100%;
-    box-shadow:0 0 60px -24px var(--ember-glow)}
-  .about-card-icon{width:48px; height:48px; margin:0 auto 28px; display:flex; align-items:center; justify-content:center;
-    border-radius:50%; color:var(--terracotta-bright); background:rgba(34,197,94,.1); border:1px solid rgba(34,197,94,.28)}
-  .about-card-icon svg{width:24px; height:24px}
-  .about-card-stat{margin-bottom:18px}
-  .about-card-num{display:block; font:400 clamp(40px,5vw,52px)/1 var(--serif); letter-spacing:-.02em; color:var(--ink)}
-  .about-card-plus{color:var(--terracotta)}
-  .about-card-label{display:block; font:400 13px var(--mono); color:var(--ink-mut); letter-spacing:.06em; margin-top:2px}
-  .about-card-footer{font:400 14px var(--serif); font-style:italic; color:var(--ink-soft); margin-top:16px;
-    padding-top:18px; border-top:1px solid var(--line)}
-  .about-card-footer em{color:var(--terracotta)}
-  @media(max-width:560px){
-    .about-card{padding:28px 22px; max-width:100%}
-  }
-
   /* glow-on-hover for interactive cards */
   .glow{position:relative}
   .glow::before{content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
@@ -718,7 +692,7 @@ window.PLUGICT = {
     #hero-bg-video{display:none} #spotlight{display:none !important}
   }
 </style>
-<link rel="stylesheet" href="assets/coderabbit-v2.css?v=20260728-crypto">
+<link rel="stylesheet" href="assets/coderabbit-v2.css?v=20260729-noabout">
 </head>
 <body>
 <div id="spotlight" aria-hidden="true"></div>
@@ -731,7 +705,6 @@ window.PLUGICT = {
         <a href="#capabilities">Product</a>
         <a href="#agents">Your AI</a>
         <a href="#setup">How it works</a>
-        <a href="#about">About</a>
         <a href="#pricing">Pricing</a>
         <a href="#faq">FAQ</a>
         <a href="/affiliate">Affiliate</a>
@@ -850,50 +823,6 @@ window.PLUGICT = {
         <div class="q">You: Find where ICT connects CISD with a shift in delivery.</div>
         <div class="a">PlugICT searches related wording across the vault, returns the matching transcript sections, and keeps the source attached.</div>
         <div class="cite"><span><b>Matching lesson found</b> · video title, exact timestamp, and surrounding context ready to verify</span></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ═══ ABOUT ═══ -->
-<section id="about" class="about-sec">
-  <div class="inner">
-    <div class="about-wrap">
-      <div class="about-text fadeup">
-        <div class="eyebrow">Who built this</div>
-        <h2>Hey, I'm <em>Kevin.</em></h2>
-        <p class="sub about-sub">Yes, I'm selling you something. What did you expect, free? lol.</p>
-        <p class="sub about-sub">I'm a civil engineer from Malaysia. Most days I'm dealing with rebar, concreting, and an 18-floor project. Late at night, I'm the same as every other self-taught trader trying to make sense of ICT.</p>
-        <p class="sub about-sub">I've blown accounts, questioned everything, and nearly quit. I also got tired of remembering that ICT explained something somewhere, then losing way too much time trying to find one sentence.</p>
-        <p class="sub about-sub">So I built the tool I wanted: ask the question, pull the matching lesson, open the timestamp, and check ICT's words yourself.</p>
-        <p class="sub about-sub">This isn't a course, signals room, or promise that you'll become profitable. PlugICT just helps you waste less time searching and spend more time studying the actual material.</p>
-        <p class="sub about-sub" style="margin-top:18px">It's still just me, a guy in Kelantan who got tired of scrubbing videos.</p>
-        <div class="about-signoff fadeup" data-delay=".15">
-          <span class="about-name">— Kevin</span>
-          <span class="about-loc">Kota Bharu, Malaysia</span>
-        </div>
-      </div>
-      <div class="about-visual fadeup" data-delay=".1">
-        <div class="about-card">
-          <div class="about-card-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-            </svg>
-          </div>
-          <div class="about-card-stat">
-            <span class="about-card-num">MY</span>
-            <span class="about-card-label">built in Malaysia</span>
-          </div>
-          <div class="about-card-stat">
-            <span class="about-card-num">775</span>
-            <span class="about-card-label">videos indexed</span>
-          </div>
-          <div class="about-card-stat">
-            <span class="about-card-num">1</span>
-            <span class="about-card-label">guy building this</span>
-          </div>
-          <div class="about-card-footer">Built for traders. <em>By a trader.</em></div>
-        </div>
       </div>
     </div>
   </div>

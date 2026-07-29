@@ -89,18 +89,6 @@ section h2{font:600 clamp(34px,4.6vw,60px)/1.03 var(--sans);letter-spacing:-.045
 .panel .dlg{font-size:15px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.055)}
 .panel .dlg:last-child{border-bottom:0}
 
-/* Founder section keeps the human proof but tightens the wall of copy. */
-.about-sec{background:#0d0d10;border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft)}
-.about-wrap{gap:72px;margin-top:0}
-.about-text h2{margin-top:16px}
-.about-sub{max-width:620px;color:#aaaab4}
-.about-name{font-family:var(--sans);font-style:normal;font-weight:600}
-.about-card{border-radius:6px;background:#111115;border-color:#30303a;box-shadow:none;text-align:left}
-.about-card-icon{margin:0 0 28px;border-radius:6px}
-.about-card-stat{display:grid;grid-template-columns:84px 1fr;align-items:end;padding:16px 0;margin:0;border-bottom:1px solid #292932}
-.about-card-num{font:600 38px/1 var(--sans)}
-.about-card-label{margin:0 0 3px;font-size:10px;text-transform:uppercase}
-.about-card-footer{font-family:var(--sans);font-style:normal}
 
 /* Bento capabilities: three compact proof cards, then deeper product context. */
 #capabilities{background:var(--paper)}
@@ -235,7 +223,6 @@ footer .disc{color:#92929d}
   section{padding:80px 18px}
   section h2{font-size:clamp(34px,10vw,48px)}
   .panel{padding:25px;min-height:0}
-  .about-wrap{gap:42px}
   .cap-list{display:block}
   .cap-row{margin-bottom:12px;min-height:0}
   .cap-row:nth-child(4){padding:20px 12px}
