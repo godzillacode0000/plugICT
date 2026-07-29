@@ -312,29 +312,29 @@ nav .wrap{height:56px;background:none;border:none;box-shadow:none;border-radius:
    disc and gets clipped by the border-radius, so a flag reads as a bright round
    coin rather than a small emoji floating in a dark bubble. The `.ico` wrapper
    loses its own disc — the bubble *is* the coin now.
-   Scoped to `.asset-track` so the standalone concept ticker keeps its size. */
-.asset-track .asset-chip{gap:13px;min-height:62px;padding:11px 26px 11px 11px;
+   Both marquees share the `.asset-chip` system, so this is unscoped. */
+.asset-chip{gap:13px;min-height:62px;padding:11px 26px 11px 11px;
   border-color:rgba(255,255,255,.10)}
-.asset-track .asset-chip .ico{width:40px;height:40px;background:none;border:0;box-shadow:none}
-.asset-track .asset-chip .ico.duo{width:auto;min-width:0;padding:0}
-.asset-track .asset-chip .bubble{width:40px;height:40px;overflow:hidden;
+.asset-chip .ico{width:40px;height:40px;background:none;border:0;box-shadow:none}
+.asset-chip .ico.duo{width:auto;min-width:0;padding:0}
+.asset-chip .bubble{width:40px;height:40px;overflow:hidden;
   background:linear-gradient(180deg,rgba(255,255,255,.24),rgba(255,255,255,.10));
   border:2px solid rgba(255,255,255,.62);font-size:36px;line-height:1;
   box-shadow:0 2px 6px rgba(0,0,0,.45)}
-.asset-track .asset-chip .ico.duo .bubble{width:38px;height:38px;font-size:34px;margin-left:-13px}
-.asset-track .asset-chip .ico.duo .bubble:first-child{margin-left:0}
+.asset-chip .ico.duo .bubble{width:38px;height:38px;font-size:34px;margin-left:-13px}
+.asset-chip .ico.duo .bubble:first-child{margin-left:0}
 /* a drawn mark already carries its own disc and colour, so it fills the bubble
    completely and only the ring is kept */
-.asset-track .asset-chip .bubble.coin{background:none;padding:0}
-.asset-track .asset-chip .bubble.coin svg{display:block;width:100%;height:100%}
+.asset-chip .bubble.coin{background:none;padding:0}
+.asset-chip .bubble.coin svg{display:block;width:100%;height:100%}
 /* the concept bubble has no glyph, so it stays a small brand dot rather than a
    big empty disc — and it has to restate its gradient, since the coin rule
    above shares its specificity and would otherwise win on source order */
-.asset-track .asset-chip .bubble.bubble-ict{width:26px;height:26px;
+.asset-chip .bubble.bubble-ict{width:26px;height:26px;
   background:linear-gradient(140deg,var(--terracotta-bright),#0f5132);
   border-width:1px;border-color:rgba(255,255,255,.24);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.10)}
-.asset-track .asset-chip .label{font-size:clamp(13px,1.55vw,16px);color:rgba(249,250,251,.9)}
+.asset-chip .label{font-size:clamp(13px,1.55vw,16px);color:rgba(249,250,251,.9)}
 .ar-a{animation:ar-L 46s linear infinite}
 .ar-b{animation:ar-R 52s linear infinite}
 @keyframes ar-L{from{transform:translateX(0)}to{transform:translateX(-50%)}}
@@ -348,11 +348,12 @@ nav .wrap{height:56px;background:none;border:none;box-shadow:none;border-radius:
   .assets-band{padding:12px 10px 0}
   .asset-card{border-radius:18px;padding:30px 0 6px}
   .asset-rails{gap:14px}
-  .asset-track .asset-chip{margin-right:10px;gap:10px;min-height:52px;padding:9px 18px 9px 9px}
-  .asset-track .asset-chip .ico{width:34px;height:34px}
-  .asset-track .asset-chip .bubble{width:34px;height:34px;font-size:30px;border-width:2px}
-  .asset-track .asset-chip .ico.duo .bubble{width:32px;height:32px;font-size:28px;margin-left:-11px}
-  .asset-track .asset-chip .bubble.bubble-ict{width:22px;height:22px}
+  .asset-track .asset-chip{margin-right:10px}
+  .asset-chip{gap:10px;min-height:52px;padding:9px 18px 9px 9px}
+  .asset-chip .ico{width:34px;height:34px}
+  .asset-chip .bubble{width:34px;height:34px;font-size:30px;border-width:2px}
+  .asset-chip .ico.duo .bubble{width:32px;height:32px;font-size:28px;margin-left:-11px}
+  .asset-chip .bubble.bubble-ict{width:22px;height:22px}
   .asset-copy{padding:40px 22px 30px}
 }
 
