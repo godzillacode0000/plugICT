@@ -9,6 +9,8 @@ import sqlite3
 import tarfile
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 sys.path.insert(0, str(ROOT / "store"))
@@ -114,3 +116,24 @@ def test_two_buyers_get_distinct_licenses(tmp_path, monkeypatch):
     key_a = [l for l in a.splitlines() if l.startswith("BUYER_KEY=")][0]
     key_b = [l for l in b.splitlines() if l.startswith("BUYER_KEY=")][0]
     assert key_a != key_b
+
+
+def test_hash_only_issuance_is_sandbox_only_and_keeps_vault_hash(tmp_path, monkeypatch):
+    src = tmp_path / "seller"
+    src.mkdir()
+    vault_hash = "ab" * 32
+    (src / ".vault_key").write_bytes(b"x" * 32)
+    (src / ".vault_sha256").write_text(vault_hash, encoding="utf-8")
+    monkeypatch.setattr(issue_license, "SOURCE_DIR", src)
+    monkeypatch.setattr(issue_license, "LICENSE_WORK_DIR", tmp_path / "work")
+    monkeypatch.setattr(issue_license, "ISSUED_DIR", tmp_path / "issued")
+    monkeypatch.setattr(issue_license, "LEDGER", tmp_path / "ledger.csv")
+
+    monkeypatch.setenv("ICT_VERIFY_SOURCE_VAULT", "false")
+    monkeypatch.delenv("PLUGICT_ENV", raising=False)
+    with pytest.raises(RuntimeError, match="only when PLUGICT_ENV=sandbox"):
+        issue_license.issue("buyer@example.com", "ORDER-HASH-ONLY-BLOCKED")
+
+    monkeypatch.setenv("PLUGICT_ENV", "sandbox")
+    license_path = issue_license.issue("buyer@example.com", "ORDER-HASH-ONLY")
+    assert f"VAULT_HASH={vault_hash}" in license_path.read_text(encoding="utf-8")

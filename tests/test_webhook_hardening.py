@@ -70,6 +70,45 @@ def test_b2_forged_event_rejected(monkeypatch):
     assert r.status_code == 401
 
 
+def test_stripe_unpaid_checkout_is_ignored(monkeypatch):
+    monkeypatch.setenv("WEBHOOK_SECRET", "whsec_test")
+    from fastapi.testclient import TestClient
+    import json
+    import hmac
+    import hashlib
+
+    payload = {
+        "type": "checkout.session.completed",
+        "data": {"object": {
+            "id": "cs_test_unpaid",
+            "status": "complete",
+            "payment_status": "unpaid",
+            "customer_details": {"email": "buyer@example.com"},
+        }},
+    }
+    raw = json.dumps(payload, separators=(",", ":")).encode()
+    timestamp = "1700000000"
+    digest = hmac.new(
+        b"whsec_test", timestamp.encode() + b"." + raw, hashlib.sha256
+    ).hexdigest()
+    c = TestClient(webhook_server._build_app(), raise_server_exceptions=False)
+
+    with mock.patch.object(issue_license, "issue") as issue:
+        r = c.post(
+            "/webhook/stripe",
+            content=raw,
+            headers={
+                "content-type": "application/json",
+                "Stripe-Signature": f"t={timestamp},v1={digest}",
+            },
+        )
+
+    assert r.status_code == 200
+    assert r.json()["status"] == "ignored"
+    assert r.json()["reason"] == "payment_not_paid"
+    issue.assert_not_called()
+
+
 def _tmp_ledger(monkeypatch, tmp_path):
     monkeypatch.setattr(issue_license, "ISSUED_DIR", tmp_path / "issued")
     monkeypatch.setattr(issue_license, "LEDGER", tmp_path / "ledger.csv")

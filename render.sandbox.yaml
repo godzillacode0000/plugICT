@@ -1,0 +1,49 @@
+# Isolated public Stripe sandbox webhook. This file is intentionally separate
+# from render.yaml and creates only plugict-webhook-sandbox.
+# Manual setup and zero-money test: docs/STRIPE_SANDBOX_WEBHOOK.md
+services:
+  - type: web
+    name: plugict-webhook-sandbox
+    runtime: python
+    plan: free
+    buildCommand: pip install -r store/requirements.txt
+    startCommand: uvicorn store.webhook_server:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PLUGICT_ENV
+        value: sandbox
+      - key: WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_EXPECTED_LIVEMODE
+        value: "false"
+      - key: STRIPE_PAYMENT_LINK_ID
+        value: plink_1TyYisGZluauKOWaPlRObjdi
+      - key: STRIPE_EXPECTED_AMOUNT
+        value: "1899"
+      - key: STRIPE_EXPECTED_CURRENCY
+        value: usd
+      - key: STRIPE_ALLOWED_BUYER_EMAILS
+        value: kevingenautry@gmail.com
+      - key: PLUGICT_EMAIL_PROVIDER
+        value: agentmail
+      - key: AGENTMAIL_API_KEY
+        sync: false
+      - key: AGENTMAIL_INBOX
+        value: orders-test@agentmail.to
+      # Upload only .vault_key and .vault_sha256 as Render Secret Files rooted
+      # at /etc/secrets. The encrypted vault is too large for Secret Files and
+      # is verified offline before deployment.
+      - key: ICT_SOURCE_DIR
+        value: /etc/secrets
+      - key: ICT_VERIFY_SOURCE_VAULT
+        value: "false"
+      # Writable sandbox-only paths. Render's free filesystem is ephemeral;
+      # these settings isolate files but do not make them restart-durable.
+      - key: ICT_LICENSE_WORK_DIR
+        value: /tmp/plugict-sandbox/work
+      - key: ICT_ISSUED_DIR
+        value: /tmp/plugict-sandbox/issued
+      - key: ICT_ISSUED_LEDGER
+        value: /tmp/plugict-sandbox/issued_licenses.csv
+      - key: STRIPE_SIG_TOLERANCE
+        value: "300"

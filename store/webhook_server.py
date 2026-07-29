@@ -20,7 +20,10 @@ payment, then issue manually with issue_license.py --method duitnow|usdt.
 Run:
   pip install fastapi uvicorn
   ICT_SOURCE_DIR=/path/to/seller/secrets \
-  WEBHOOK_SECRET=... SMTP_HOST=... SMTP_USER=... SMTP_PASS=... \
+  WEBHOOK_SECRET=[REDACTED] \
+  PLUGICT_EMAIL_PROVIDER=agentmail \
+  AGENTMAIL_API_KEY=[REDACTED] AGENTMAIL_INBOX=orders-test@agentmail.to \
+  AGENTMAIL_REPLY_TO=support@plugict.com \
   uvicorn store.webhook_server:app --host 0.0.0.0 --port 8000
 
 Security notes are in store/README.md — verify signatures, never expose
@@ -34,12 +37,99 @@ import time
 import hmac
 import hashlib
 import logging
+import threading
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import issue_license  # noqa: E402
 
 logger = logging.getLogger(__name__)
+
+SANDBOX_CONTROLLED_BUYER_EMAIL = "kevingenautry@gmail.com"
+_FULFILMENT_LOCK = threading.Lock()
+
+
+def _required_sandbox_value(environ, name):
+    value = (environ.get(name) or "").strip()
+    if not value:
+        raise RuntimeError(f"{name} is required when PLUGICT_ENV=sandbox")
+    return value
+
+
+def _sandbox_config(environ=None):
+    """Validate and return the isolated public-sandbox configuration.
+
+    Outside explicit ``PLUGICT_ENV=sandbox`` this returns None and leaves the
+    legacy/dev behaviour unchanged.
+    """
+    env = os.environ if environ is None else environ
+    if (env.get("PLUGICT_ENV") or "").strip().lower() != "sandbox":
+        return None
+
+    required = (
+        "WEBHOOK_SECRET",
+        "STRIPE_EXPECTED_LIVEMODE",
+        "STRIPE_PAYMENT_LINK_ID",
+        "STRIPE_EXPECTED_AMOUNT",
+        "STRIPE_EXPECTED_CURRENCY",
+        "STRIPE_ALLOWED_BUYER_EMAILS",
+        "PLUGICT_EMAIL_PROVIDER",
+        "AGENTMAIL_API_KEY",
+        "AGENTMAIL_INBOX",
+        "ICT_SOURCE_DIR",
+        "ICT_VERIFY_SOURCE_VAULT",
+    )
+    values = {name: _required_sandbox_value(env, name) for name in required}
+
+    exact = {
+        "STRIPE_EXPECTED_LIVEMODE": "false",
+        "STRIPE_EXPECTED_AMOUNT": "1899",
+        "STRIPE_EXPECTED_CURRENCY": "usd",
+        "PLUGICT_EMAIL_PROVIDER": "agentmail",
+        "ICT_VERIFY_SOURCE_VAULT": "false",
+    }
+    for name, expected in exact.items():
+        if values[name] != expected:
+            raise RuntimeError(
+                f"{name} must be {expected!r} when PLUGICT_ENV=sandbox"
+            )
+    if not values["STRIPE_PAYMENT_LINK_ID"].startswith("plink_"):
+        raise RuntimeError(
+            "STRIPE_PAYMENT_LINK_ID must be a Stripe Payment Link ID when PLUGICT_ENV=sandbox"
+        )
+
+    allowed_buyers = {
+        item.strip().lower()
+        for item in values["STRIPE_ALLOWED_BUYER_EMAILS"].split(",")
+        if item.strip()
+    }
+    if SANDBOX_CONTROLLED_BUYER_EMAIL not in allowed_buyers:
+        raise RuntimeError(
+            "STRIPE_ALLOWED_BUYER_EMAILS must contain the controlled sandbox buyer"
+        )
+
+    source_dir = Path(values["ICT_SOURCE_DIR"])
+    for artifact in (".vault_key", ".vault_sha256"):
+        if not (source_dir / artifact).is_file():
+            raise RuntimeError(
+                f"ICT_SOURCE_DIR is missing required seller artifact {artifact}"
+            )
+    if len((source_dir / ".vault_key").read_bytes()) != 32:
+        raise RuntimeError("ICT_SOURCE_DIR .vault_key must be exactly 32 bytes")
+    vault_hash = (source_dir / ".vault_sha256").read_text(encoding="utf-8").strip().lower()
+    if len(vault_hash) != 64 or any(c not in "0123456789abcdef" for c in vault_hash):
+        raise RuntimeError("ICT_SOURCE_DIR .vault_sha256 must contain one SHA-256 digest")
+
+    # Explicitly bind sandbox issuance to ICT_SOURCE_DIR, even if a parent
+    # process inherited ICT_BUILD_DIR or imported issue_license earlier.
+    issue_license.SOURCE_DIR = source_dir
+    return {
+        "allowed_buyers": allowed_buyers,
+        "expected_livemode": False,
+        "expected_link": values["STRIPE_PAYMENT_LINK_ID"],
+        "expected_amount": 1899,
+        "expected_currency": "usd",
+    }
 
 
 def parse_event(provider, payload):
@@ -78,6 +168,71 @@ def parse_event(provider, payload):
         return email, obj.get("id")
 
     return None, None
+
+
+def validate_stripe_checkout(obj, payload=None, sandbox_config=None):
+    """Return (True, None) only for an explicitly accepted Stripe Session."""
+    if obj.get("status") != "complete":
+        return False, "checkout_not_complete"
+    if obj.get("payment_status") != "paid":
+        return False, "payment_not_paid"
+
+    if sandbox_config is not None:
+        if not isinstance(payload, dict) or payload.get("livemode") is not False:
+            return False, "event_livemode_mismatch"
+        if obj.get("livemode") is not False:
+            return False, "livemode_mismatch"
+        if obj.get("payment_link") != sandbox_config["expected_link"]:
+            return False, "payment_link_mismatch"
+        if obj.get("amount_total") != sandbox_config["expected_amount"]:
+            return False, "amount_mismatch"
+        if obj.get("currency") != sandbox_config["expected_currency"]:
+            return False, "currency_mismatch"
+        email = ((obj.get("customer_details") or {}).get("email")
+                 or obj.get("customer_email") or "").strip().lower()
+        if email not in sandbox_config["allowed_buyers"]:
+            return False, "buyer_not_allowed"
+        if not str(obj.get("id") or "").strip():
+            return False, "session_id_missing"
+        return True, None
+
+    # Legacy optional checks remain unchanged outside explicit sandbox mode.
+    expected_livemode = os.environ.get("STRIPE_EXPECTED_LIVEMODE", "").strip().lower()
+    if expected_livemode in ("true", "false"):
+        if bool(obj.get("livemode")) != (expected_livemode == "true"):
+            return False, "livemode_mismatch"
+
+    expected_link = os.environ.get("STRIPE_PAYMENT_LINK_ID", "").strip()
+    if expected_link and obj.get("payment_link") != expected_link:
+        return False, "payment_link_mismatch"
+
+    expected_amount = os.environ.get("STRIPE_EXPECTED_AMOUNT", "").strip()
+    if expected_amount:
+        try:
+            if int(obj.get("amount_total")) != int(expected_amount):
+                return False, "amount_mismatch"
+        except (TypeError, ValueError):
+            return False, "amount_mismatch"
+
+    expected_currency = os.environ.get("STRIPE_EXPECTED_CURRENCY", "").strip().lower()
+    if expected_currency and str(obj.get("currency", "")).lower() != expected_currency:
+        return False, "currency_mismatch"
+
+    return True, None
+
+
+def _fulfil_once(email, order_id, provider):
+    """Atomically duplicate-check and issue within this Python process.
+
+    This dependency-free lock suppresses concurrent delivery on one running
+    instance. It is not crash/restart or multi-instance durable: a crash after
+    send but before ledger append can still redeliver on a later request.
+    """
+    with _FULFILMENT_LOCK:
+        if order_id and issue_license.find_issued(order_id):
+            return {"status": "duplicate", "order_id": order_id}
+        issue_license.issue(email, order_id, email_it=True, method=provider.lower())
+        return {"status": "issued"}
 
 
 def billplz_source_string(payload):
@@ -166,6 +321,7 @@ def _build_app():
     from fastapi import FastAPI, Request, HTTPException
 
     app = FastAPI(title="ICT Vault license webhook")
+    sandbox_config = _sandbox_config()
     secret = os.environ.get("WEBHOOK_SECRET", "")
 
     # B1 — production guard: on a real deploy, refuse to run signature-less.
@@ -185,6 +341,10 @@ def _build_app():
 
     @app.post("/webhook/{provider}")
     async def webhook(provider: str, request: Request):
+        provider = provider.lower()
+        if sandbox_config is not None and provider != "stripe":
+            raise HTTPException(status_code=404, detail="provider not enabled")
+
         raw = await request.body()
         ctype = request.headers.get("content-type", "")
         # B2 — a malformed body is the caller's fault: return 400 (permanent) so
@@ -198,7 +358,7 @@ def _build_app():
             raise HTTPException(status_code=400, detail="unparseable body")
 
         # Billplz signs its payload fields; everyone else signs the raw body.
-        if provider.lower() == "billplz":
+        if provider == "billplz":
             ok = verify_billplz(secret, payload)
         else:
             sig = (request.headers.get("X-Signature")
@@ -208,30 +368,37 @@ def _build_app():
         if not ok:
             raise HTTPException(status_code=401, detail="bad signature")
 
+        if provider == "stripe":
+            if sandbox_config is not None and payload.get("type") != "checkout.session.completed":
+                return {"status": "ignored", "reason": "event_type_mismatch"}
+            stripe_obj = payload.get("data", {}).get("object", {})
+            valid, reason = validate_stripe_checkout(
+                stripe_obj, payload=payload, sandbox_config=sandbox_config
+            )
+            if not valid:
+                return {"status": "ignored", "reason": reason}
+
         email, order_id = parse_event(provider, payload)
         if not email:
             return {"status": "ignored"}  # not a fulfilable sale
-
-        # Idempotency: processors re-deliver events on any non-2xx / timeout.
-        # If we've already fulfilled this order, ack with 200 (so the processor
-        # stops retrying) but don't mint a second license or re-email the buyer.
-        if order_id and issue_license.find_issued(order_id):
-            return {"status": "duplicate", "order_id": order_id}
 
         # B2 — issuance can fail transiently (e.g. SMTP hiccup). Let it surface
         # as 500 so the processor RETRIES. issue_license emails BEFORE writing
         # the ledger, so a failed send leaves no ledger row and the retry
         # re-delivers cleanly (rather than being skipped as a false duplicate).
         try:
-            issue_license.issue(email, order_id, email_it=True, method=provider.lower())
+            result = _fulfil_once(email, order_id, provider)
         except HTTPException:
             raise
         except Exception as e:  # noqa: BLE001 — 500 => processor retries
             logger.exception(
                 "License issuance failed for provider=%s order_id=%s email=%s",
-                provider.lower(), order_id, email)
+                provider, order_id, email)
             raise HTTPException(status_code=500, detail="issuance failed; will retry") from e
-        return {"status": "issued", "email": email}
+        if sandbox_config is None and result["status"] == "issued":
+            # Preserve the legacy response outside explicit sandbox mode.
+            return {"status": "issued", "email": email}
+        return result
 
     return app
 

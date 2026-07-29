@@ -31,3 +31,9 @@ dist/
 node_modules/
 .wrangler/
 .dev.vars
+
+# Local API/email credentials — never commit
+.env
+.env.*
+store/*.env
+!store/agentmail.env.example

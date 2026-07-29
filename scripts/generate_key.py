@@ -20,13 +20,24 @@ from artifact_paths import resolve_artifact_dir
 VAULT_DIR = resolve_artifact_dir(Path(__file__).parent.parent.resolve())
 VAULT_KEY_FILE = VAULT_DIR / ".vault_key"
 
-def generate_license(buyer_email, purchase_id, vault_dir=None, output_dir=None):
+def generate_license(
+    buyer_email,
+    purchase_id,
+    vault_dir=None,
+    output_dir=None,
+    verify_vault=True,
+):
     """Generate a unique license key for a buyer using envelope encryption.
 
     vault_dir overrides where .vault_key / .vault_sha256 are read. output_dir
     overrides where the license file is written; if omitted, it defaults to
-    vault_dir for backwards-compatible local CLI behaviour. Returns
-    (output_file, license_id).
+    vault_dir for backwards-compatible local CLI behaviour.
+
+    verify_vault defaults to True and recomputes the encrypted vault hash before
+    every issuance. The isolated public sandbox may set it False after an
+    offline integrity gate because Render Secret Files cannot hold the ~200 MB
+    encrypted vault. Hash-only issuance still validates the key length and hash
+    format; callers must fail closed before opting into it.
     """
     vault_dir = Path(vault_dir) if vault_dir else VAULT_DIR
     output_dir = Path(output_dir) if output_dir else vault_dir
@@ -41,16 +52,17 @@ def generate_license(buyer_email, purchase_id, vault_dir=None, output_dir=None):
 
     encrypted_vault = vault_dir / "ict-vault.kevin"
     hash_file = vault_dir / ".vault_sha256"
-    if not encrypted_vault.is_file():
-        raise FileNotFoundError(f"ict-vault.kevin not found in {vault_dir}. Run build.py first.")
     if not hash_file.is_file():
         raise FileNotFoundError(f".vault_sha256 not found in {vault_dir}. Run build.py first.")
     vault_hash = hash_file.read_text(encoding="utf-8").strip().lower()
     if len(vault_hash) != 64 or any(c not in "0123456789abcdef" for c in vault_hash):
         raise ValueError(".vault_sha256 must contain one valid SHA-256 hex digest")
-    actual_hash = hashlib.sha256(encrypted_vault.read_bytes()).hexdigest()
-    if actual_hash != vault_hash:
-        raise ValueError(".vault_sha256 does not match the actual encrypted vault")
+    if verify_vault:
+        if not encrypted_vault.is_file():
+            raise FileNotFoundError(f"ict-vault.kevin not found in {vault_dir}. Run build.py first.")
+        actual_hash = hashlib.sha256(encrypted_vault.read_bytes()).hexdigest()
+        if actual_hash != vault_hash:
+            raise ValueError(".vault_sha256 does not match the actual encrypted vault")
     if len(vault_key) != 32:
         raise ValueError(f".vault_key must be exactly 32 bytes, got {len(vault_key)}")
 

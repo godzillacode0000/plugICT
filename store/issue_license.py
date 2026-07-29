@@ -39,6 +39,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from generate_key import generate_license  # noqa: E402
 from artifact_paths import resolve_artifact_dir  # noqa: E402
 import emails  # noqa: E402
+import agentmail  # noqa: E402
 
 STORE_DIR = Path(__file__).resolve().parent
 # Where .vault_key / .vault_sha256 live (seller secrets). Isolated builds win.
@@ -48,8 +49,36 @@ SOURCE_DIR = resolve_artifact_dir(STORE_DIR.parent / "scripts")
 LICENSE_WORK_DIR = Path(os.environ.get(
     "ICT_LICENSE_WORK_DIR",
     Path(tempfile.gettempdir()) / "plugict-licenses"))
-ISSUED_DIR = STORE_DIR / "issued"
-LEDGER = STORE_DIR / "issued_licenses.csv"
+
+
+def resolve_issued_paths(environ=None):
+    """Resolve writable fulfilment paths while retaining legacy defaults."""
+    env = os.environ if environ is None else environ
+    return (
+        Path(env.get("ICT_ISSUED_DIR") or STORE_DIR / "issued"),
+        Path(env.get("ICT_ISSUED_LEDGER") or STORE_DIR / "issued_licenses.csv"),
+    )
+
+
+ISSUED_DIR, LEDGER = resolve_issued_paths()
+
+
+def verify_source_vault(environ=None):
+    """Return whether issuance must re-hash the full encrypted vault.
+
+    Disabling this integrity read is allowed only for the isolated sandbox,
+    where the canonical vault/hash pair is verified offline before its tiny
+    key/hash artefacts are uploaded to Render. Every other mode stays strict.
+    """
+    env = os.environ if environ is None else environ
+    value = (env.get("ICT_VERIFY_SOURCE_VAULT") or "true").strip().lower()
+    if value not in ("true", "false"):
+        raise RuntimeError("ICT_VERIFY_SOURCE_VAULT must be 'true' or 'false'")
+    if value == "false" and (env.get("PLUGICT_ENV") or "").strip().lower() != "sandbox":
+        raise RuntimeError(
+            "ICT_VERIFY_SOURCE_VAULT=false is allowed only when PLUGICT_ENV=sandbox"
+        )
+    return value == "true"
 
 
 def issue(email, order_id, email_it=False, method="manual"):
@@ -60,13 +89,18 @@ def issue(email, order_id, email_it=False, method="manual"):
     """
     email = email.strip().lower()
     order_id = (order_id or f"ORDER-{datetime.now(timezone.utc):%Y%m%d%H%M%S}").strip()
-    ISSUED_DIR.mkdir(exist_ok=True)
+    ISSUED_DIR.mkdir(parents=True, exist_ok=True)
 
     # Read seller secrets from SOURCE_DIR, but write the generated buyer license
     # to a writable scratch dir. On Render, SOURCE_DIR is /etc/secrets, which is
     # read-only because it is backed by Secret Files.
     out_file, license_id = generate_license(
-        email, order_id, vault_dir=SOURCE_DIR, output_dir=LICENSE_WORK_DIR)
+        email,
+        order_id,
+        vault_dir=SOURCE_DIR,
+        output_dir=LICENSE_WORK_DIR,
+        verify_vault=verify_source_vault(),
+    )
     dest = ISSUED_DIR / out_file.name
     shutil.move(str(out_file), str(dest))
 
@@ -76,10 +110,11 @@ def issue(email, order_id, email_it=False, method="manual"):
     # logged first (old order), a transient SMTP error would mark the order
     # "issued" and the retry would skip it as a duplicate — the buyer would pay
     # and never receive their license. (Manual runs with email_it=False just log.)
+    delivery = None
     if email_it:
-        _email_license(email, dest, license_id)
+        delivery = _email_license(email, dest, license_id)
 
-    _log(email, order_id, license_id, dest.name, method)
+    _log(email, order_id, license_id, dest.name, method, delivery)
     print(f"  issued  {email}  →  {dest.name}  (license {license_id}, {method})")
     return dest
 
@@ -92,10 +127,9 @@ def find_issued(order_id):
     naive handler would mint a second license and email the buyer twice. Keyed
     on the processor's own order/session id, which is stable across retries.
 
-    Note: this is a read-before-write check, not a lock. On a single webhook
-    instance with retries seconds apart that's sufficient; it is not safe
-    against two genuinely concurrent deliveries of the same event (worst case:
-    one duplicate email — acceptable at this volume, not worth a file lock).
+    This lookup does not lock by itself. The webhook wraps this check plus
+    issuance in a process-local lock to suppress concurrent duplicates on one
+    running instance. That lock is not crash/restart or multi-instance durable.
     """
     if not order_id or not LEDGER.exists():
         return None
@@ -107,13 +141,48 @@ def find_issued(order_id):
     return None
 
 
-def _log(email, order_id, license_id, filename, method):
+LEDGER_COLUMNS = [
+    "issued_at_utc", "email", "order_id", "license_id", "file", "method",
+    "email_provider", "email_message_id", "email_thread_id", "email_status",
+]
+
+
+def _ensure_ledger_schema():
+    """Upgrade a legacy six-column ledger before recording delivery metadata."""
+    if not LEDGER.exists():
+        return
+    with open(LEDGER, newline="", encoding="utf-8") as f:
+        rows = list(csv.reader(f))
+    if not rows or all(column in rows[0] for column in LEDGER_COLUMNS):
+        return
+
+    # Preserve every existing value while adding the email delivery columns.
+    old_header = rows[0]
+    records = [dict(zip(old_header, row)) for row in rows[1:]]
+    tmp = LEDGER.with_suffix(LEDGER.suffix + ".migrating")
+    with open(tmp, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=LEDGER_COLUMNS)
+        writer.writeheader()
+        for record in records:
+            writer.writerow({column: record.get(column, "") for column in LEDGER_COLUMNS})
+    os.replace(tmp, LEDGER)
+
+
+def _log(email, order_id, license_id, filename, method, delivery=None):
+    LEDGER.parent.mkdir(parents=True, exist_ok=True)
+    _ensure_ledger_schema()
+    delivery = delivery or {}
     new = not LEDGER.exists()
     with open(LEDGER, "a", newline="", encoding="utf-8") as f:
         w = csv.writer(f)
         if new:
-            w.writerow(["issued_at_utc", "email", "order_id", "license_id", "file", "method"])
-        w.writerow([datetime.now(timezone.utc).isoformat(), email, order_id, license_id, filename, method])
+            w.writerow(LEDGER_COLUMNS)
+        w.writerow([
+            datetime.now(timezone.utc).isoformat(), email, order_id, license_id,
+            filename, method, delivery.get("provider", ""),
+            delivery.get("message_id", ""), delivery.get("thread_id", ""),
+            delivery.get("status", "not_sent"),
+        ])
 
 
 def _seller_bcc():
@@ -153,11 +222,34 @@ def _build_license_message(email, license_path, license_id, sender, bcc=""):
 
 
 def _email_license(email, license_path, license_id):
+    """Send the license.key through the selected provider.
+
+    Set PLUGICT_EMAIL_PROVIDER=agentmail for the new API path. SMTP remains
+    available as a backwards-compatible fallback for manual operations.
+    """
+    provider = os.environ.get("PLUGICT_EMAIL_PROVIDER", "smtp").strip().lower()
+    if provider in ("agentmail", "agent-mail"):
+        subject, text, html = emails.license_email(email, license_id)
+        result = agentmail.send_license(
+            buyer_email=email,
+            license_id=license_id,
+            license_path=license_path,
+            subject=subject,
+            text=text,
+            html=html,
+            bcc=_seller_bcc(),
+            reply_to=os.environ.get("AGENTMAIL_REPLY_TO", os.environ.get("ICT_SUPPORT_EMAIL", "")),
+        )
+        print(f"  emailed license to {email} via AgentMail (message {result['message_id']})")
+        return result
+
+    if provider not in ("smtp", ""):
+        raise RuntimeError(f"Unsupported PLUGICT_EMAIL_PROVIDER: {provider}")
+
     """Send the license.key as an attachment via SMTP. Config via env vars."""
     host = os.environ.get("SMTP_HOST")
     if not host:
-        print("  (skipping email: SMTP_HOST not set — see store/README.md)")
-        return
+        raise RuntimeError("SMTP_HOST not set; choose AgentMail with PLUGICT_EMAIL_PROVIDER=agentmail or configure SMTP")
     port = int(os.environ.get("SMTP_PORT", "587"))
     user = os.environ.get("SMTP_USER", "")
     pw = os.environ.get("SMTP_PASS", "")
@@ -173,6 +265,7 @@ def _email_license(email, license_path, license_id):
             s.login(user, pw)
         s.send_message(msg)
     print(f"  emailed license to {email}" + (f" (bcc {bcc})" if bcc else ""))
+    return {"provider": "smtp", "status": "sent", "message_id": "", "thread_id": ""}
 
 
 def _batch(csv_path, email_it, method="manual"):

@@ -83,11 +83,15 @@ each payload shape and ignores refunds / non-purchase events.
 - **Replay window:** set `STRIPE_SIG_TOLERANCE=300` (seconds) to reject Stripe
   events whose timestamp is too old. Off by default so a fresh host with clock
   skew doesn't reject real webhooks; idempotency (below) is the primary guard.
-- **Idempotency is automatic.** Processors re-deliver an event on any non-2xx
-  response or timeout. The handler looks up the order/session id in
-  `issued_licenses.csv` first and, if already fulfilled, returns
-  `{"status":"duplicate"}` with 200 — no second license, no second email. Keep
-  the ledger intact for this to work.
+- **Idempotency is process-local, not durable.** Processors re-deliver an event
+  on any non-2xx response or timeout. The handler holds a dependency-free
+  process lock around the order/session lookup plus issuance and returns
+  `{"status":"duplicate"}` with 200 when the ledger already contains the ID.
+  This suppresses sequential and concurrent duplicates on one running
+  instance, but not multiple instances, a restart with an ephemeral ledger, or
+  a crash after email send and before ledger append. Set `ICT_ISSUED_DIR` and
+  `ICT_ISSUED_LEDGER` to relocate those outputs; persistence still requires
+  operator-provisioned durable/shared storage.
 
 ## Payment methods (Malaysia-first)
 
