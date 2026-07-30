@@ -12,10 +12,9 @@ export async function onRequestGet({ request, env }) {
   if (!days) return errorResponse(request, env, 400, 'days must be an integer from 1 to 90');
   const since = Math.floor(Date.now() / 1000) - (days * 86400);
   const stats = await getAffiliateStats(env.DB, affiliate.code, since);
-  const siteOrigin = new URL(request.url).origin;
   return jsonResponse({
     affiliate: { code: affiliate.code, name: affiliate.name },
-    referral_url: `${siteOrigin}/?ref=${encodeURIComponent(affiliate.code)}`,
+    referral_url: `https://go.plugict.com/r/${encodeURIComponent(affiliate.code)}`,
     range_days: days,
     ...stats,
   }, request, env, 200, { 'Cache-Control': 'no-store' });

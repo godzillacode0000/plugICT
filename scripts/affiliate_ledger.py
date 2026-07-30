@@ -263,7 +263,7 @@ class AffiliateLedger:
             purchases = int(sales["purchases"] or 0)
             return {
                 "affiliate": {"code": affiliate["code"], "name": affiliate["name"]},
-                "referral_url": f"https://plugict.com/?ref={affiliate['code']}",
+                "referral_url": f"https://go.plugict.com/r/{affiliate['code']}",
                 "clicks": total_clicks,
                 "unique_clicks": unique_clicks,
                 "purchases": purchases,
