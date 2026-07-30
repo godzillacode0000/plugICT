@@ -25,6 +25,10 @@
   --terracotta-deep:#d95410;
   --ember-glow:rgba(255,107,26,.24);
   --spot:rgba(255,107,26,.06);
+  /* Declared here, not in a page's inline block, so every page resolves it.
+     The stack is literal rather than var(--sans): that token is defined
+     per-page, and an undefined reference invalidates the whole rule. */
+  --display:'Anton','Arial Narrow',Impact,'Helvetica Neue',sans-serif;
   --maxw:1200px;
 }
 
@@ -314,7 +318,7 @@ html.js .panel.answer .proof-msg{opacity:0}
 .priv-item b{font-size:16px}
 #setup{background:#0d0d10;border-top:1px solid var(--line-soft)}
 .moves{gap:14px}
-.move-card{background:#111115;border-color:#2b2b34;border-radius:6px;min-height:280px}
+.move-card{background:#111115;border-color:#2b2b34;border-radius:16px;min-height:280px}
 .move-card .num{font-size:10px;letter-spacing:.12em}
 .move-card h3{font-size:21px;letter-spacing:-.02em;margin-top:18px}
 .move-card p{font-size:14px}
