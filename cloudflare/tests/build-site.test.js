@@ -37,6 +37,11 @@ try {
   assert.equal(readFileSync(path.join(output, 'affiliate', 'index.html'), 'utf8'), readFileSync(path.join(root, 'affiliate.html'), 'utf8'));
   assert.equal(readFileSync(path.join(output, 'affiliate-dashboard', 'index.html'), 'utf8'), readFileSync(path.join(root, 'affiliate-dashboard.html'), 'utf8'));
   assert.equal(readFileSync(path.join(output, '_redirects'), 'utf8').trim(), '');
+  assert.deepEqual(JSON.parse(readFileSync(path.join(output, '_routes.json'), 'utf8')), {
+    version: 1,
+    include: ['/api/*', '/r/*'],
+    exclude: [],
+  });
 
   const malformed = path.join(temp, 'malformed.txt');
   writeFileSync(malformed, `${readFileSync(manifest, 'utf8')}\n../store/secret.txt\n`);
