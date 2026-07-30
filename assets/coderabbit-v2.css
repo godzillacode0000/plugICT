@@ -289,10 +289,11 @@ html.js .panel.answer .proof-msg{opacity:0}
 .agent-head h2{max-width:620px}
 .agent-head .sub{margin:0;max-width:560px}
 .agent-grid{display:grid;grid-template-columns:360px minmax(0,1fr);gap:14px;margin-top:50px;align-items:start}
-.agent-picker,.agent-flow{border:1px solid #2b2b34;background:#111115;border-radius:6px;padding:20px}
-.agent-option{display:flex;align-items:center;gap:14px;padding:16px;border:1px solid rgba(255,107,26,.28);background:rgba(255,107,26,.05);border-radius:6px;color:#f2f2f4;font-size:14px}
+.agent-picker,.agent-flow{border:1px solid #2b2b34;background:#111115;border-radius:16px;padding:20px}
+.stage-label{font:400 19px/1.1 var(--display);letter-spacing:0;color:var(--ink);margin-bottom:14px}
+.agent-option{display:flex;align-items:center;gap:14px;padding:16px;border:1px solid rgba(255,107,26,.28);background:rgba(255,107,26,.05);border-radius:12px;color:#f2f2f4;font-size:14px}
 .agent-option+.agent-option{margin-top:8px}
-.agent-logo{position:relative;display:grid;place-items:center;width:48px;height:48px;border:1px solid rgba(255,107,26,.4);border-radius:6px;background:#0a0a0c;overflow:hidden;flex:none}
+.agent-logo{position:relative;display:grid;place-items:center;width:48px;height:48px;border:1px solid rgba(255,107,26,.4);border-radius:12px;background:#0a0a0c;overflow:hidden;flex:none}
 .agent-logo img{width:100%;height:100%;object-fit:cover;display:block}
 .agent-logo-fallback{display:none;font:600 12px var(--mono);color:var(--terracotta-bright)}
 .agent-option small{display:block;color:#92929d;font-size:12px;margin-top:3px}
@@ -301,7 +302,7 @@ html.js .panel.answer .proof-msg{opacity:0}
 .flow-head b{color:var(--terracotta-bright);font-weight:500}
 .flow-body{padding:28px}
 .flow-lane{display:grid;grid-template-columns:1fr 44px 1fr 44px 1fr;align-items:center;gap:8px}
-.flow-node{min-height:145px;border:1px solid #30303a;border-radius:5px;background:#141419;padding:18px}
+.flow-node{min-height:145px;border:1px solid #30303a;border-radius:12px;background:#141419;padding:18px}
 .flow-node .node-kicker{font:600 10px var(--mono);letter-spacing:.1em;color:#92929d;text-transform:uppercase}
 .flow-node h3{font:600 17px var(--sans);margin-top:10px}
 .flow-node p{font-size:12px;color:#858590;line-height:1.55;margin-top:7px}
@@ -625,7 +626,8 @@ body:has(.ref-banner.on) .hero-frame{padding-top:42px}
    Anton is already condensed and very heavy, so the tight tracking the old
    grotesque needed would close it up; it gets near-zero letter-spacing and a
    slightly tighter leading instead. */
-.hero h1,section h2,.proof-wrap h2,.panel-title,.rb-text h3,.cap-text h3{
+.hero h1,section h2,.proof-wrap h2,.panel-title,.rb-text h3,.cap-text h3,
+.flow-node h3,.move-card h3,.asset-copy h3,.pay-modal h3,.stage-label{
   font-family:var(--display);font-weight:400;letter-spacing:0}
 .hero h1{letter-spacing:-.005em;line-height:.94}
 section h2,.proof-wrap h2{line-height:1}
