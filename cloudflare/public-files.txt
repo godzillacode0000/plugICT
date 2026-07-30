@@ -11,6 +11,10 @@ assets/affiliate-config.js
 assets/coderabbit-v2.css
 assets/logos/claude.jpg
 assets/logos/hermes.jpg
+assets/proof/answer-1.jpg
+assets/proof/answer-2.jpg
+assets/proof/answer-3.jpg
+assets/proof/answer-4.jpg
 assets/video/affiliate-background-poster.jpg
 assets/video/affiliate-background.mp4
 assets/video/hero-background-poster.jpg
