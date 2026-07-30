@@ -2,21 +2,29 @@
    Original CSS implementation: preserves the existing checkout and product logic. */
 
 :root{
-  --paper:#070709;
-  --paper-alt:#0d0d10;
-  --card:#121216;
-  --dark:#050506;
-  --dark-line:#282832;
-  --ink:#f7f7f8;
-  --ink-soft:#aaaab4;
-  --ink-mut:#92929d;
-  --line:#282832;
+  /* Warm neutrals: the greys carry a little of the accent's temperature, which
+     is what stops orange reading as a sticker on a cold grey page. */
+  --paper:#0a0908;
+  --paper-alt:#100e0c;
+  --card:#161412;
+  --dark:#070605;
+  --dark-line:#2a2622;
+  --ink:#f5efe6;
+  --ink-soft:#b0a99f;
+  --ink-mut:#8d867d;
+  --line:#2a2622;
+  /* Second accent. Orange is saturated and means act; gold is desaturated and
+     means this is worth money. They sit beside each other on the wheel, so they
+     read as one family rather than two competing signals. */
+  --gold:#e0c08a;
+  --gold-soft:#c8a86e;
+  --gold-dim:rgba(224,192,138,.4);
   --line-soft:rgba(255,255,255,.08);
-  --terracotta:#22c55e;
-  --terracotta-bright:#4ade80;
-  --terracotta-deep:#16a34a;
-  --ember-glow:rgba(34,197,94,.24);
-  --spot:rgba(34,197,94,.06);
+  --terracotta:#ff6b1a;
+  --terracotta-bright:#ff8a3d;
+  --terracotta-deep:#d95410;
+  --ember-glow:rgba(255,107,26,.24);
+  --spot:rgba(255,107,26,.06);
   --maxw:1200px;
 }
 
@@ -28,9 +36,9 @@ nav{top:14px;width:calc(100% - 40px);max-width:1280px;margin:14px auto 0;border-
 nav .wrap{height:68px;max-width:100%}
 .brand{font-size:20px;letter-spacing:-.025em}
 .navlinks{gap:26px;font-size:14px}
-.btn{border-radius:4px}
+.btn{border-radius:10px}
 .btn.primary{background:var(--terracotta);color:#041006;box-shadow:none}
-.btn.primary:hover{background:var(--terracotta-bright);box-shadow:0 0 32px rgba(34,197,94,.18)}
+.btn.primary:hover{background:var(--terracotta-bright);box-shadow:0 0 32px rgba(255,107,26,.18)}
 .btn.ghost{border-color:var(--line);color:var(--ink-soft);background:rgba(255,255,255,.025)}
 .btn.ghost:hover{background:#151519;border-color:#4b4b58;color:var(--ink)}
 .hero .cta .btn{border-radius:999px}
@@ -40,7 +48,7 @@ nav .btn.primary.small{border-radius:13px}
 
 /* Hero: centered promise followed by a large product stage, matching the reference rhythm. */
 .hero{min-height:auto;border-bottom:1px solid var(--line-soft)}
-.hero::before{top:-260px;right:50%;transform:translateX(50%);width:900px;height:620px;background:radial-gradient(circle,rgba(34,197,94,.12),transparent 64%)}
+.hero::before{top:-260px;right:50%;transform:translateX(50%);width:900px;height:620px;background:radial-gradient(circle,rgba(255,107,26,.12),transparent 64%)}
 .hero::after{opacity:.16;background:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:64px 64px;mask-image:linear-gradient(#000,transparent 70%)}
 #hero-canvas{opacity:.1}
 .hero .wrap.hero-stack{display:block;max-width:1280px;padding:86px 28px 0}
@@ -53,7 +61,7 @@ nav .btn.primary.small{border-radius:13px}
 .hero .cta .btn{padding:14px 24px;font-size:15px}
 .hero .fine{margin-top:16px;font-size:11px;text-transform:uppercase;letter-spacing:.08em}
 
-.hero-video{position:relative;margin:72px auto 0;max-width:1200px;border:1px solid #31313b;border-bottom:none;border-radius:10px 10px 0 0;background:#141419;box-shadow:0 -20px 90px rgba(0,0,0,.48),0 0 80px rgba(34,197,94,.07);overflow:hidden;text-align:left}
+.hero-video{position:relative;margin:72px auto 0;max-width:1200px;border:1px solid #31313b;border-bottom:none;border-radius:10px 10px 0 0;background:#141419;box-shadow:0 -20px 90px rgba(0,0,0,.48),0 0 80px rgba(255,107,26,.07);overflow:hidden;text-align:left}
 .hero-video-frame{height:50px;display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid #2b2b34;background:#0d0d10;color:#83838f;font:500 11px var(--mono);letter-spacing:.02em}
 .hero-video-dot{width:8px;height:8px;border-radius:50%;background:#3a3a44}
 .hero-video-title{margin-left:8px;color:#c7c7cf}
@@ -67,26 +75,35 @@ nav .btn.primary.small{border-radius:13px}
 .proof-band{padding:68px 28px 72px;background:var(--paper);border-bottom:1px solid var(--line-soft)}
 .proof-wrap{max-width:1200px;margin:0 auto;text-align:center}
 .proof-wrap h2{font:600 clamp(28px,3.3vw,46px)/1.08 var(--sans);letter-spacing:-.035em;max-width:760px;margin:0 auto}
-.proof-grid{display:grid;grid-template-columns:repeat(4,1fr);margin-top:42px;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--card)}
+.proof-grid{display:grid;grid-template-columns:repeat(4,1fr);margin-top:42px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--card)}
 .proof-item{min-height:128px;padding:25px 18px;display:flex;flex-direction:column;justify-content:center;border-right:1px solid var(--line)}
 .proof-item:last-child{border-right:0}
 .proof-value{font:600 clamp(24px,3vw,40px)/1 var(--sans);letter-spacing:-.04em;color:var(--ink)}
 .proof-value.green{color:var(--terracotta-bright)}
 .proof-label{font:500 11px var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-mut);margin-top:10px}
 .integration-rail{display:flex;justify-content:center;align-items:center;gap:9px;flex-wrap:wrap;margin-top:28px;color:#92929d;font:500 10px var(--mono);letter-spacing:.06em;text-transform:uppercase}
-.integration-rail span{border:1px solid #292932;background:#0e0e12;border-radius:4px;padding:7px 11px;color:#9a9aa5}
+.integration-rail span{border:1px solid var(--line);background:var(--paper-alt);border-radius:999px;padding:7px 11px;color:#9a9aa5}
 
 /* Narrative sections. */
 section{padding:104px 28px}
 section h2{font:600 clamp(34px,4.6vw,60px)/1.03 var(--sans);letter-spacing:-.045em}
 .eyebrow{font-weight:600;color:var(--terracotta-bright)}
-.sub{color:#a2a2ad}
+.sub{color:var(--ink-soft)}
+/* ── Gold tier ─────────────────────────────────────────────────────────────
+   Section labels, the emphasised clause of a heading, and anything to do with
+   price. Orange is left for things you click. */
+.eyebrow{color:var(--gold)}
+section h2 em{color:var(--gold)}
+.hero h1 em{color:var(--gold)}
+.rb-eyebrow,.panel.answer .panel-label{color:var(--gold)}
+.price,.price-value,.pricing-price{color:var(--gold)}
+
 #problem{background:var(--paper)}
 #problem .inner>h2{max-width:870px}
 #problem .inner>.sub{max-width:680px}
 .story{gap:16px;margin-top:48px}
-.panel{border-radius:6px;min-height:330px;padding:38px;background:#111115}
-.panel.answer{background:#0a0a0c;border-color:rgba(34,197,94,.42)}
+.panel{border-radius:16px;min-height:330px;padding:38px;background:#111115}
+.panel.answer{background:#0a0a0c;border-color:rgba(255,107,26,.42)}
 .panel .dlg{font-size:15px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.055)}
 .panel .dlg:last-child{border-bottom:0}
 
@@ -97,7 +114,7 @@ section h2{font:600 clamp(34px,4.6vw,60px)/1.03 var(--sans);letter-spacing:-.045
 /* faint circuit trace behind the top-right corner; decorative only */
 #problem::after{content:"";position:absolute;top:0;right:0;width:46%;height:62%;
   pointer-events:none;opacity:.5;
-  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240' fill='none' stroke='%2322c55e' stroke-opacity='.16' stroke-width='1'><path d='M20 0v40h44v52h56M96 0v28h40v40h64M164 0v20h28M0 60h32v44h40v56M0 128h48v52h72v60M200 40v40h40M148 92h52v56h40M72 160h56v40h56'/><circle cx='64' cy='92' r='3'/><circle cx='120' cy='92' r='3'/><circle cx='200' cy='68' r='3'/><circle cx='136' cy='68' r='3'/><circle cx='72' cy='104' r='3'/><circle cx='120' cy='180' r='3'/><circle cx='200' cy='148' r='3'/><circle cx='128' cy='200' r='3'/></svg>");
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240' fill='none' stroke='%23ff6b1a' stroke-opacity='.16' stroke-width='1'><path d='M20 0v40h44v52h56M96 0v28h40v40h64M164 0v20h28M0 60h32v44h40v56M0 128h48v52h72v60M200 40v40h40M148 92h52v56h40M72 160h56v40h56'/><circle cx='64' cy='92' r='3'/><circle cx='120' cy='92' r='3'/><circle cx='200' cy='68' r='3'/><circle cx='136' cy='68' r='3'/><circle cx='72' cy='104' r='3'/><circle cx='120' cy='180' r='3'/><circle cx='200' cy='148' r='3'/><circle cx='128' cy='200' r='3'/></svg>");
   -webkit-mask-image:radial-gradient(120% 100% at 100% 0,#000 25%,transparent 72%);
           mask-image:radial-gradient(120% 100% at 100% 0,#000 25%,transparent 72%)}
 #problem .inner{position:relative;z-index:1}
@@ -131,20 +148,20 @@ section h2{font:600 clamp(34px,4.6vw,60px)/1.03 var(--sans);letter-spacing:-.045
 .hunt-x svg{width:18px;height:18px}
 
 /* right panel */
-.panel.answer{background:#050806;border-color:rgba(34,197,94,.55);
-  box-shadow:0 0 0 1px rgba(34,197,94,.12),0 0 46px -12px rgba(34,197,94,.42),inset 0 0 42px -22px rgba(34,197,94,.5)}
+.panel.answer{background:#050806;border-color:rgba(255,107,26,.55);
+  box-shadow:0 0 0 1px rgba(255,107,26,.12),0 0 46px -12px rgba(255,107,26,.42),inset 0 0 42px -22px rgba(255,107,26,.5)}
 .panel.answer .panel-label{color:var(--terracotta-bright)}
-.ask{border:1px solid rgba(34,197,94,.4);border-radius:12px;overflow:hidden;background:rgba(6,20,10,.6)}
+.ask{border:1px solid rgba(255,107,26,.4);border-radius:12px;overflow:hidden;background:rgba(6,20,10,.6)}
 .ask-bar{display:flex;align-items:center;gap:10px;padding:12px 14px;
-  border-bottom:1px solid rgba(34,197,94,.28);color:var(--terracotta-bright)}
+  border-bottom:1px solid rgba(255,107,26,.28);color:var(--terracotta-bright)}
 .ask-ico svg{width:17px;height:17px;display:block}
 .ask-app{font:600 15px var(--sans);color:var(--ink)}
 .ask-q{margin:0;padding:13px 14px;font-size:15px;line-height:1.5;color:rgba(249,250,251,.9)}
-.proof{margin-top:16px;border:1px solid rgba(34,197,94,.3);border-radius:12px;padding:18px 16px;
+.proof{margin-top:16px;border:1px solid rgba(255,107,26,.3);border-radius:12px;padding:18px 16px;
   background:rgba(6,16,9,.55)}
 .proof-ok{display:flex;align-items:center;gap:9px;font:600 15px var(--sans);color:var(--terracotta-bright)}
 .proof-tick{display:grid;place-items:center;width:21px;height:21px;flex:none;border-radius:50%;
-  border:1px solid rgba(74,222,128,.6)}
+  border:1px solid rgba(255,138,61,.6)}
 .proof-tick svg{width:12px;height:12px}
 /* The answer is styled as a captured message — light card, serif headings,
    quoted blocks — so it reads as something the product actually sent, while
@@ -156,12 +173,12 @@ section h2{font:600 clamp(34px,4.6vw,60px)/1.03 var(--sans);letter-spacing:-.045
 .proof-title{margin:0 66px 0 0;font:700 17px/1.32 var(--serif);letter-spacing:-.01em;color:#12161a}
 .proof-lbl{margin:14px 0 4px;font:700 13.5px var(--serif);color:#12161a;letter-spacing:0;text-transform:none}
 .proof-src{margin:0;font-size:13px;line-height:1.6;color:#39424b}
-.proof-src code{font:500 12.5px var(--mono);color:#0f6b3d}
+.proof-src code{font:500 12.5px var(--mono);color:#b45309}
 .proof-src i{color:#5a646d}
 .proof-list{margin:0;padding:0 0 0 16px;list-style:disc;display:flex;flex-direction:column;gap:5px}
 .proof-list li{font-size:12.5px;line-height:1.6;color:#39424b;padding-left:2px}
 .proof-list li::marker{color:#8c959d}
-.proof-list code{font:500 12px var(--mono);color:#0f6b3d}
+.proof-list code{font:500 12px var(--mono);color:#b45309}
 .proof-list i{color:#5a646d}
 .proof-h{margin:18px 0 0;padding-top:14px;border-top:1px solid #dfe3e7;
   font:700 15px var(--serif);letter-spacing:0;color:#12161a}
@@ -186,16 +203,16 @@ section h2{font:600 clamp(34px,4.6vw,60px)/1.03 var(--sans);letter-spacing:-.045
 .results-bar{margin-top:20px;display:flex;align-items:center;gap:20px;padding:24px 28px;
   border:1px solid #232a25;border-radius:14px;background:#0b0f0c;position:relative;overflow:hidden}
 .rb-tick{flex:none;display:grid;place-items:center;width:52px;height:52px;border-radius:50%;
-  border:1px solid rgba(34,197,94,.5);background:rgba(34,197,94,.08);color:var(--terracotta-bright);
-  box-shadow:0 0 26px -8px rgba(34,197,94,.6)}
+  border:1px solid rgba(255,107,26,.5);background:rgba(255,107,26,.08);color:var(--terracotta-bright);
+  box-shadow:0 0 26px -8px rgba(255,107,26,.6)}
 .rb-tick svg{width:26px;height:26px}
 .rb-text{min-width:0;flex:1}
 .rb-eyebrow{display:block;font:600 10.5px var(--mono);letter-spacing:.14em;text-transform:uppercase;
   color:var(--terracotta-bright)}
 .rb-text h3{margin:6px 0 0;font:600 27px/1.15 var(--sans);letter-spacing:-.03em;color:var(--ink)}
 .rb-text p{margin:5px 0 0;font-size:14.5px;color:var(--ink-soft)}
-.rb-spark{flex:none;color:rgba(74,222,128,.7)}
-.rb-spark svg{width:44px;height:44px;filter:drop-shadow(0 0 14px rgba(34,197,94,.55))}
+.rb-spark{flex:none;color:rgba(255,138,61,.7)}
+.rb-spark svg{width:44px;height:44px;filter:drop-shadow(0 0 14px rgba(255,107,26,.55))}
 
 @media(max-width:900px){
   .story{grid-template-columns:1fr;gap:14px;margin-top:38px}
@@ -239,14 +256,14 @@ section h2{font:600 clamp(34px,4.6vw,60px)/1.03 var(--sans);letter-spacing:-.045
 .cap-visual{grid-column:auto;max-width:none;width:100%;margin-top:auto;padding-top:24px}
 .cap-visual.cv-graph{margin-top:32px;padding-top:0}
 .cv-term,.cv-cite,.cv-license{background:#09090b;border-color:#30303a}
-.cv-badges span{background:#0b0b0e;border-color:#30303a;border-radius:4px}
-.cv-graph{background:radial-gradient(ellipse 54% 46% at 50% 49%,rgba(34,197,94,.13),transparent 64%),linear-gradient(180deg,#121217,#09090c 58%,#060608)!important;border-color:#30303a!important}
+.cv-badges span{background:var(--paper-alt);border-color:var(--line);border-radius:999px}
+.cv-graph{border-radius:14px;background:radial-gradient(ellipse 54% 46% at 50% 49%,rgba(255,107,26,.13),transparent 64%),linear-gradient(180deg,#121217,#09090c 58%,#060608)!important;border-color:#30303a!important}
 .kg-node{background:linear-gradient(180deg,rgba(28,28,34,.97),rgba(11,11,14,.98))!important;border-color:#3a3a45!important;color:#e5e5e9!important}
-.kg-node.primary{border-color:rgba(34,197,94,.48)!important}
-.kg-node.primary[data-id="ob"]{border-color:rgba(74,222,128,.82)!important;color:#f7f7f8!important}
+.kg-node.primary{border-color:rgba(255,107,26,.48)!important}
+.kg-node.primary[data-id="ob"]{border-color:rgba(255,138,61,.82)!important;color:#f7f7f8!important}
 .kg-node .label{color:#f1f1f3!important;font-family:var(--sans)!important}
-.kg-pulse{fill:#4ade80}
-.kg-caption{background:#101014;border-color:rgba(34,197,94,.25)}
+.kg-pulse{fill:#ff8a3d}
+.kg-caption{background:#101014;border-color:rgba(255,107,26,.25)}
 
 /* The knowledge-graph card is visual-first — a compact label, then the film.
    With no body copy left, `.cap-visual`'s auto top margin and the .cv-graph
@@ -265,9 +282,9 @@ section h2{font:600 clamp(34px,4.6vw,60px)/1.03 var(--sans);letter-spacing:-.045
 .agent-head .sub{margin:0;max-width:560px}
 .agent-grid{display:grid;grid-template-columns:360px minmax(0,1fr);gap:14px;margin-top:50px;align-items:start}
 .agent-picker,.agent-flow{border:1px solid #2b2b34;background:#111115;border-radius:6px;padding:20px}
-.agent-option{display:flex;align-items:center;gap:14px;padding:16px;border:1px solid rgba(34,197,94,.28);background:rgba(34,197,94,.05);border-radius:6px;color:#f2f2f4;font-size:14px}
+.agent-option{display:flex;align-items:center;gap:14px;padding:16px;border:1px solid rgba(255,107,26,.28);background:rgba(255,107,26,.05);border-radius:6px;color:#f2f2f4;font-size:14px}
 .agent-option+.agent-option{margin-top:8px}
-.agent-logo{position:relative;display:grid;place-items:center;width:48px;height:48px;border:1px solid rgba(34,197,94,.4);border-radius:6px;background:#0a0a0c;overflow:hidden;flex:none}
+.agent-logo{position:relative;display:grid;place-items:center;width:48px;height:48px;border:1px solid rgba(255,107,26,.4);border-radius:6px;background:#0a0a0c;overflow:hidden;flex:none}
 .agent-logo img{width:100%;height:100%;object-fit:cover;display:block}
 .agent-logo-fallback{display:none;font:600 12px var(--mono);color:var(--terracotta-bright)}
 .agent-option small{display:block;color:#92929d;font-size:12px;margin-top:3px}
@@ -300,7 +317,7 @@ section h2{font:600 clamp(34px,4.6vw,60px)/1.03 var(--sans);letter-spacing:-.045
 
 #pricing{background:var(--paper)}
 .price-card{background:#111115;border-color:#34343e;box-shadow:none}
-.price-card:hover{box-shadow:0 0 45px rgba(34,197,94,.08)}
+.price-card:hover{box-shadow:0 0 45px rgba(255,107,26,.08)}
 .price-card .now{font-family:var(--sans);font-weight:650;letter-spacing:-.055em}
 #faq{background:#0d0d10;border-top:1px solid var(--line-soft)}
 .faq{background:#111115;border-color:#2b2b34}
@@ -439,7 +456,7 @@ nav .wrap{height:56px;background:none;border:none;box-shadow:none;border-radius:
    needs to space them out */
 .asset-track .asset-chip{margin-right:14px}
 /* concept chips carry a plain brand bubble instead of a flag/coin glyph */
-.asset-chip .bubble.bubble-ict{background:linear-gradient(140deg,var(--terracotta-bright),#0f5132)}
+.asset-chip .bubble.bubble-ict{background:linear-gradient(140deg,var(--terracotta-bright),#7a3a10)}
 
 /* Instrument coins, FundedNext-style: the glyph is scaled up until it fills its
    disc and gets clipped by the border-radius, so a flag reads as a bright round
@@ -467,7 +484,7 @@ nav .wrap{height:56px;background:none;border:none;box-shadow:none;border-radius:
    big empty disc — and it has to restate its gradient, since the coin rule
    above shares its specificity and would otherwise win on source order */
 .asset-chip .bubble.bubble-ict{width:26px;height:26px;
-  background:linear-gradient(140deg,var(--terracotta-bright),#0f5132);
+  background:linear-gradient(140deg,var(--terracotta-bright),#7a3a10);
   border-width:1px;border-color:rgba(255,255,255,.24);
   box-shadow:inset 0 1px 0 rgba(255,255,255,.10)}
 .asset-chip .label{font-size:clamp(13px,1.55vw,16px);color:rgba(249,250,251,.9)}
@@ -496,7 +513,7 @@ nav .wrap{height:56px;background:none;border:none;box-shadow:none;border-radius:
 /* Affiliate hero: small badge and pill buttons. `.hero .wrap > .eyebrow` is
    affiliate-only; the main page's hero carries no badge at all now. */
 .hero .wrap > .eyebrow{gap:5px;padding:3px 8px;font-size:7px;letter-spacing:.1em;line-height:1.5}
-.hero .wrap > .eyebrow::before{width:4px;height:4px;box-shadow:0 0 8px rgba(74,222,128,.8)}
+.hero .wrap > .eyebrow::before{width:4px;height:4px;box-shadow:0 0 8px rgba(255,138,61,.8)}
 /* .btn{border-radius:4px} above squares these off; the main page rounds its
    hero buttons via .hero .cta .btn, which does not match .cta-row */
 .cta-row .btn{border-radius:999px}
