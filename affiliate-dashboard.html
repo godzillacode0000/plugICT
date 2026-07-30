@@ -15,8 +15,8 @@
     --paper:#070709; --paper-alt:#0d0d10; --card:#121216; --dark:#050506;
     --ink:#f7f7f8; --ink-soft:#aaaab4; --ink-mut:#858590;
     --line:#282832; --line-soft:rgba(255,255,255,.08);
-    --green:#22c55e; --green-bright:#4ade80; --green-deep:#16a34a;
-    --glow:rgba(34,197,94,.24); --sans:'Geist','Inter',system-ui,sans-serif;
+    --green:#ff6b1a; --green-bright:#ff8a3d; --green-deep:#d95410;
+    --glow:rgba(255,107,26,.24); --sans:'Geist','Inter',system-ui,sans-serif;
     --mono:'JetBrains Mono','IBM Plex Mono',ui-monospace,monospace;
     --maxw:1180px;
   }
@@ -34,13 +34,13 @@
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border-radius:4px;padding:12px 20px;border:1px solid var(--line);background:rgba(255,255,255,.025);color:var(--ink);cursor:pointer;font:500 14px var(--sans);text-decoration:none;transition:.18s ease}
   .btn:hover{border-color:#4b4b58;background:#151519;transform:translateY(-1px)}
   .btn.primary{border-color:var(--green);background:var(--green);color:#041006}
-  .btn.primary:hover{background:var(--green-bright);box-shadow:0 0 32px rgba(34,197,94,.18)}
+  .btn.primary:hover{background:var(--green-bright);box-shadow:0 0 32px rgba(255,107,26,.18)}
   .btn.small{padding:9px 16px;font-size:13px}
   main{padding:82px 0 96px}
   .hero{position:relative;padding:0 28px 58px;text-align:center;overflow:hidden}
-  .hero::before{content:"";position:absolute;top:-220px;left:50%;width:720px;height:500px;transform:translateX(-50%);background:radial-gradient(circle,rgba(34,197,94,.14),transparent 68%);pointer-events:none}
-  .eyebrow{position:relative;display:inline-flex;align-items:center;gap:8px;padding:5px 10px;border:1px solid rgba(34,197,94,.28);border-radius:999px;background:rgba(34,197,94,.07);color:var(--green-bright);font:600 10px var(--mono);letter-spacing:.12em;text-transform:uppercase}
-  .eyebrow::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--green-bright);box-shadow:0 0 10px rgba(74,222,128,.8)}
+  .hero::before{content:"";position:absolute;top:-220px;left:50%;width:720px;height:500px;transform:translateX(-50%);background:radial-gradient(circle,rgba(255,107,26,.14),transparent 68%);pointer-events:none}
+  .eyebrow{position:relative;display:inline-flex;align-items:center;gap:8px;padding:5px 10px;border:1px solid rgba(255,107,26,.28);border-radius:999px;background:rgba(255,107,26,.07);color:var(--green-bright);font:600 10px var(--mono);letter-spacing:.12em;text-transform:uppercase}
+  .eyebrow::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--green-bright);box-shadow:0 0 10px rgba(255,138,61,.8)}
   h1{position:relative;margin:22px auto 0;font-size:clamp(38px,5.8vw,72px);line-height:1;letter-spacing:-.055em;max-width:820px}
   h1 em{font-style:normal;color:var(--green-bright)}
   .hero p{position:relative;max-width:610px;margin:20px auto 0;color:var(--ink-soft);font-size:17px}
@@ -80,7 +80,7 @@
   @media(max-width:860px){.stats-grid{grid-template-columns:repeat(2,1fr)}.lower-grid{grid-template-columns:1fr}}
   @media(max-width:640px){nav{width:calc(100% - 24px);top:10px;margin-top:10px;border-radius:14px}nav .wrap{height:62px;padding:0 14px}.nav-right a{display:none}.brand{font-size:18px}.brand svg{width:18px;height:18px}main{padding-top:66px}.hero{padding:0 20px 44px}.dashboard{padding:0 20px}.topline{align-items:flex-start;flex-direction:column}.stats-grid{grid-template-columns:1fr 1fr;gap:8px}.stat{min-height:130px;padding:18px}.stat-value{margin-top:18px;font-size:30px}.panel{padding:22px}.link-row{flex-direction:column}.link-row .btn{width:100%}}
 </style>
-<link rel="stylesheet" href="assets/coderabbit-v2.css?v=20260730-fitfix">
+<link rel="stylesheet" href="assets/coderabbit-v2.css?v=20260730-warm">
 </head>
 <body>
 <nav aria-label="Main">
