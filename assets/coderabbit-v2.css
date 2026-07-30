@@ -101,7 +101,7 @@ section h2{font:600 clamp(34px,4.6vw,60px)/1.03 var(--sans);letter-spacing:-.045
   -webkit-mask-image:radial-gradient(120% 100% at 100% 0,#000 25%,transparent 72%);
           mask-image:radial-gradient(120% 100% at 100% 0,#000 25%,transparent 72%)}
 #problem .inner{position:relative;z-index:1}
-.story{grid-template-columns:1fr 1fr;gap:20px;align-items:stretch;margin-top:52px}
+.story{grid-template-columns:1fr 1fr;gap:20px;align-items:start;margin-top:52px}
 .story .panel{min-height:0;padding:30px 28px 26px;display:flex;flex-direction:column}
 .panel-label{position:static;margin-bottom:20px;font:600 10.5px var(--mono);letter-spacing:.14em;
   text-transform:uppercase;color:var(--ink-mut)}
@@ -143,17 +143,41 @@ section h2{font:600 clamp(34px,4.6vw,60px)/1.03 var(--sans);letter-spacing:-.045
 .proof-tick{display:grid;place-items:center;width:21px;height:21px;flex:none;border-radius:50%;
   border:1px solid rgba(74,222,128,.6)}
 .proof-tick svg{width:12px;height:12px}
-.proof-title{margin:13px 0 0;font:600 16px/1.35 var(--sans);letter-spacing:-.015em;color:var(--ink)}
-.proof-src{margin:9px 0 0;font-size:12.5px;line-height:1.6;color:var(--ink-mut)}
-.proof-src span{display:block;font:600 9.5px var(--mono);letter-spacing:.13em;text-transform:uppercase;
-  color:rgba(249,250,251,.4);margin-bottom:3px}
-.proof-src code{font:500 12.5px var(--mono);color:var(--terracotta-bright)}
-.proof-quote{margin:13px 0 0;padding:10px 0 10px 12px;border-left:2px solid rgba(74,222,128,.55);
-  font-size:13.5px;line-height:1.6;color:rgba(249,250,251,.86)}
-.proof-quote b{color:#fff;font-weight:600}
-.proof-ts{display:inline-block;margin-top:7px;padding:3px 8px;border-radius:5px;
-  background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);
-  font:500 11px var(--mono);color:var(--terracotta-bright)}
+/* The answer is styled as a captured message — light card, serif headings,
+   quoted blocks — so it reads as something the product actually sent, while
+   staying real text that stays sharp and reflows on a phone. */
+.proof-msg{position:relative;margin-top:14px;padding:20px 18px 18px;border-radius:12px;
+  background:#f7f8fa;color:#1c2024;box-shadow:0 10px 30px -14px rgba(0,0,0,.75)}
+.proof-date{position:absolute;top:12px;right:12px;padding:3px 9px;border-radius:999px;
+  background:rgba(60,80,95,.72);color:#fff;font:600 10px var(--sans);letter-spacing:.02em}
+.proof-title{margin:0 66px 0 0;font:700 17px/1.32 var(--serif);letter-spacing:-.01em;color:#12161a}
+.proof-lbl{margin:14px 0 4px;font:700 13.5px var(--serif);color:#12161a;letter-spacing:0;text-transform:none}
+.proof-src{margin:0;font-size:13px;line-height:1.6;color:#39424b}
+.proof-src code{font:500 12.5px var(--mono);color:#0f6b3d}
+.proof-src i{color:#5a646d}
+.proof-list{margin:0;padding:0 0 0 16px;list-style:disc;display:flex;flex-direction:column;gap:5px}
+.proof-list li{font-size:12.5px;line-height:1.6;color:#39424b;padding-left:2px}
+.proof-list li::marker{color:#8c959d}
+.proof-list code{font:500 12px var(--mono);color:#0f6b3d}
+.proof-list i{color:#5a646d}
+.proof-h{margin:18px 0 0;padding-top:14px;border-top:1px solid #dfe3e7;
+  font:700 15px var(--serif);letter-spacing:0;color:#12161a}
+.proof-h span{font-family:var(--sans);font-size:12.5px;font-weight:400;color:#69737c}
+.proof-quote{margin:11px 0 0;padding:11px 13px;border-left:3px solid #6f9fc4;border-radius:0 6px 6px 0;
+  background:#e9eef4;font-size:13px;line-height:1.62;color:#2a323a;font-style:italic}
+.proof-quote b{color:#12161a;font-weight:700;font-style:normal}
+.proof-ts{display:inline-block;margin-top:7px;padding:0;background:none;border:0;border-radius:0;
+  font:500 12px var(--mono);font-style:normal;color:#1f6fb2;text-decoration:underline;
+  text-underline-offset:2px}
+.proof-tablewrap{margin-top:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;
+  border:1px solid #d3d8dd;border-radius:7px;background:#fff}
+.proof-table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:290px}
+.proof-table th,.proof-table td{padding:9px 11px;text-align:left;border-bottom:1px solid #e3e7eb}
+.proof-table tbody tr:last-child td{border-bottom:0}
+.proof-table th{font:600 11px var(--sans);letter-spacing:.01em;text-transform:none;
+  color:#39424b;background:#eef1f4}
+.proof-table td{color:#2a323a}
+.proof-table td:first-child{color:#69737c;font-family:var(--sans);width:1%}
 .proof-verify{margin-top:16px;display:flex;align-items:center;justify-content:center;gap:9px;
   padding:11px 14px;border-radius:9px;border:1px solid rgba(34,197,94,.5);
   background:rgba(34,197,94,.08);font:600 14px var(--sans);color:var(--ink)}
@@ -186,6 +210,8 @@ section h2{font:600 clamp(34px,4.6vw,60px)/1.03 var(--sans);letter-spacing:-.045
   .hunt-text b{font-size:17px}
   .proof{padding:15px 13px}
   .proof-title{font-size:15px}
+  .proof-list li,.proof-table{font-size:11.5px}
+  .proof-table th,.proof-table td{padding:8px 9px}
   .results-bar{margin-top:14px;padding:20px 18px;gap:14px;align-items:flex-start}
   .rb-tick{width:42px;height:42px}
   .rb-tick svg{width:21px;height:21px}
