@@ -68,7 +68,7 @@ fs.writeFileSync(path.join(outputDir, '404.html'), `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>PlugICT — Not found</title><style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#070709;color:#f7f7f8;font:16px system-ui,sans-serif}main{text-align:center}a{color:#4ade80}</style></head><body><main><h1>Page not found</h1><p><a href="/">Back to PlugICT</a></p></main></body></html>`);
 fs.writeFileSync(path.join(outputDir, '_routes.json'), `${JSON.stringify({
   version: 1,
-  include: ['/api/*'],
+  include: ['/api/*', '/r/*'],
   exclude: [],
 }, null, 2)}\n`);
 fs.writeFileSync(path.join(outputDir, '_headers'), `/*\n  X-Content-Type-Options: nosniff\n  Referrer-Policy: strict-origin-when-cross-origin\n  Permissions-Policy: camera=(), microphone=(), geolocation=()\n\n/affiliate-dashboard*\n  Cache-Control: no-store\n  Referrer-Policy: no-referrer\n`);

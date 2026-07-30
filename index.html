@@ -89,10 +89,6 @@ window.PLUGICT = {
     -webkit-backdrop-filter:blur(16px) saturate(150%); backdrop-filter:blur(16px) saturate(150%);
     border:1px solid rgba(255,255,255,.1);
     box-shadow:inset 0 1px 0 rgba(255,255,255,.07), 0 14px 38px -16px rgba(0,0,0,.72)}
-  .ref-banner{display:none; padding:7px 20px; text-align:center; color:var(--ink-soft);
-    background:rgba(34,197,94,.08); border-bottom:1px solid rgba(34,197,94,.18);
-    font:500 11px var(--mono); letter-spacing:.08em; text-transform:uppercase}
-  .ref-banner.on{display:block}
   nav .wrap{display:flex; align-items:center; justify-content:space-between}
   .brand{display:flex; align-items:center; gap:10px; font:600 19px var(--sans); letter-spacing:-.01em}
   .brand .mark{width:21px;height:21px;flex-shrink:0;color:var(--terracotta)}
@@ -705,8 +701,6 @@ window.PLUGICT = {
   </div>
 </nav>
 
-<div class="ref-banner" id="ref-banner" role="status">Referred by an affiliate</div>
-
 <main>
 
 <!-- ═══ HERO ═══ -->
@@ -1022,18 +1016,6 @@ window.PLUGICT = {
     </div>
   </div>
 </footer>
-
-<script>
-  (function(){
-    const value=new URLSearchParams(location.search).get('ref');
-    try{if(value&&/^[a-z0-9_-]{1,64}$/i.test(value))localStorage.setItem('plugict_ref',value);}
-    catch(e){}
-    let ref='';try{ref=localStorage.getItem('plugict_ref')||'';}catch(e){}
-    if(!ref)return;
-    document.getElementById('ref-banner').classList.add('on');
-    window.plugictStripeUrl=url=>{const target=new URL(url);target.searchParams.set('client_reference_id',ref);return target.href;};
-  })();
-</script>
 
 <!-- ═══ PAYMENT MODAL ═══ -->
 <div class="pay-overlay" id="pay-overlay" role="dialog" aria-modal="true" aria-labelledby="pay-title">
@@ -1743,7 +1725,8 @@ window.PLUGICT = {
   })();
 
 </script>
+<script src="assets/affiliate-attribution.js?v=affiliate-attribution-1"></script>
 <script src="assets/affiliate-config.js?v=affiliate-analytics-1"></script>
-<script src="assets/affiliate-analytics.js?v=affiliate-analytics-1"></script>
+<script src="assets/affiliate-analytics.js?v=affiliate-analytics-2"></script>
 </body>
 </html>

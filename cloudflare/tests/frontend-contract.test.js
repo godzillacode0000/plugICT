@@ -29,6 +29,11 @@ test('the approved link is the only checkout the landing can send a buyer to', (
   assert.deepEqual(found, [APPROVED_CHECKOUT]);
 });
 
+test('landing has no visible referral banner implementation', () => {
+  assert.equal(landing.includes('ref-banner'), false);
+  assert.equal(landing.includes('Referred by an affiliate'), false);
+});
+
 test('beacon uses fresh-ref-only fetch keepalive transport', () => {
   assert.equal(beacon.includes('navigator.sendBeacon'), false);
   assert.match(beacon, /Content-Type.*text\/plain;charset=UTF-8/);

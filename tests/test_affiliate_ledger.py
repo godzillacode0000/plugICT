@@ -179,6 +179,7 @@ def test_clicks_tokens_and_aggregate_stats_are_private(tmp_path):
     process_session(ledger, session, expected_payment_link="plink_plugict", payment_state={})
     stats = ledger.affiliate_stats("dash_001")
 
+    assert stats["referral_url"] == "https://go.plugict.com/r/dash_001"
     assert stats["clicks"] == 2
     assert stats["unique_clicks"] == 2
     assert stats["purchases"] == 1

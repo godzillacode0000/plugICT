@@ -45,6 +45,7 @@ test('stats returns isolated click aggregates and null finance fields', async ()
   assert.equal(response.headers.get('Cache-Control'), 'no-store');
   const body = await response.json();
   assert.deepEqual(body.affiliate, { code: 'test_001', name: 'Test Affiliate' });
+  assert.equal(body.referral_url, 'https://go.plugict.com/r/test_001');
   assert.equal(body.clicks, 7);
   assert.equal(body.unique_clicks, 5);
   assert.equal(body.purchases, null);
