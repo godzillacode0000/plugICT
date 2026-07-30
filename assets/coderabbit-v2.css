@@ -166,38 +166,41 @@ section h2 em{color:var(--gold)}
 /* The answer is styled as a captured message — light card, serif headings,
    quoted blocks — so it reads as something the product actually sent, while
    staying real text that stays sharp and reflows on a phone. */
-.proof-msg{position:relative;margin-top:14px;padding:20px 18px 18px;border-radius:12px;
-  background:#f7f8fa;color:#1c2024;box-shadow:0 10px 30px -14px rgba(0,0,0,.75)}
-.proof-date{position:absolute;top:12px;right:12px;padding:3px 9px;border-radius:999px;
-  background:rgba(60,80,95,.72);color:#fff;font:600 10px var(--sans);letter-spacing:.02em}
-.proof-title{margin:0 66px 0 0;font:700 17px/1.32 var(--serif);letter-spacing:-.01em;color:#12161a}
-.proof-lbl{margin:14px 0 4px;font:700 13.5px var(--serif);color:#12161a;letter-spacing:0;text-transform:none}
-.proof-src{margin:0;font-size:13px;line-height:1.6;color:#39424b}
-.proof-src code{font:500 12.5px var(--mono);color:#b45309}
-.proof-src i{color:#5a646d}
-.proof-list{margin:0;padding:0 0 0 16px;list-style:disc;display:flex;flex-direction:column;gap:5px}
-.proof-list li{font-size:12.5px;line-height:1.6;color:#39424b;padding-left:2px}
-.proof-list li::marker{color:#8c959d}
-.proof-list code{font:500 12px var(--mono);color:#b45309}
-.proof-list i{color:#5a646d}
-.proof-h{margin:18px 0 0;padding-top:14px;border-top:1px solid #dfe3e7;
-  font:700 15px var(--serif);letter-spacing:0;color:#12161a}
-.proof-h span{font-family:var(--sans);font-size:12.5px;font-weight:400;color:#69737c}
-.proof-quote{margin:11px 0 0;padding:11px 13px;border-left:3px solid #6f9fc4;border-radius:0 6px 6px 0;
-  background:#e9eef4;font-size:13px;line-height:1.62;color:#2a323a;font-style:italic}
-.proof-quote b{color:#12161a;font-weight:700;font-style:normal}
-.proof-ts{display:inline-block;margin-top:7px;padding:0;background:none;border:0;border-radius:0;
-  font:500 12px var(--mono);font-style:normal;color:#1f6fb2;text-decoration:underline;
-  text-underline-offset:2px}
-.proof-tablewrap{margin-top:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;
-  border:1px solid #d3d8dd;border-radius:7px;background:#fff}
-.proof-table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:236px}
-.proof-table th,.proof-table td{padding:9px 11px;text-align:left;border-bottom:1px solid #e3e7eb}
-.proof-table tbody tr:last-child td{border-bottom:0}
-.proof-table th{font:600 11px var(--sans);letter-spacing:.01em;text-transform:none;
-  color:#39424b;background:#eef1f4}
-.proof-table td{color:#2a323a}
-.proof-table td:first-child{color:#69737c;font-family:var(--sans);width:1%}
+/* The reply is the real capture, fitted into a scroll box: the document runs
+   about 5,600px tall, so it is given a window rather than allowed to swallow
+   the section. width:100% + height:auto against the intrinsic size means it is
+   scaled, never stretched. */
+.proof-msg{position:relative;margin-top:14px;border-radius:12px;overflow:hidden;
+  background:#f7f8fa;box-shadow:0 10px 30px -14px rgba(0,0,0,.75)}
+.proof-scroll{max-height:460px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.proof-scroll img{display:block;width:100%;height:auto}
+.proof-more{position:absolute;left:0;right:0;bottom:0;padding:16px 0 7px;text-align:center;
+  font:600 9.5px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:#69737c;
+  pointer-events:none;background:linear-gradient(transparent,#f7f8fa 62%)}
+
+/* the panel plays itself out once seen */
+html.js .panel.answer .proof-ok,
+html.js .panel.answer .proof-msg{opacity:0}
+.panel.answer.typed .proof-ok{animation:pf-rise .45s ease .05s forwards}
+.panel.answer.typed .proof-msg{animation:pf-emerge 1.5s cubic-bezier(.22,1,.36,1) .3s forwards}
+@keyframes pf-rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes pf-emerge{from{opacity:0;clip-path:inset(0 0 100% 0)}to{opacity:1;clip-path:inset(0 0 0 0)}}
+.panel.answer.typing .ask-q::after{content:"";display:inline-block;width:2px;height:1em;
+  margin-left:2px;vertical-align:-2px;background:var(--terracotta);animation:pf-caret .9s steps(1) infinite}
+@keyframes pf-caret{50%{opacity:0}}
+.ask-q{min-height:1.5em}
+
+/* the hunt markers keep ticking, so the cost side of the section is not static */
+@media(prefers-reduced-motion:no-preference){
+  .hunt-list li:nth-child(1) .hunt-ico svg path{transform-origin:12px 12px;
+    animation:pf-hand 6s steps(12,end) infinite}
+  .hunt-list li:nth-child(2) .hunt-ico{animation:pf-pulse 2.6s ease-in-out infinite}
+  .hunt-list li:nth-child(3) .hunt-ico{animation:pf-nudge 4s ease-in-out infinite}
+}
+@keyframes pf-hand{to{transform:rotate(360deg)}}
+@keyframes pf-pulse{0%,100%{box-shadow:0 0 0 0 rgba(240,87,90,0)}
+  45%{box-shadow:0 0 0 7px rgba(240,87,90,.11)}}
+@keyframes pf-nudge{0%,88%,100%{transform:none}92%{transform:translateY(-3px)}96%{transform:translateY(0)}}
 
 /* results bar */
 .results-bar{margin-top:20px;display:flex;align-items:center;gap:20px;padding:24px 28px;
