@@ -89,6 +89,7 @@ section{padding:104px 28px}
 section h2{font:600 clamp(34px,4.6vw,60px)/1.03 var(--sans);letter-spacing:-.045em}
 .eyebrow{font-weight:600;color:var(--terracotta-bright)}
 .sub{color:var(--ink-soft)}
+
 /* ── Gold tier ─────────────────────────────────────────────────────────────
    Section labels, the emphasised clause of a heading, and anything to do with
    price. Orange is left for things you click. */
@@ -615,3 +616,14 @@ body:has(.ref-banner.on) .hero-frame{padding-top:42px}
   .navlinks,nav.nav-open .navlinks{border-radius:18px}
   .navlinks-cta .btn{flex:1;justify-content:center;padding:11px 10px;font-size:13px}
 }
+
+/* ── Display face ──────────────────────────────────────────────────────────
+   Anton is already condensed and very heavy, so the tight tracking the old
+   grotesque needed would close it up; it gets near-zero letter-spacing and a
+   slightly tighter leading instead. */
+.hero h1,section h2,.proof-wrap h2,.panel-title,.rb-text h3,.cap-text h3{
+  font-family:var(--display);font-weight:400;letter-spacing:0}
+.hero h1{letter-spacing:-.005em;line-height:.94}
+section h2,.proof-wrap h2{line-height:1}
+.panel-title,.rb-text h3{line-height:1.05}
+.cap-text h3{font-weight:400;letter-spacing:0}
