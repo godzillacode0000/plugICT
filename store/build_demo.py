@@ -38,12 +38,12 @@ FULL_TOTAL = "775"
 
 # Regenerates the AI-agent config on the BUYER's machine (correct local paths),
 # so the demo never ships the seller's build path. Mirrors deliver.py.
-_DEMO_MAKE_CONFIGS = '''"""Write the Claude Desktop config with THIS folder's real path.
+_DEMO_MAKE_CONFIGS = '''"""Write the Hermes config with THIS folder's real path.
 
 Run once after creating the .venv (see README). Safe to re-run if you move
 the folder.
 """
-import json, sys
+import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -51,8 +51,12 @@ VENV_PY = ROOT / ('.venv/Scripts/python.exe' if sys.platform == 'win32' else '.v
 SERVER = ROOT / 'mcp_server.py'
 EXAMPLES = Path(__file__).resolve().parent
 
-cfg = {"mcpServers": {"ict-vault-demo": {"command": str(VENV_PY), "args": [str(SERVER)]}}}
-(EXAMPLES / 'claude_desktop_config.json').write_text(json.dumps(cfg, indent=2) + "\\n")
+(EXAMPLES / 'hermes_config.yaml').write_text(
+    "# Add to ~/.hermes/profiles/<name>/config.yaml\\n"
+    "mcp_servers:\\n"
+    "  ict-vault-demo:\\n"
+    f'    command: "{VENV_PY.as_posix()}"\\n'
+    f'    args: ["{SERVER.as_posix()}"]\\n')
 print(f"Demo config written for: {ROOT}")
 '''
 
@@ -130,16 +134,15 @@ def build_demo(source_dir, count=5, videos=None, cta="https://YOUR-SITE/#pricing
     examples = out_dir / "examples"
     examples.mkdir(exist_ok=True)
     (examples / "make_configs.py").write_text(_DEMO_MAKE_CONFIGS)
-    (examples / "claude_desktop_config.json").write_text(
-        '{\n  "_note": "Run  python examples/make_configs.py  first (after '
-        'creating the .venv) — it fills this file with the correct paths for '
-        'YOUR computer."\n}\n')
+    (examples / "hermes_config.yaml").write_text(
+        "# Run  python examples/make_configs.py  first (after creating the\n"
+        "# .venv) — it fills this file with the correct paths for YOUR computer.\n")
 
     (out_dir / "README.txt").write_text(
         f"ICT VAULT — FREE DEMO ({len(picks)}/{FULL_TOTAL} videos)\n"
         "=================================================\n\n"
-        "This demo upgrades your AI agent with a few ICT videos so you can try\n"
-        "the real experience before buying.\n\n"
+        "This demo upgrades Hermes, the Nous Research agent, with a few ICT\n"
+        "videos so you can try the real experience before buying.\n\n"
         "1. Create the environment + install dependencies:\n"
         "     python -m venv .venv\n"
         "     .venv\\Scripts\\pip install -r requirements.txt      (Windows)\n"
@@ -148,7 +151,7 @@ def build_demo(source_dir, count=5, videos=None, cta="https://YOUR-SITE/#pricing
         "     .venv\\Scripts\\python examples\\make_configs.py\n"
         "     .venv\\Scripts\\python mcp_server.py --doctor\n"
         "     (macOS/Linux: swap .venv\\Scripts\\python -> .venv/bin/python)\n"
-        "3. Add examples/claude_desktop_config.json to Claude Desktop, restart it,\n"
+        "3. Add examples/hermes_config.yaml to your Hermes profile, restart it,\n"
         "   then ask: \"What is a Fair Value Gap according to ICT?\"\n\n"
         f"This demo covers {len(picks)} videos. The full vault has {FULL_TOTAL} across\n"
         "10 playlists, with the same engine and every answer cited to a timestamp.\n\n"

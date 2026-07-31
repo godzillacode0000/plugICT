@@ -107,7 +107,7 @@ secret — set that on Render while testing, swap to live before launch).
 4. Render logs should show `{"status":"issued"}`. Trigger Stripe's "resend" on the
    event → logs show `{"status":"duplicate"}` and **no second email** (idempotency).
 5. Download the zip → unzip → drop in `license.key` → run `setup.bat` → connect
-   Claude Desktop with the generated `examples/claude_desktop_config.json` →
+   Hermes with the generated `examples/hermes_config.yaml` →
    ask "What is FVG?" → cited answer. ✅
 
 If step 3 produces nothing, check Render logs: a `401 bad signature` means the

@@ -64,8 +64,10 @@ def test_setup_prints_mcp_config_with_its_isolated_python(tmp_path, monkeypatch,
     assert expected_python in out
     assert '"command": "python"' not in out
     assert "command: python" not in out
-    assert '"args": ["-E", "-X", "utf8", "' in out
     assert 'args: ["-E", "-X", "utf8", "' in out
+    assert "Hermes" in out
+    assert "Claude Desktop" not in out
+    assert "Cursor" not in out
 
 
 def test_setup_doctor_ignores_inherited_pythonpath(tmp_path, monkeypatch):

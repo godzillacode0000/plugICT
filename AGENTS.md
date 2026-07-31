@@ -31,10 +31,8 @@ This script will:
 
 ### Step 3: Capture the output
 
-The script prints an MCP config block. Show it to the user:
-- **Claude Desktop**: Tell them to add it to `%APPDATA%\Claude\claude_desktop_config.json`
-- **Hermes Agent**: Tell them to add it to their profile config
-- **Cursor**: Tell them to add it in Settings → Features → MCP
+The script prints an MCP config block for Hermes, the Nous Research agent.
+Show it to the user and tell them to add it to their Hermes profile config.
 
 ### Step 4: Verify
 
