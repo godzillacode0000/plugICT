@@ -319,14 +319,12 @@ setup.bat            # Windows  — builds an isolated environment + verifies
 Something off? Re-run and read the check, or:
 `.venv\\Scripts\\python -E -X utf8 mcp_server.py --doctor`
 
-## 2. Connect your AI agent
+## 2. Connect Hermes
 
-Add the config from `examples/` to your agent, then restart it:
-- **Claude Desktop** → `examples/claude_desktop_config.json`
-- **Cursor** → `examples/cursor_mcp.json`
-- **Hermes** → `examples/hermes_config.yaml`
+PlugICT is built for Hermes, the Nous Research agent. Add
+`examples/hermes_config.yaml` to your Hermes profile config, then restart it.
 
-(These are written for your computer when setup runs. Moved the folder?
+(It's written for your computer when setup runs. Moved the folder?
 Just run setup again.)
 
 Your agent now has ICT tools (search_ict, explore_concept, glossary_lookup…).

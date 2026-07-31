@@ -41,12 +41,12 @@ Getting started:
    - Run a self-check (--doctor)
    - Print the MCP config for your AI agent
 
-3. If you use Claude Desktop without an installer:
+3. If you'd rather do it by hand:
 
    a. Download the repo:  https://github.com/godzillacode0000/plugICT
    b. Run: python setup.py  (downloads + verifies the vault for you)
    c. Place license.key next to mcp_server.py (setup.py does this)
-   d. Add the printed MCP config to Claude Desktop
+   d. Add the printed MCP config to Hermes
    e. Run: python mcp_server.py --doctor
 
 4. Once installed, start asking ICT questions through your AI agent.

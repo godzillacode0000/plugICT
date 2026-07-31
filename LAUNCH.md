@@ -100,8 +100,8 @@ Nothing else substitutes for one real payment flowing end-to-end. Stripe is in
       the license ID, download link, setup steps, and `license.key` attached.
 - [ ] **Download works**: click the email's link → `plugict.zip` downloads.
 - [ ] **Vault opens**: unzip → drop the emailed `license.key` next to `setup.bat`
-      → run `setup.bat` → connect Claude Desktop with the generated
-      `examples/claude_desktop_config.json` → restart → ask **"What is FVG?"**
+      → run `setup.bat` → connect Hermes with the generated
+      `examples/hermes_config.yaml` → restart → ask **"What is FVG?"**
       ✓ check: a cited answer with a real timestamp. **This is the whole product
       working for a real buyer.**
 - [ ] **No duplicate on retry**: Stripe → that event → "Resend".

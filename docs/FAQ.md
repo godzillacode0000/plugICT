@@ -12,10 +12,10 @@ A: We've transcribed 576 videos across 10 playlists from 2016-2026. This covers 
 A: No. The vault is encrypted — you search and get results. Raw files are not extractable. This protects the content from unauthorized sharing.
 
 **Q: Do I need an AI agent to use this?**
-A: Yes — ICT Vault works by connecting to your own AI agent (Claude Desktop, Cursor, Hermes or any MCP-compatible agent). You ask your AI questions in natural conversation, and it searches the vault to answer with cited timestamps.
+A: Yes — ICT Vault is built for Hermes, the Nous Research agent. You ask Hermes questions in natural conversation, and it searches the vault to answer with cited timestamps.
 
-**Q: What AI agents can I connect?**
-A: Claude Desktop, Cursor IDE, Hermes Agent, ChatGPT (via API), Codex CLI, or any MCP-compatible agent. See `AI-AGENT-GUIDE.md`.
+**Q: What AI agent do I need?**
+A: Hermes, the Nous Research agent. See `AI-AGENT-GUIDE.md`.
 
 ---
 

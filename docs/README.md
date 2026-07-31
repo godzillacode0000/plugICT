@@ -27,17 +27,14 @@ Something not working? Run a health check:
 
 ---
 
-## Connect Your AI Agent
+## Connect Hermes
 
-ICT Vault upgrades **your own AI agent**. Add the MCP config to your agent and
-restart it. The best default tool is `multi_search_ict`; it returns cited,
-capped snippets plus safe `result_ref` values for `expand_result` when more
-context is needed. Legacy `search_ict`, `explore_concept`, `glossary_lookup`,
+PlugICT is built for Hermes, the Nous Research agent. Add
+`examples/hermes_config.yaml` to your Hermes profile config and restart it.
+The best default tool is `multi_search_ict`; it returns cited, capped
+snippets plus safe `result_ref` values for `expand_result` when more context
+is needed. Legacy `search_ict`, `explore_concept`, `glossary_lookup`,
 `list_playlists`, and `vault_stats` are also available.
-
-- **Claude Desktop** → `examples/claude_desktop_config.json`
-- **Cursor** → `examples/cursor_mcp.json`
-- **Hermes Agent** → `examples/hermes_config.yaml`
 
 Then just ask, in natural conversation:
 
