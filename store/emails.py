@@ -23,7 +23,7 @@ def _cfg():
                                    "https://github.com/godzillacode0000/plugICT/releases/latest"),
         "guide": os.environ.get("ICT_GETTING_STARTED_URL",
                                 "https://godzillacode0000.github.io/plugICT/#setup"),
-        "support": os.environ.get("ICT_SUPPORT_EMAIL", "hermesian0000@gmail.com"),
+        "support": os.environ.get("ICT_SUPPORT_EMAIL", "plugICTsupport@agentmail.to"),
     }
 
 
