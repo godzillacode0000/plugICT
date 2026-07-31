@@ -11,6 +11,7 @@ __pycache__/
 .pytest_cache/
 store/affiliate_ledger.sqlite3
 store/affiliate_ledger.sqlite3-*
+store/agentmail.env
 
 # Seller secrets & issued licenses — NEVER commit
 store/issued/
@@ -29,5 +30,8 @@ graphify-out/
 # Generated allowlist deployment artifact and local Node dependencies
 dist/
 node_modules/
+npm-cache/
 .wrangler/
 .dev.vars
+cloudflare/fulfilment-worker/
+cloudflare/fulfilment-worker/npm-cache/
