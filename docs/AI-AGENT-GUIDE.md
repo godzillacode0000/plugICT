@@ -5,13 +5,15 @@ inspects evidence, and writes the answer. The vault stays local.
 
 ## Verify First
 
-Run this inside the delivered vault folder:
+Run the installer first:
 
 ```bash
-python mcp_server.py --doctor
+python setup.py
 ```
 
-Use the Python inside `.venv` if setup created one:
+`setup.py` prints the exact MCP config block for this install. Paste that into your Hermes profile config, then restart Hermes.
+
+If you want a direct health check after setup, use the Python inside `.venv` if it was created:
 
 ```bash
 .venv\Scripts\python mcp_server.py --doctor
@@ -45,8 +47,6 @@ For complex questions, map the ask into components (definition, times, entry, ta
 then send **different** variants—not four synonyms. After results, check coverage; allow **one**
 targeted follow-up search. Multiple hits from one video are not independent confirmations.
 
-Full rules: see `PLUGICT-AGENT-SKILL.md` (paste/attach if not auto-loaded).
-
 ## Hermes
 
 PlugICT is built for Hermes, the Nous Research agent. Add to your Hermes
@@ -60,8 +60,7 @@ mcp_servers:
       - C:/ict-knowledge-vault/mcp_server.py
 ```
 
-Hermes can use the MCP tools after restart. Do not assume it loads the skill
-file automatically unless your Hermes setup explicitly imports it.
+Hermes can use the MCP tools after restart.
 
 ## Recommended Agent Prompt
 

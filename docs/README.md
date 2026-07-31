@@ -29,8 +29,11 @@ Something not working? Run a health check:
 
 ## Connect Hermes
 
-PlugICT is built for Hermes, the Nous Research agent. Add
-`examples/hermes_config.yaml` to your Hermes profile config and restart it.
+Run `python setup.py` in the repo. It prints the exact MCP config block for
+this install.
+
+PlugICT is built for Hermes, the Nous Research agent. Paste that config into
+your Hermes profile config and restart it.
 The best default tool is `multi_search_ict`; it returns cited, capped
 snippets plus safe `result_ref` values for `expand_result` when more context
 is needed. Legacy `search_ict`, `explore_concept`, `glossary_lookup`,
@@ -42,8 +45,8 @@ Then just ask, in natural conversation:
 
 Your agent searches the vault and answers with cited sources and timestamps.
 Full walkthrough: `docs/AI-AGENT-GUIDE.md`. Evidence rules for agents are in
-`PLUGICT-AGENT-SKILL.md`; clients do not load that file automatically unless
-your agent setup explicitly supports it.
+this guide and `AGENTS.md`; no extra skill file is required for the buyer
+install flow.
 
 ---
 

@@ -3,10 +3,10 @@
 ## General
 
 **Q: What exactly is this?**
-A: A searchable library of 576 Inner Circle Trader YouTube videos — fully transcribed, indexed, and optimized for AI agent queries. Not raw files. Not PDFs. You can search by concept, keyword, or meaning.
+A: A searchable library of 775 Inner Circle Trader YouTube videos — fully transcribed, indexed, and optimized for AI agent queries. Not raw files. Not PDFs. You can search by concept, keyword, or meaning.
 
 **Q: Is this all of ICT's content?**
-A: We've transcribed 576 videos across 10 playlists from 2016-2026. This covers the major mentorship series (2022, 2023, 2024), lecture series (2025, 2026 SMC), charter content, forex series, and more.
+A: We've transcribed 775 videos across 10 playlists from 2016-2026. This covers the major mentorship series (2022, 2023, 2024), lecture series (2025, 2026 SMC), charter content, forex series, and more.
 
 **Q: Can I browse the raw transcript files?**
 A: No. The vault is encrypted — you search and get results. Raw files are not extractable. This protects the content from unauthorized sharing.
@@ -25,7 +25,7 @@ A: Hermes, the Nous Research agent. See `AI-AGENT-GUIDE.md`.
 A: No. Everything runs locally. The vault, search engine, and embeddings are all on your machine. Zero API calls.
 
 **Q: How big is it?**
-A: ~388MB on disk. The vault expands to ~420MB when loaded (in RAM, temporary).
+A: The exact size depends on the release build, but you only need about 500MB free disk space to install and run it.
 
 **Q: Can I use this on Mac/Linux?**
 A: Yes. Requirements: Python 3.10+, 4GB RAM.
@@ -83,7 +83,7 @@ A: Check:
 4. Try deleting `_vectors` folder and re-extract the vault
 
 **Q: How do I contact support?**
-A: [Support contact info to be added]
+A: Email `plugICTsupport@agentmail.to`.
 
 **Q: Refund policy?**
 A: Due to the nature of digital products, refunds are not available once the license key has been issued. Please review the product description carefully before purchasing.

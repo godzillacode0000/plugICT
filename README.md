@@ -37,4 +37,4 @@ Every answer includes the exact video + timestamp.
 
 Your `license.key` is emailed after purchase. Keep it private — it's tied to your email.
 
-Need help? DM @kevin on Telegram.
+Need help? Email `plugICTsupport@agentmail.to`.

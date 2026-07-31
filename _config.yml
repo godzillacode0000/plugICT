@@ -3,7 +3,6 @@ exclude:
   - CLAUDE.md
   - HERMES.md
   - LAUNCH.md
-  - PLUGICT-AGENT-SKILL.md
   - README.md
   - VAULT.md
   - install.py
