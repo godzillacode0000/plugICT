@@ -45,53 +45,12 @@ For complex questions, map the ask into components (definition, times, entry, ta
 then send **different** variants—not four synonyms. After results, check coverage; allow **one**
 targeted follow-up search. Multiple hits from one video are not independent confirmations.
 
-Full rules: see `PLUGICT-AGENT-SKILL.md` (paste/attach in Claude Desktop if not auto-loaded).
-
-## Claude Desktop
-
-Edit:
-
-- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
-- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-
-Example:
-
-```json
-{
-  "mcpServers": {
-    "plugict": {
-      "command": "python",
-      "args": ["C:/ict-knowledge-vault/mcp_server.py"]
-    }
-  }
-}
-```
-
-Restart Claude Desktop. Claude Desktop supports MCP tools. It does not
-automatically load `PLUGICT-AGENT-SKILL.md`; paste or attach that file if you
-want the agent to follow it.
-
-## Cursor
-
-Open Cursor MCP settings and add:
-
-```json
-{
-  "mcpServers": {
-    "plugict": {
-      "command": "python",
-      "args": ["C:/ict-knowledge-vault/mcp_server.py"]
-    }
-  }
-}
-```
-
-Restart Cursor. Cursor can call the MCP tools from chat. Add
-`PLUGICT-AGENT-SKILL.md` to your project or prompt if you want those rules used.
+Full rules: see `PLUGICT-AGENT-SKILL.md` (paste/attach if not auto-loaded).
 
 ## Hermes
 
-Add to your Hermes profile config:
+PlugICT is built for Hermes, the Nous Research agent. Add to your Hermes
+profile config:
 
 ```yaml
 mcp_servers:
@@ -103,18 +62,6 @@ mcp_servers:
 
 Hermes can use the MCP tools after restart. Do not assume it loads the skill
 file automatically unless your Hermes setup explicitly imports it.
-
-## Codex CLI
-
-Add the MCP server:
-
-```bash
-codex mcp add plugict -- python C:/ict-knowledge-vault/mcp_server.py
-```
-
-Then ask Codex to use the `plugict` MCP tools. Codex CLI does not automatically
-load the repository skill file from the vault folder unless you explicitly place
-or reference it in your Codex setup.
 
 ## Recommended Agent Prompt
 

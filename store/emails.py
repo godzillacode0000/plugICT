@@ -47,13 +47,13 @@ You're about 3 minutes from asking your AI anything about ICT.
    - macOS/Linux:  ./setup.sh
    Setup installs everything and writes a ready-to-use AI config for you.
 
-4) Connect your AI agent (Claude Desktop, Cursor or Hermes):
-   Open the examples/claude_desktop_config.json that setup just created —
-   its file paths are already filled in for your machine — and copy its
-   contents into Claude Desktop's config. Full walkthrough:
+4) Connect Hermes, the Nous Research agent:
+   Open the examples/hermes_config.yaml that setup just created — its
+   file paths are already filled in for your machine — and add it to
+   your Hermes profile config.yaml. Full walkthrough:
    {c['guide']}
 
-5) Restart your AI agent, then ask it: "What is FVG?"
+5) Restart Hermes, then ask it: "What is FVG?"
    You'll get an answer with the exact video and timestamp.
 
 Your license ID: {license_id}
@@ -82,10 +82,10 @@ by The Inner Circle Trader. Nothing here is financial advice.
         (next to <code>setup.bat</code>).</li>
     <li><b>Run setup</b> — double-click <code>setup.bat</code> (Windows) or <code>./setup.sh</code>
         (macOS/Linux). It installs everything and writes a ready-to-use AI config for you.</li>
-    <li><b>Connect your AI agent</b> — open the <code>examples/claude_desktop_config.json</code> that
-        setup just created (paths already filled in for your machine) and copy its contents into
-        Claude Desktop, Cursor or Hermes. <a href="{c['guide']}" style="color:{ACCENT}">Full walkthrough</a>.</li>
-    <li><b>Restart your AI agent</b> and ask it <i>“What is FVG?”</i> — you'll get an answer with the
+    <li><b>Connect Hermes</b>, the Nous Research agent — open the <code>examples/hermes_config.yaml</code>
+        that setup just created (paths already filled in for your machine) and add it to your Hermes
+        profile config. <a href=”{c['guide']}” style=”color:{ACCENT}”>Full walkthrough</a>.</li>
+    <li><b>Restart Hermes</b> and ask it <i>”What is FVG?”</i> — you'll get an answer with the
         exact video and timestamp.</li>
   </ol>
 

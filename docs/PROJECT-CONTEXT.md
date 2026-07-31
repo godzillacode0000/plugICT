@@ -9,7 +9,7 @@
 
 A sellable, encrypted, AI-searchable knowledge vault of **775 ICT (Inner Circle Trader) YouTube videos** — transcribed, chunked into 21,985 semantic chunks, indexed with FTS5 + ChromaDB + Knowledge Graph, and sold as a local MCP server product.
 
-Buyers get an encrypted vault + a unique license key. Their AI agent (Claude Desktop, Claude Code, Cursor, Codex CLI, Hermes) queries the vault locally via MCP tools.
+Buyers get an encrypted vault + a unique license key. Their AI agent (Hermes, the Nous Research agent) queries the vault locally via MCP tools.
 
 ---
 
@@ -129,7 +129,7 @@ search_vault(query, top_k=15, kg=True, rerank=False)
    - Writes license.key next to mcp_server.py
    - Pip installs requirements.txt
    - Runs mcp_server.py --doctor
-   - Prints MCP config (Claude Desktop, Hermes, Cursor)
+   - Prints MCP config for Hermes
    - Done
 ```
 
