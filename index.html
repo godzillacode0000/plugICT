@@ -4,8 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#0a0a0a">
-<!-- Inline SVG favicon (the plug mark) — self-contained, no extra request, no 404 -->
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23ff6b1a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M9 2v5'/><path d='M15 2v5'/><path d='M7 7h10v4a5 5 0 0 1-10 0V7z'/><path d='M12 16v3a3 3 0 0 1-3 3'/></svg>">
+<link rel="icon" type="image/png" href="assets/logos/favicon.png">
 <title>PlugICT — Learn smarter. Understand what ICT actually taught.</title>
 <meta name="description" content="More than 34,000 minutes of ICT video, searchable by your AI. Ask any concept, get the exact timestamp where ICT explained it. Runs locally, lifetime license, $18.99.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -35,7 +34,7 @@ window.PLUGICT = {
   /* Checkout — Stripe Payment Link, USD $18.99 */
   stripeUrl: 'https://buy.stripe.com/7sY14ob6qcTC057cTy6Ri02',
 
-  supportEmail: 'hermesian0000@gmail.com',  // where buyers send payment proof / questions
+  supportEmail: 'plugICTsupport@agentmail.to',  // where buyers send payment proof / questions
 
   /* Demo walkthrough video. Set a YouTube embed URL (e.g.
      'https://www.youtube.com/embed/VIDEO_ID') and the demo section appears.
@@ -91,7 +90,7 @@ window.PLUGICT = {
     box-shadow:inset 0 1px 0 rgba(255,255,255,.07), 0 14px 38px -16px rgba(0,0,0,.72)}
   nav .wrap{display:flex; align-items:center; justify-content:space-between}
   .brand{display:flex; align-items:center; gap:10px; font:600 19px var(--sans); letter-spacing:-.01em}
-  .brand .mark{width:21px;height:21px;flex-shrink:0;color:var(--terracotta)}
+  .brand .mark{width:21px;height:21px;flex-shrink:0;display:block;object-fit:contain}
   .navlinks{display:flex; gap:28px; align-items:center; font-size:14px}
   .navlinks a{color:var(--ink-soft); text-decoration:none; transition:color .2s}
   .navlinks a:hover{color:var(--ink)}
@@ -672,14 +671,14 @@ window.PLUGICT = {
     #hero-bg-video{display:none} #spotlight{display:none !important}
   }
 </style>
-<link rel="stylesheet" href="assets/coderabbit-v2.css?v=20260731-minutes">
+<link rel="stylesheet" href="assets/coderabbit-v2.css?v=20260731-logo">
 </head>
 <body>
 <div id="spotlight" aria-hidden="true"></div>
 
 <nav aria-label="Main">
   <div class="wrap">
-    <a class="brand" href="#top" aria-label="PlugICT — back to top"><svg class="mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 2v5"/><path d="M15 2v5"/><path d="M7 7h10v4a5 5 0 0 1-10 0V7z"/><path d="M12 16v3a3 3 0 0 1-3 3"/></svg> PlugICT</a>
+    <a class="brand" href="#top" aria-label="PlugICT — back to top"><img class="mark" src="assets/logos/plugict-mark.png" alt="" aria-hidden="true"> PlugICT</a>
     <div class="nav-right">
       <div class="navlinks" id="navmenu">
         <a href="#agents">Your AI</a>
@@ -1010,7 +1009,7 @@ window.PLUGICT = {
       <details class="fadeup"><summary>What are the system requirements? <span class="chev">+</span></summary>
         <div class="faq-body"><div><p>Windows, macOS or Linux with Python 3.10+. The setup script handles the rest in an isolated environment, so it won't interfere with anything else on your computer.</p></div></div></details>
     </div>
-    <p class="faq-more fadeup">Still have questions? <a href="mailto:hermesian0000@gmail.com" class="support-mail">hermesian0000@gmail.com</a> — it's just me, a guy in Malaysia who replies.</p>
+    <p class="faq-more fadeup">Still have questions? <a href="mailto:plugICTsupport@agentmail.to" class="support-mail">plugICTsupport@agentmail.to</a> — it's just me, a guy in Malaysia who replies.</p>
   </div>
 </section>
 
@@ -1045,7 +1044,7 @@ window.PLUGICT = {
 
 <footer>
   <div class="wrap">
-    <div class="brand"><svg class="mark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 2v5"/><path d="M15 2v5"/><path d="M7 7h10v4a5 5 0 0 1-10 0V7z"/><path d="M12 16v3a3 3 0 0 1-3 3"/></svg> PlugICT</div>
+    <div class="brand"><img class="mark" src="assets/logos/plugict-mark.png" alt="" aria-hidden="true"> PlugICT</div>
     <div class="disc">
       <div style="margin-bottom:10px">
         <a href="/tos.html" style="color:#9ca3af; text-decoration:none; margin-right:16px">Terms</a>
@@ -1055,7 +1054,7 @@ window.PLUGICT = {
       Educational research tool. PlugICT is an independent product and is <b>not affiliated with, endorsed by, or
       sponsored by</b> The Inner Circle Trader or Michael J. Huddleston. All trademarks belong to their respective owners.
       Nothing here is financial advice.
-      <div style="margin-top:12px">© <span data-year></span> PlugICT — Kota Bharu, Malaysia. <a href="mailto:hermesian0000@gmail.com" style="color:#a1a1aa; text-decoration:underline; text-underline-offset:2px">hermesian0000@gmail.com</a></div>
+      <div style="margin-top:12px">© <span data-year></span> PlugICT — Kota Bharu, Malaysia. <a href="mailto:plugICTsupport@agentmail.to" style="color:#a1a1aa; text-decoration:underline; text-underline-offset:2px">plugICTsupport@agentmail.to</a></div>
     </div>
   </div>
 </footer>
@@ -1080,7 +1079,7 @@ window.PLUGICT = {
       <button class="back" type="button" data-pay-back>← all payment methods</button>
       <h4 id="fallback-title">Checkout is being set up</h4>
       <div class="pay-note">This payment method goes live shortly. In the meantime, email
-        <a href="mailto:hermesian0000@gmail.com" class="support-mail">hermesian0000@gmail.com</a> and we'll sort your order out directly — or pick another method.</div>
+        <a href="mailto:plugICTsupport@agentmail.to" class="support-mail">plugICTsupport@agentmail.to</a> and we'll sort your order out directly — or pick another method.</div>
     </div>
 
   </div>
