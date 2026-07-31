@@ -175,38 +175,17 @@ def print_mcp_config():
     print("""
 === MCP Configuration ===
 
-Add this to your AI agent's MCP config:
-
-For Claude Desktop:
-  Edit %%APPDATA%%\\Claude\\claude_desktop_config.json
-  Add under "mcpServers":
-
-  {
-    "mcpServers": {
-      "plugict": {
-        "command": "%s",
-        "args": ["-E", "-X", "utf8", "%s"]
-      }
-    }
-  }
-
-For Hermes Agent:
-  Add to your profile config.yaml:
+PlugICT is built for Hermes, the Nous Research agent. Add this to your
+Hermes profile config.yaml:
 
   mcp_servers:
     plugict:
       command: "%s"
       args: ["-E", "-X", "utf8", "%s"]
 
-For Cursor:
-  Settings → Features → MCP → Add:
-  Name: plugict
-  Type: command
-  Command: "%s" "-E" "-X" "utf8" "%s"
-
-Then restart your AI agent and ask:
+Then restart Hermes and ask:
   "What is FVG in ICT?"
-""" % (abs_python, abs_path, abs_python, abs_path, abs_python, abs_path))
+""" % (abs_python, abs_path))
 
 def main():
     print("=" * 50)
