@@ -9,7 +9,9 @@ assets/affiliate-analytics.js
 assets/affiliate-attribution.js
 assets/affiliate-config.js
 assets/coderabbit-v2.css
+assets/logos/favicon.png
 assets/logos/hermes.jpg
+assets/logos/plugict-mark.png
 assets/proof/answer-1.jpg
 assets/proof/answer-2.jpg
 assets/proof/answer-3.jpg
