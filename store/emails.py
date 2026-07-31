@@ -84,8 +84,8 @@ by The Inner Circle Trader. Nothing here is financial advice.
         (macOS/Linux). It installs everything and writes a ready-to-use AI config for you.</li>
     <li><b>Connect Hermes</b>, the Nous Research agent — open the <code>examples/hermes_config.yaml</code>
         that setup just created (paths already filled in for your machine) and add it to your Hermes
-        profile config. <a href=”{c['guide']}” style=”color:{ACCENT}”>Full walkthrough</a>.</li>
-    <li><b>Restart Hermes</b> and ask it <i>”What is FVG?”</i> — you'll get an answer with the
+        profile config. <a href="{c['guide']}" style="color:{ACCENT}">Full walkthrough</a>.</li>
+    <li><b>Restart Hermes</b> and ask it <i>“What is FVG?”</i> — you'll get an answer with the
         exact video and timestamp.</li>
   </ol>
 
