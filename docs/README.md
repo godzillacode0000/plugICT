@@ -10,34 +10,28 @@ Not raw files. Not PDFs. **AI-searchable knowledge vault.**
 
 ## Setup (2 Minutes)
 
-**Windows** — double-click `setup.bat`. It builds an isolated environment
-(`.venv`) so it never disturbs any other Python on your machine, installs
-everything, and verifies your vault.
+**Windows** — double-click `setup.bat`, or run `python setup.py --license "C:/path/to/license.key"`. It builds an isolated environment (`.venv`), installs everything, and refuses to report success until doctor and a live MCP search pass.
 
 **macOS / Linux**
 ```bash
-./setup.sh
+./setup.sh --license /path/to/license.key
 ```
+
+A `LICENSE_ID` or `PURCHASE_ID` alone is not a license. Use the full `license.key` file from the purchase email.
 
 Something not working? Run a health check:
 ```bash
-.venv\Scripts\python mcp_server.py --doctor      # Windows
-.venv/bin/python mcp_server.py --doctor          # macOS / Linux
+.venv\\Scripts\\python -E -X utf8 mcp_server.py --doctor      # Windows
+.venv/bin/python -E -X utf8 mcp_server.py --doctor          # macOS / Linux
 ```
 
 ---
 
 ## Connect Hermes
 
-Run `python setup.py` in the repo. It prints the exact MCP config block for
-this install.
+Run `python setup.py --license /path/to/license.key`. It prints and writes the exact MCP config block for this install. Paste that block under `mcp_servers` in your Hermes profile config and restart Hermes.
 
-PlugICT is built for Hermes, the Nous Research agent. Paste that config into
-your Hermes profile config and restart it.
-The best default tool is `multi_search_ict`; it returns cited, capped
-snippets plus safe `result_ref` values for `expand_result` when more context
-is needed. Legacy `search_ict`, `explore_concept`, `glossary_lookup`,
-`list_playlists`, and `vault_stats` are also available.
+The generated config uses the buyer `.venv`, `-E -X utf8`, a 180-second cold-start timeout, and isolated temp/model-cache paths. The best default tool is `multi_search_ict`; it returns cited, capped snippets plus safe `result_ref` values for `expand_result` when more context is needed. Legacy `search_ict`, `explore_concept`, `glossary_lookup`, `list_playlists`, and `vault_stats` are also available.
 
 Then just ask, in natural conversation:
 
