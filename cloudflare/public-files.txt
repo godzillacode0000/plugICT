@@ -12,10 +12,7 @@ assets/coderabbit-v2.css
 assets/logos/favicon.png
 assets/logos/hermes.jpg
 assets/logos/plugict-mark.png
-assets/proof/answer-1.jpg
-assets/proof/answer-2.jpg
-assets/proof/answer-3.jpg
-assets/proof/answer-4.jpg
+assets/proof/answer-full.jpg
 assets/video/affiliate-background-poster.jpg
 assets/video/affiliate-background.mp4
 assets/video/hero-background-poster.jpg
