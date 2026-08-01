@@ -1,268 +1,432 @@
 #!/usr/bin/env python3
-"""PlugICT — One-command setup for AI agents.
+"""PlugICT — one-command buyer setup.
 
-Run: python setup.py
-The agent guides the user through license activation, vault download, and MCP config.
+The installer is deliberately fail-closed: it accepts only a complete license
+file, installs dependencies into a buyer-local virtual environment, runs the
+real doctor check, performs an MCP search smoke test, and only then reports
+success.
 """
 
-import os, sys, json, subprocess, urllib.request, zipfile, shutil, hashlib
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+import os
+import shutil
+import subprocess
+import sys
+import urllib.request
+import zipfile
 from pathlib import Path
 
 REPO = "godzillacode0000/plugICT"
 ASSET_NAME = "plugict.zip"
 API_LATEST = f"https://api.github.com/repos/{REPO}/releases/latest"
 FALLBACK_URL = f"https://github.com/{REPO}/releases/latest/download/{ASSET_NAME}"
-REQUIRED_FILES = ["mcp_server.py", "vault_core.py", "ict-vault.kevin", "license.key"]
 HERE = Path(__file__).parent.resolve()
+RUNTIME_FILES = ("mcp_server.py", "vault_core.py", "ict-vault.kevin", "license.key", "smoke_test.py")
+CONFIG_CONNECT_TIMEOUT = 180
 
 
-def runtime_python():
+class SetupError(RuntimeError):
+    """A buyer setup step failed and setup must not claim success."""
+
+
+class LicenseError(SetupError):
+    """The supplied file is not a complete PlugICT license envelope."""
+
+
+def runtime_python() -> Path:
     """Return the interpreter dedicated to this buyer installation."""
     if sys.platform == "win32":
         return HERE / ".venv" / "Scripts" / "python.exe"
     return HERE / ".venv" / "bin" / "python"
 
 
-def create_runtime_environment():
-    """Create the buyer-local virtual environment once, never use global pip."""
+def runtime_dirs() -> dict[str, Path]:
+    return {
+        "temp": HERE / ".tmp",
+        "hf_home": HERE / ".hf-home",
+        "pip_cache": HERE / ".pip-cache",
+    }
+
+
+def child_env() -> dict[str, str]:
+    """Build a clean environment for the buyer runtime.
+
+    In particular, do not allow the host agent's PYTHONPATH/PYTHONHOME to
+    contaminate the buyer venv. Heavy temporary/model files stay beside the
+    installation instead of silently filling a small system drive.
+    """
+    dirs = runtime_dirs()
+    for path in dirs.values():
+        path.mkdir(parents=True, exist_ok=True)
+    env = os.environ.copy()
+    env.pop("PYTHONPATH", None)
+    env.pop("PYTHONHOME", None)
+    env.update(
+        {
+            "PYTHONNOUSERSITE": "1",
+            "ICT_TEMP_DIR": str(dirs["temp"]),
+            "HF_HOME": str(dirs["hf_home"]),
+            "PIP_CACHE_DIR": str(dirs["pip_cache"]),
+            "TOKENIZERS_PARALLELISM": "false",
+        }
+    )
+    return env
+
+
+def step(msg: str) -> None:
+    print(f"\n=== {msg} ===")
+
+
+def prompt(msg: str) -> str:
+    return input(f"\n{msg}: ").strip().strip('"')
+
+
+def check_python() -> None:
+    v = sys.version_info
+    if v.major < 3 or (v.major == 3 and v.minor < 10):
+        raise SetupError(f"Python 3.10+ required. You have {v.major}.{v.minor}.{v.micro}")
+    print(f"  Python {v.major}.{v.minor}.{v.micro} — OK")
+
+
+def create_runtime_environment() -> None:
+    """Create the buyer-local virtual environment; never use global pip."""
     python = runtime_python()
     if python.exists():
-        print("  Isolated environment already present")
+        print(f"  Isolated environment present: {python}")
         return
     subprocess.check_call([sys.executable, "-m", "venv", str(HERE / ".venv")])
     if not python.exists():
-        print("ERROR: Could not create the isolated Python environment.")
-        sys.exit(1)
+        raise SetupError("Could not create the buyer-local .venv.")
     print("  Isolated environment created")
 
-def step(msg):
-    print(f"\n=== {msg} ===")
 
-def prompt(msg):
-    return input(f"\n{msg}: ").strip()
-
-def check_python():
-    v = sys.version_info
-    if v.major < 3 or (v.major == 3 and v.minor < 10):
-        print(f"ERROR: Python 3.10+ required. You have {v.major}.{v.minor}.{v.micro}")
-        sys.exit(1)
-    print(f"  Python {v.major}.{v.minor}.{v.micro} — OK")
-
-def install_deps():
+def install_deps() -> None:
     req = HERE / "requirements.txt"
     if not req.exists():
-        print("  No requirements.txt — skipping")
-        return
-    subprocess.check_call([
-        str(runtime_python()), "-E", "-X", "utf8", "-m", "pip", "install", "-q", "-r", str(req)
-    ])
-    print("  Dependencies installed")
+        raise SetupError("requirements.txt is missing from the PlugICT package.")
+    python = runtime_python()
+    subprocess.check_call([str(python), "-E", "-X", "utf8", "-m", "pip", "install", "-q", "-r", str(req)])
+    print("  Dependencies installed into buyer .venv")
 
-def resolve_release():
-    """Ask the GitHub API for the latest release so the download URL and its
-    SHA-256 digest always track the newest vault — no hard-pinned tag."""
-    req = urllib.request.Request(API_LATEST, headers={
-        "Accept": "application/vnd.github+json",
-        "User-Agent": "plugict-setup",
-    })
+
+def _parse_key_value_file(path: Path) -> dict[str, str]:
+    fields: dict[str, str] = {}
     try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            data = json.load(r)
-    except Exception as e:
-        print(f"  ⚠️ GitHub API unavailable ({e})")
-        print("     Falling back to the latest-release URL without checksum verification")
-        return {"tag": "latest", "url": FALLBACK_URL, "digest": None}
+        lines = path.read_text(encoding="utf-8").splitlines()
+    except UnicodeDecodeError as exc:
+        raise LicenseError("The license file is not valid UTF-8 text.") from exc
+    for line in lines:
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        fields[key.strip()] = value.strip()
+    return fields
+
+
+def read_license(path: Path) -> dict[str, str]:
+    """Read and validate a complete license envelope without exposing secrets."""
+    path = Path(path).expanduser()
+    if not path.exists() or not path.is_file():
+        raise LicenseError(
+            "License input must be the path to the full license.key envelope; file not found. "
+            "Do not paste LICENSE_ID or PURCHASE_ID."
+        )
+    fields = _parse_key_value_file(path)
+    required = {
+        "LICENSED_TO",
+        "PURCHASE_ID",
+        "LICENSE_ID",
+        "BUYER_KEY",
+        "ENCRYPTED_VAULT_KEY",
+        "VAULT_HASH",
+    }
+    missing = sorted(key for key in required if not fields.get(key))
+    if missing:
+        raise LicenseError(
+            "This is not a full license.key envelope. "
+            f"Missing fields: {', '.join(missing)}. "
+            "Use the license.key file from the purchase email; do not paste an ID."
+        )
+    vault_hash = fields["VAULT_HASH"].lower()
+    if len(vault_hash) != 64 or any(char not in "0123456789abcdef" for char in vault_hash):
+        raise LicenseError("The license.key contains an invalid VAULT_HASH. Request a replacement license.")
+    return fields
+
+
+def copy_license(source: Path) -> Path:
+    source = Path(source).expanduser().resolve()
+    read_license(source)
+    destination = HERE / "license.key"
+    if source != destination.resolve():
+        shutil.copyfile(source, destination)
+    print("  Full license.key envelope validated and installed")
+    return destination
+
+
+def resolve_release() -> dict[str, str | None]:
+    """Resolve the latest release and its published SHA-256 digest."""
+    request = urllib.request.Request(
+        API_LATEST,
+        headers={"Accept": "application/vnd.github+json", "User-Agent": "plugict-setup"},
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            data = json.load(response)
+    except Exception as exc:
+        raise SetupError(
+            "GitHub release metadata could not be verified. "
+            "Retry setup when GitHub is reachable; refusing an unverified vault download."
+        ) from exc
 
     for asset in data.get("assets", []):
         if asset.get("name") == ASSET_NAME:
             digest = asset.get("digest") or ""
+            digest = digest.split(":", 1)[1] if digest.startswith("sha256:") else None
+            if not digest:
+                raise SetupError(
+                    "The latest PlugICT release has no published SHA-256 digest. "
+                    "Refusing to install an unverified vault. Contact support."
+                )
             return {
                 "tag": data.get("tag_name", "latest"),
                 "url": asset.get("browser_download_url", FALLBACK_URL),
-                "digest": digest.split(":", 1)[1] if digest.startswith("sha256:") else None,
+                "digest": digest,
             }
 
-    print(f"  ⚠️ {ASSET_NAME} not listed in the latest release — trying fallback URL")
-    return {"tag": data.get("tag_name", "latest"), "url": FALLBACK_URL, "digest": None}
+    raise SetupError(f"{ASSET_NAME} is missing from the latest PlugICT release.")
 
-def file_sha256(path):
-    h = hashlib.sha256()
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(1024 * 1024), b""):
-            h.update(chunk)
-    return h.hexdigest()
 
-def download_vault():
+def file_sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _safe_extract(zip_path: Path, destination: Path) -> None:
+    destination = destination.resolve()
+    with zipfile.ZipFile(zip_path, "r") as archive:
+        for member in archive.infolist():
+            target = (destination / member.filename).resolve()
+            if target != destination and destination not in target.parents:
+                raise SetupError("The release archive contains an unsafe path; refusing extraction.")
+            if member.is_dir():
+                target.mkdir(parents=True, exist_ok=True)
+                continue
+            target.parent.mkdir(parents=True, exist_ok=True)
+            with archive.open(member, "r") as source, open(target, "wb") as output:
+                shutil.copyfileobj(source, output)
+
+
+def download_vault() -> None:
     zip_path = HERE / "plugict_download.zip"
     if zip_path.exists():
         zip_path.unlink()
-
-    rel = resolve_release()
-    print(f"  Downloading vault {rel['tag']} ({rel['url']})...")
-    urllib.request.urlretrieve(rel["url"], zip_path)
+    release = resolve_release()
+    print(f"  Downloading vault {release['tag']}...")
+    urllib.request.urlretrieve(str(release["url"]), zip_path)
     print(f"  Downloaded: {zip_path.stat().st_size / 1024 / 1024:.0f} MB")
-
-    if rel["digest"]:
-        print("  Verifying SHA-256...")
-        actual = file_sha256(zip_path)
-        if actual != rel["digest"]:
-            zip_path.unlink()
-            print("  ❌ Checksum mismatch — the download is corrupt or was tampered with.")
-            print(f"     expected: {rel['digest']}")
-            print(f"     got:      {actual}")
-            print("     Re-run setup.py; if this persists, contact support.")
-            sys.exit(1)
-        print("  ✅ Checksum verified")
-    else:
-        print("  ⚠️ No checksum published for this asset — skipping verification")
-
+    print("  Verifying SHA-256...")
+    actual = file_sha256(zip_path)
+    if actual != release["digest"]:
+        zip_path.unlink(missing_ok=True)
+        raise SetupError("Checksum mismatch — the download is corrupt or was tampered with. Re-run setup.py.")
+    print("  Checksum verified")
     print("  Extracting...")
-    with zipfile.ZipFile(zip_path, 'r') as z:
-        z.extractall(HERE)
+    _safe_extract(zip_path, HERE)
+    zip_path.unlink(missing_ok=True)
 
-    zip_path.unlink()
-    print("  Extracted")
-
-    # Move files from subfolder if vault was inside plugict/
-    for item in HERE.iterdir():
-        if item.is_dir() and item.name == "plugict":
-            for f in item.iterdir():
-                dest = HERE / f.name
-                if not dest.exists():
-                    shutil.move(str(f), str(dest))
-            shutil.rmtree(str(item))
-            break
-
-def write_license(key):
-    lic_path = HERE / "license.key"
-    lic_path.write_text(key.strip(), encoding='utf-8')
-    print(f"  license.key written")
-
-def verify():
-    doctor = HERE / "mcp_server.py"
-    if not doctor.exists():
-        print("  WARNING: mcp_server.py not found — doctor unavailable")
-        return
-
-    try:
-        result = subprocess.run(
-            [str(runtime_python()), "-E", "-X", "utf8", str(doctor), "--doctor"],
-            capture_output=True, text=True, timeout=180
-        )
-        if result.returncode == 0:
-            print("  ✅ Doctor check passed")
-        else:
-            print(f"  ⚠️ Doctor check: {result.stdout.strip()[:200]}")
-    except Exception as e:
-        print(f"  ⚠️ Doctor check unavailable: {e}")
+    nested = HERE / "plugict"
+    if nested.is_dir():
+        for item in nested.iterdir():
+            destination = HERE / item.name
+            if not destination.exists():
+                shutil.move(str(item), str(destination))
+        shutil.rmtree(nested)
+    print("  Vault extracted")
 
 
-def write_mcp_configs():
-    """Generate config files with paths for this exact buyer installation."""
-    generator = HERE / "examples" / "make_configs.py"
+def ensure_runtime_files() -> None:
+    missing = [name for name in RUNTIME_FILES if not (HERE / name).exists()]
+    if missing:
+        raise SetupError("Package is incomplete; missing: " + ", ".join(missing))
+
+
+def verify_installation() -> None:
+    """Run doctor and the real MCP search smoke test; fail closed on either."""
+    ensure_runtime_files()
+    python = runtime_python()
+    if not python.exists():
+        raise SetupError("Buyer .venv interpreter is missing.")
+    command = [str(python), "-E", "-X", "utf8", str(HERE / "mcp_server.py"), "--doctor"]
+    result = subprocess.run(
+        command,
+        capture_output=True,
+        text=True,
+        timeout=180,
+        env=child_env(),
+    )
+    if result.returncode != 0:
+        detail = (result.stdout + "\n" + result.stderr).strip()
+        raise SetupError("Doctor failed; setup is not complete.\n" + detail[-3000:])
+    print("  Doctor passed: license, vault integrity, dependencies, and retrieval are healthy")
+    run_smoke_test()
+
+
+def verify() -> None:
+    """Backward-compatible doctor-only hook for existing local tooling.
+
+    The installer calls :func:`verify_installation`, which additionally runs
+    the live MCP smoke test. This small hook preserves the old public helper
+    for scripts that only want a doctor check.
+    """
+    command = [str(runtime_python()), "-E", "-X", "utf8", str(HERE / "mcp_server.py"), "--doctor"]
+    result = subprocess.run(command, capture_output=True, text=True, timeout=180, env=child_env())
+    if result.returncode != 0:
+        detail = (result.stdout + "\n" + result.stderr).strip()
+        raise SetupError("Doctor failed; setup is not complete.\n" + detail[-3000:])
+
+
+def run_smoke_test() -> None:
+    smoke = HERE / "smoke_test.py"
+    if not smoke.exists():
+        raise SetupError("smoke_test.py is missing; refusing to claim MCP setup success.")
+    result = subprocess.run(
+        [str(runtime_python()), "-E", "-X", "utf8", str(smoke)],
+        capture_output=True,
+        text=True,
+        timeout=180,
+        env=child_env(),
+    )
+    if result.returncode != 0:
+        detail = (result.stdout + "\n" + result.stderr).strip()
+        raise SetupError("MCP smoke test failed; setup is not complete.\n" + detail[-3000:])
+    print("  MCP smoke test passed: search_ict returned cited evidence")
+
+
+def _config_env(temp_dir: Path, hf_home: Path) -> dict[str, str]:
+    return {
+        "ICT_TEMP_DIR": temp_dir.resolve().as_posix(),
+        "HF_HOME": hf_home.resolve().as_posix(),
+        "PYTHONNOUSERSITE": "1",
+    }
+
+
+def render_json_config(python: Path, server: Path, temp_dir: Path, hf_home: Path) -> str:
+    config = {
+        "mcpServers": {
+            "plugict": {
+                "command": python.resolve().as_posix(),
+                "args": ["-E", "-X", "utf8", server.resolve().as_posix()],
+                "env": _config_env(temp_dir, hf_home),
+            }
+        }
+    }
+    return json.dumps(config, indent=2) + "\n"
+
+
+def render_hermes_config(python: Path, server: Path, temp_dir: Path, hf_home: Path) -> str:
+    py = python.resolve().as_posix()
+    srv = server.resolve().as_posix()
+    env = _config_env(temp_dir, hf_home)
+    lines = [
+        "# Add this block under mcp_servers in your Hermes profile config.yaml",
+        "mcp_servers:",
+        "  plugict:",
+        f'    command: "{py}"',
+        f'    args: ["-E", "-X", "utf8", "{srv}"]',
+        "    enabled: true",
+        f"    connect_timeout: {CONFIG_CONNECT_TIMEOUT}",
+        "    env:",
+    ]
+    lines.extend(f'      {key}: "{value}"' for key, value in env.items())
+    return "\n".join(lines) + "\n"
+
+
+def write_mcp_configs() -> None:
+    """Write configs with the exact buyer interpreter, server, env, and timeout."""
+    examples = HERE / "examples"
+    examples.mkdir(parents=True, exist_ok=True)
+    python = runtime_python()
+    server = HERE / "mcp_server.py"
+    dirs = runtime_dirs()
+    generator = examples / "make_configs.py"
     if not generator.exists():
-        print("  ⚠️ Config generator not found — use the MCP config printed below")
-        return
-    subprocess.check_call([
-        str(runtime_python()), "-E", "-X", "utf8", str(generator)
-    ])
-    print("  AI-agent config files generated")
+        raise SetupError("examples/make_configs.py is missing; refusing to generate unknown MCP paths.")
+    # The checked-in generator is the canonical implementation. Execute it
+    # with the buyer interpreter so generated files are real, not placeholders.
+    subprocess.check_call([str(python), "-E", "-X", "utf8", str(generator)])
+    print("  AI-agent config files generated with cold-start timeout and isolated runtime paths")
 
-def print_mcp_config():
-    abs_path = HERE / "mcp_server.py"
-    abs_python = runtime_python()
 
-    print("""
-=== MCP Configuration ===
+def print_mcp_config() -> None:
+    print("\n=== MCP Configuration ===\n")
+    print(render_hermes_config(runtime_python(), HERE / "mcp_server.py", runtime_dirs()["temp"], runtime_dirs()["hf_home"]))
+    print(f"Runtime (native path): {runtime_python()}")
+    print("Merge this top-level block into your Hermes profile config.yaml, restart Hermes, then ask:")
+    print('  "Search PlugICT: what is FVG in ICT?"')
 
-PlugICT is built for Hermes, the Nous Research agent. Add this to your
-Hermes profile config.yaml:
 
-  mcp_servers:
-    plugict:
-      command: "%s"
-      args: ["-E", "-X", "utf8", "%s"]
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Install and verify PlugICT for an AI agent")
+    parser.add_argument("--license", dest="license_path", help="Path to the full license.key envelope")
+    parser.add_argument("--reinstall", action="store_true", help="Re-download the release vault")
+    parser.add_argument("--non-interactive", action="store_true", help="Fail instead of prompting for a license path")
+    args = parser.parse_args([] if argv is None else argv)
 
-Then restart Hermes and ask:
-  "What is FVG in ICT?"
-""" % (abs_python, abs_path))
-
-def main():
-    print("=" * 50)
+    print("=" * 60)
     print("  PlugICT — ICT Evidence Vault Setup")
-    print("=" * 50)
+    print("=" * 60)
+    try:
+        step("Checking Python")
+        check_python()
 
-    step("Checking Python")
-    check_python()
-
-    # Check if already installed
-    vault = HERE / "ict-vault.kevin"
-    lic = HERE / "license.key"
-    already = vault.exists() and lic.exists()
-    if already:
-        print("  Vault + license already present")
-        reinstall = prompt("Reinstall? (y/N)").lower()
-        if reinstall != 'y':
-            step("Creating isolated environment")
-            create_runtime_environment()
-            step("Installing dependencies")
-            install_deps()
-            step("Verifying installation")
-            verify()
-            step("Generating MCP config files")
-            write_mcp_configs()
-            print_mcp_config()
-            print("\n✅ Already set up. Just paste the MCP config above into your AI agent.")
-            return
-
-    step("License key")
-    key = None
-    if lic.exists():
-        reuse = prompt("Found existing license.key — reuse it? (Y/n)").lower()
-        if reuse in ("", "y", "yes"):
-            print("  Using existing license.key")
+        vault = HERE / "ict-vault.kevin"
+        license_file = HERE / "license.key"
+        if args.license_path:
+            copy_license(Path(args.license_path))
+        elif license_file.exists():
+            read_license(license_file)
+            print("  Existing full license.key envelope validated")
+        elif args.non_interactive:
+            raise LicenseError(
+                "No license.key found. Pass --license /path/to/license.key; do not paste LICENSE_ID or PURCHASE_ID."
+            )
         else:
-            key = prompt("Enter your PlugICT license key (from purchase email)")
-            if not key:
-                print("  No key entered — exiting")
-                sys.exit(1)
-    else:
-        key = prompt("Enter your PlugICT license key (from purchase email)")
-        if not key:
-            print("  No key entered — exiting")
-            sys.exit(1)
+            source = prompt("Path to your full license.key file (do not paste an ID or the license contents)")
+            copy_license(Path(source))
 
-    if vault.exists():
-        print("  Using encrypted vault included with this package")
-    else:
-        step("Downloading vault")
-        download_vault()
+        if args.reinstall or not vault.exists():
+            step("Downloading verified vault")
+            download_vault()
+        else:
+            print("  Encrypted vault already present — no download needed")
 
-    if key:
-        step("Writing license")
-        write_license(key)
+        step("Checking package")
+        ensure_runtime_files()
+        step("Creating isolated environment")
+        create_runtime_environment()
+        step("Installing dependencies")
+        install_deps()
+        step("Verifying installation")
+        verify_installation()
+        step("Generating MCP configs")
+        write_mcp_configs()
+        print_mcp_config()
+        print("\n" + "=" * 60)
+        print("  PlugICT is ready — doctor and live MCP search both passed.")
+        print("=" * 60)
+        return 0
+    except (SetupError, OSError, subprocess.CalledProcessError) as exc:
+        print(f"\nERROR: {exc}", file=sys.stderr)
+        return 1
 
-    step("Creating isolated environment")
-    create_runtime_environment()
-
-    step("Installing dependencies")
-    install_deps()
-
-    step("Verifying installation")
-    verify()
-
-    step("Generating MCP config files")
-    write_mcp_configs()
-
-    step("MCP Configuration")
-    print_mcp_config()
-
-    print()
-    print("=" * 50)
-    print("  ✅ PlugICT is ready!")
-    print("  Paste the MCP config into your AI agent and restart it.")
-    print("  Then ask: \"What is FVG?\"")
-    print("=" * 50)
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main(sys.argv[1:]))

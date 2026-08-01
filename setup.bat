@@ -16,9 +16,9 @@ if errorlevel 1 (
     exit /b 1
 )
 
-:: Run the installer
+:: Run the installer and forward optional arguments such as --license
 echo Starting installer...
-python setup.py
+python setup.py %*
 if errorlevel 1 (
     echo.
     echo Installation encountered an error. See messages above.

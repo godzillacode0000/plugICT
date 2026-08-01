@@ -24,6 +24,7 @@ fi
 echo "Using Python: $($PYTHON --version)"
 echo ""
 
-$PYTHON setup.py
+# Forward optional arguments, e.g. --license /path/to/license.key.
+"$PYTHON" setup.py "$@"
 echo ""
 echo "Setup complete."
