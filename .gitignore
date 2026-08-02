@@ -4,7 +4,20 @@ scripts/license.key
 scripts/.query_cache.db
 scripts/.vault_key
 scripts/.vault_sha256
-# Python
+# Setup/runtime files generated in the repository root during buyer or owner tests
+/ict-vault.kevin
+/license.key
+/release.sig.json
+/VAULT.md
+/mcp_server.py
+/vault_core.py
+/metadata_enricher.py
+/.hf-home/
+/.pip-cache/
+/examples/claude_desktop_config.json
+/examples/cursor_mcp.json
+/examples/hermes_config.yaml
+
 __pycache__/
 *.pyc
 .venv/

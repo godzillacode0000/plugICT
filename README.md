@@ -14,10 +14,11 @@ Install the ICT Knowledge Vault from godzillacode0000/plugICT
 
 Your agent will:
 1. Clone this repo
-2. Ask for your license key
+2. Ask for the path to the full `license.key` attachment — never paste its contents
 3. Download the vault
 4. Configure MCP
-5. You're done
+5. Read `PLUGICT-ICT-AGENT-SKILL.md` — it is included with the product, so no separate skill install is needed
+6. You're done
 
 ---
 
