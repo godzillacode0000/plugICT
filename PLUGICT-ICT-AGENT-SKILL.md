@@ -15,12 +15,15 @@ Give concise, practical, source-grounded ICT answers from the licensed vault. Th
    - setup/execution;
    - claim validation;
    - FX vs index comparison.
-2. Use `search_ict` for a focused single concept.
-3. Use `multi_search_ict` for several facets; run separate facets when one query cannot support every claim.
-4. Use `glossary_lookup` for acronyms and short definitions.
-5. Use `expand_result` only on a recent `result_ref` when the returned excerpt needs local context.
-6. Keep every claim attached to the evidence chunk that supports it.
-7. If evidence is weak, conflicting, or missing, say so and narrow the answer. Never fabricate a quote, timestamp, statistic, playlist, or rule.
+2. For a simple acronym or one-line definition (for example, “What is FVG?”), call `glossary_lookup` first. This is an instant local lookup and does not need to unlock the encrypted vault.
+3. If the user asks what ICT said, asks for vault evidence/citations, or needs more than a short definition, call `search_ict` after the glossary lookup. The first vault search in a new MCP process may take one-time warm-up; reuse the same MCP process for subsequent queries.
+4. Use `search_ict` for a focused single concept.
+5. Use `multi_search_ict` for several facets; run separate facets when one query cannot support every claim.
+6. Use `expand_result` only on a recent `result_ref` when the returned excerpt needs local context.
+7. Keep every claim attached to the evidence chunk that supports it.
+8. If evidence is weak, conflicting, or missing, say so and narrow the answer. Never fabricate a quote, timestamp, statistic, playlist, or rule.
+
+Never call `glossary_lookup` and `search_ict` in parallel for a basic definition. That needlessly starts the encrypted-vault warm-up when the glossary can answer immediately.
 
 ## Search intent patterns
 
