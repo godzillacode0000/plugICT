@@ -14,6 +14,10 @@ When a user asks to install PlugICT, follow this exact flow:
    If the folder already exists, do not create a second nested clone. Run the
    setup from the existing PlugICT folder.
 
+   After entering the folder, read `PLUGICT-ICT-AGENT-SKILL.md`. It is the
+   buyer-facing ICT answer protocol shipped with PlugICT; no separate Hermes
+   skill installation is required.
+
 2. Ask for the **path to the full `license.key` file**. Never ask the buyer to
    paste the license contents into chat. A `LICENSE_ID` or `PURCHASE_ID` alone
    is not a license and must be rejected.
