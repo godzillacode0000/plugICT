@@ -30,6 +30,10 @@ The installer creates an isolated `.venv`, blocks host `PYTHONPATH` leakage,
 verifies the release SHA-256 before extraction, and keeps temporary/model-cache
 files beside the installation.
 
+## Buyer AI skill
+
+PlugICT ships `PLUGICT-ICT-AGENT-SKILL.md` with the buyer package. Read it after MCP connects; it tells the agent how to route ICT queries, retrieve evidence, separate first episode from first playlist for beginner questions, and attach every quote to its own YouTube timestamp. No separate Hermes skill installation is required.
+
 ## Connect Hermes
 
 Paste the generated block from `examples/hermes_config.yaml` (or the final
