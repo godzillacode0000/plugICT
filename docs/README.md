@@ -10,7 +10,7 @@ Not raw files. Not PDFs. **AI-searchable knowledge vault.**
 
 ## Setup (2 Minutes)
 
-**Windows** — double-click `setup.bat`, or run `python setup.py --license "C:/path/to/license.key"`. It builds an isolated environment (`.venv`), installs everything, and refuses to report success until doctor and a live MCP search pass.
+**Windows** — double-click `setup.bat`, or run `python setup.py --license "C:/path/to/license.key"`. It builds an isolated environment (`.venv`), installs everything, and refuses to report success until doctor, direct local search, and the compatibility MCP smoke test pass.
 
 **macOS / Linux**
 ```bash
@@ -27,11 +27,30 @@ Something not working? Run a health check:
 
 ---
 
-## Connect Hermes
+## Search locally (default)
+
+The buyer-facing path does not require MCP:
+
+```bash
+python plugict_search.py --query "What is FVG in ICT?" --format json
+```
+
+Use Markdown output for human inspection:
+
+```bash
+python plugict_search.py --query "What is FVG in ICT?" --format markdown
+```
+
+For deeper questions, repeat `--query` with different facets. The runner
+returns bounded excerpts, playlist/title metadata, timestamps, and YouTube
+deep links. Your AI agent should cite those results and distinguish direct
+vault evidence from its own synthesis.
+
+## Connect MCP (optional)
 
 Run `python setup.py --license /path/to/license.key`. It prints and writes the exact MCP config block for this install. Paste that block under `mcp_servers` in your Hermes profile config and restart Hermes.
 
-The generated config uses the buyer `.venv`, `-E -X utf8`, a 180-second cold-start timeout, and isolated temp/model-cache paths. The best default tool is `multi_search_ict`; it returns cited, capped snippets plus safe `result_ref` values for `expand_result` when more context is needed. Legacy `search_ict`, `explore_concept`, `glossary_lookup`, `list_playlists`, and `vault_stats` are also available.
+The generated config uses the buyer `.venv`, `-E -X utf8`, a 180-second cold-start timeout, and isolated temp/model-cache paths. MCP is an optional compatibility layer; the local runner above remains the default path. The best MCP tool for complex questions is `multi_search_ict`; it returns cited, capped snippets plus safe `result_ref` values for `expand_result` when more context is needed. Legacy `search_ict`, `explore_concept`, `glossary_lookup`, `list_playlists`, and `vault_stats` are also available.
 
 Then just ask, in natural conversation:
 
@@ -74,7 +93,8 @@ install flow.
 |---|---|
 | `ict-vault.kevin` | Encrypted vault (don't share) |
 | `license.key` | Your unique license (don't share) |
-| `mcp_server.py` | AI agent bridge (the app) |
+| `plugict_search.py` | Default direct local search runner |
+| `mcp_server.py` | Optional AI agent bridge |
 | `docs/` | Full documentation |
 
 ---

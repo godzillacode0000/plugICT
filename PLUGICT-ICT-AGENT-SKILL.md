@@ -1,6 +1,7 @@
 # PlugICT — ICT Agent Skill
 
-Use this skill for every ICT question after the PlugICT MCP server is connected.
+Use this skill for every ICT question after the PlugICT local vault is installed.
+The default buyer path is the local `plugict_search.py` runner. MCP is optional.
 
 ## Mission
 
@@ -15,15 +16,26 @@ Give concise, practical, source-grounded ICT answers from the licensed vault. Th
    - setup/execution;
    - claim validation;
    - FX vs index comparison.
-2. For a simple acronym or one-line definition (for example, “What is FVG?”), call `glossary_lookup` first. This is an instant local lookup and does not need to unlock the encrypted vault.
-3. If the user asks what ICT said, asks for vault evidence/citations, or needs more than a short definition, call `search_ict` after the glossary lookup. The first vault search in a new MCP process may take one-time warm-up; reuse the same MCP process for subsequent queries.
-4. Use `search_ict` for a focused single concept.
-5. Use `multi_search_ict` for several facets; run separate facets when one query cannot support every claim.
-6. Use `expand_result` only on a recent `result_ref` when the returned excerpt needs local context.
-7. Keep every claim attached to the evidence chunk that supports it.
-8. If evidence is weak, conflicting, or missing, say so and narrow the answer. Never fabricate a quote, timestamp, statistic, playlist, or rule.
+2. Use the local runner for a simple focused question:
 
-Never call `glossary_lookup` and `search_ict` in parallel for a basic definition. That needlessly starts the encrypted-vault warm-up when the glossary can answer immediately.
+   ```bash
+   python plugict_search.py --query "What is FVG in ICT?" --format json
+   ```
+
+3. For a multi-facet question, run up to four different local query variants:
+
+   ```bash
+   python plugict_search.py --query "Silver Bullet time windows" --query "Silver Bullet FVG entry rules" --query "Silver Bullet targets and invalidation" --format json
+   ```
+
+4. Use the returned excerpts, timestamps, and YouTube links as the primary evidence. Do not answer from model memory when local vault evidence is available.
+5. MCP tools (`glossary_lookup`, `search_ict`, `multi_search_ict`, `expand_result`) are optional alternatives for agents configured with MCP; they are not required for buyer search.
+6. Keep every claim attached to the evidence chunk that supports it.
+7. If evidence is weak, conflicting, or missing, say so and narrow the answer. Never fabricate a quote, timestamp, statistic, playlist, or rule.
+
+Do not bypass `plugict_search.py` by importing `vault_core.py` directly. The
+runner is the approved local entry point and preserves license, integrity,
+watermark, and evidence-output rules.
 
 ## Search intent patterns
 
@@ -70,6 +82,7 @@ What not to study yet:
 ## Evidence rules
 
 - Prefer exact transcript evidence over broad topical similarity.
+- Prefer the local direct runner for buyer answers; use MCP only when the buyer has configured it or when testing the MCP product path.
 - Multiple excerpts from one video are not independent confirmations.
 - Do not move text from one timestamp under another citation.
 - Timestamps are elapsed video offsets, not trading-session clock labels.

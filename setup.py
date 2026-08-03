@@ -25,7 +25,14 @@ ASSET_NAME = "plugict.zip"
 API_LATEST = f"https://api.github.com/repos/{REPO}/releases/latest"
 FALLBACK_URL = f"https://github.com/{REPO}/releases/latest/download/{ASSET_NAME}"
 HERE = Path(__file__).parent.resolve()
-RUNTIME_FILES = ("mcp_server.py", "vault_core.py", "ict-vault.kevin", "license.key", "smoke_test.py")
+RUNTIME_FILES = (
+    "mcp_server.py",
+    "plugict_search.py",
+    "vault_core.py",
+    "ict-vault.kevin",
+    "license.key",
+    "smoke_test.py",
+)
 CONFIG_CONNECT_TIMEOUT = 180
 
 
@@ -259,7 +266,7 @@ def ensure_runtime_files() -> None:
 
 
 def verify_installation() -> None:
-    """Run doctor and the real MCP search smoke test; fail closed on either."""
+    """Run doctor plus direct and MCP smoke tests; fail closed on any failure."""
     ensure_runtime_files()
     python = runtime_python()
     if not python.exists():
@@ -276,6 +283,7 @@ def verify_installation() -> None:
         detail = (result.stdout + "\n" + result.stderr).strip()
         raise SetupError("Doctor failed; setup is not complete.\n" + detail[-3000:])
     print("  Doctor passed: license, vault integrity, dependencies, and retrieval are healthy")
+    run_direct_search_test()
     run_smoke_test()
 
 
@@ -308,6 +316,41 @@ def run_smoke_test() -> None:
         detail = (result.stdout + "\n" + result.stderr).strip()
         raise SetupError("MCP smoke test failed; setup is not complete.\n" + detail[-3000:])
     print("  MCP smoke test passed: search_ict returned cited evidence")
+
+
+def run_direct_search_test() -> None:
+    """Exercise the non-MCP buyer path and require a cited result."""
+    runner = HERE / "plugict_search.py"
+    if not runner.exists():
+        raise SetupError("plugict_search.py is missing; refusing to claim direct search readiness.")
+    result = subprocess.run(
+        [
+            str(runtime_python()),
+            "-E",
+            "-X",
+            "utf8",
+            str(runner),
+            "--query",
+            "What is FVG in ICT?",
+            "--format",
+            "json",
+        ],
+        capture_output=True,
+        text=True,
+        timeout=180,
+        env=child_env(),
+    )
+    if result.returncode != 0:
+        detail = (result.stdout + "\n" + result.stderr).strip()
+        raise SetupError("Direct local search smoke test failed; setup is not complete.\n" + detail[-3000:])
+    try:
+        payload = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise SetupError("Direct local search returned invalid JSON; setup is not complete.") from exc
+    results = payload.get("results") if isinstance(payload, dict) else None
+    if not isinstance(results, list) or not results or not any(item.get("url") for item in results if isinstance(item, dict)):
+        raise SetupError("Direct local search returned no cited evidence; setup is not complete.")
+    print("  Direct local search passed: local runner returned cited evidence")
 
 
 def _config_env(temp_dir: Path, hf_home: Path) -> dict[str, str]:
@@ -420,7 +463,8 @@ def main(argv: list[str] | None = None) -> int:
         write_mcp_configs()
         print_mcp_config()
         print("\n" + "=" * 60)
-        print("  PlugICT is ready — doctor and live MCP search both passed.")
+        print("  PlugICT is ready — direct local search and MCP smoke both passed.")
+        print("  MCP is optional; buyer agents can use plugict_search.py directly.")
         print("=" * 60)
         return 0
     except (SetupError, OSError, subprocess.CalledProcessError) as exc:
