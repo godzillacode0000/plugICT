@@ -1282,12 +1282,15 @@ window.PLUGICT = {
     }
   })();
 
-  /* ── payments: modal, countdown, email capture (config in <head>) ── */
+  /* ── payments: direct Stripe checkout, modal fallback, countdown, email capture (config in <head>) ── */
   (function(){
     const cfg=window.PLUGICT||{};
     const overlay=document.getElementById('pay-overlay'); if(!overlay) return;
     const home=document.getElementById('pay-home');
     const panes={fallback:'pane-fallback'};
+    const checkoutUrl=()=>cfg.stripeUrl
+      ? (window.plugictStripeUrl ? window.plugictStripeUrl(cfg.stripeUrl) : cfg.stripeUrl)
+      : '';
 
     document.getElementById('pay-price').textContent=
       (cfg.priceUsd||'$18.99')+' one-time';
@@ -1330,7 +1333,12 @@ window.PLUGICT = {
       previousBodyOverflow='';
       lastFocus&&lastFocus.focus();};
 
-    document.querySelectorAll('[data-buy-link]').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();open();}));
+    document.querySelectorAll('[data-buy-link]').forEach(a=>a.addEventListener('click',e=>{
+      e.preventDefault();
+      const url=checkoutUrl();
+      if(url){location.href=url;return;}
+      open();
+    }));
     overlay.querySelector('[data-pay-close]').addEventListener('click',close);
     overlay.addEventListener('click',e=>{if(e.target===overlay)close();});
     overlay.addEventListener('keydown',e=>{
