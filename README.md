@@ -1,6 +1,6 @@
 # PlugICT — ICT Evidence Vault
 
-**775 ICT videos. Searchable by your AI agent. Cited answers with timestamps.**
+**An ICT video library. Searchable by your AI agent. Cited answers with timestamps.**
 
 ---
 

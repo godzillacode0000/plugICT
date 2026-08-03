@@ -2,7 +2,7 @@
 
 ## What You Got
 
-A complete, AI-searchable library of **775 ICT (Inner Circle Trader) YouTube videos** — transcribed, indexed, and ready to query. **Hundreds of hours** of trading mentorship at your fingertips.
+A complete, AI-searchable library of **ICT (Inner Circle Trader) YouTube videos** — transcribed, indexed, and ready to query. **Hundreds of hours** of trading mentorship at your fingertips.
 
 Not raw files. Not PDFs. **AI-searchable knowledge vault.**
 
@@ -67,7 +67,7 @@ install flow.
 
 | Component | What |
 |---|---|
-| 775 videos | 10 playlists, 2016-2026 |
+| Full ICT library | 10 playlists, 2016-2026 |
 | Hundreds of hours | Full transcriptions with timestamps |
 | 21,985 semantic chunks | Timestamp-preserving search units |
 | Keyword search | Find exact terms instantly |

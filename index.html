@@ -763,7 +763,7 @@ window.PLUGICT = {
       <div class="proof-item"><span class="proof-value">Local</span><span class="proof-label">Vault search</span></div>
       <div class="proof-item"><span class="proof-value">Yours</span><span class="proof-label">Choose the AI model</span></div>
     </div>
-    <div class="integration-rail fadeup" data-delay=".14"><b>Works through MCP with</b><span>Hermes</span><span>Nous Research</span></div>
+    <div class="integration-rail fadeup" data-delay=".14"><b>Works locally with</b><span>Hermes</span><span>your AI agent</span></div>
   </div>
 </section>
 
@@ -893,7 +893,7 @@ window.PLUGICT = {
         <div class="eyebrow fadeup">PlugICT_flexibility</div>
         <h2 class="fadeup" data-delay=".05">Your agent. PlugICT intelligence.</h2>
       </div>
-      <p class="sub fadeup" data-delay=".1">Built for Hermes, the Nous Research agent. MCP connects it to your local vault — it handles the search, your agent handles the answer.</p>
+      <p class="sub fadeup" data-delay=".1">Built for Hermes, the Nous Research agent. The local runner searches your encrypted vault — your agent handles the answer. MCP remains optional for compatible clients.</p>
     </div>
 
     <div class="agent-grid">
@@ -915,7 +915,7 @@ window.PLUGICT = {
             <div class="flow-arrow">→</div>
             <div class="flow-node"><span class="node-kicker">03 · Your AI</span><h3>Explain with sources</h3><p>Your chosen model reads the evidence and writes the answer.</p></div>
           </div>
-          <div class="flow-note"><span>●</span><span><b>MCP is the connector.</b> It gives the AI controlled search tools. It does not expose raw SQL or turn the vault into a cloud database.</span></div>
+          <div class="flow-note"><span>●</span><span><b>Local search is the default.</b> Your agent gets bounded evidence from the encrypted vault. MCP is optional for compatible clients — it does not expose raw SQL or turn the vault into a cloud database.</span></div>
         </div>
       </div>
     </div>
@@ -927,12 +927,12 @@ window.PLUGICT = {
   <div class="inner">
     <div class="eyebrow fadeup">PlugICT_finish</div>
     <h2 class="fadeup" data-delay=".05">From setup to your first cited answer</h2>
-    <p class="sub fadeup" data-delay=".1">The setup script handles the vault. You paste one client config, restart the AI app, and ask your first question.</p>
+    <p class="sub fadeup" data-delay=".1">The setup script handles the vault. Your AI agent runs the local search runner and asks your first question — no MCP config required.</p>
     <div class="moves">
       <div class="move-card fadeup glow">
         <div class="num">01</div>
         <h3>Unlock the vault</h3>
-        <p>Download the vault, add your license key, then run the setup file</p>
+        <p>Tell your AI agent to install PlugICT, provide the private license key, then let setup verify the encrypted vault</p>
         <div class="move-chips">
           <span>⬇ download</span>
           <span>🔑 license.key</span>
@@ -942,7 +942,7 @@ window.PLUGICT = {
       <div class="move-card fadeup glow" data-delay=".08">
         <div class="num">02</div>
         <h3>Connect your agent</h3>
-        <p>Paste the PlugICT config into your agent settings. Copy-paste only</p>
+        <p>Ask your AI agent to run the local search runner. MCP config is optional</p>
         <div class="move-cmd">
           <span>"ict-vault": { "command": … }</span>
           <button class="copy-btn" type="button" data-cmd='"ict-vault": { "command": "ict-vault-mcp" }'>copy</button>
@@ -997,17 +997,17 @@ window.PLUGICT = {
     <h2 class="fadeup">Questions, <em>answered.</em></h2>
     <div class="faq">
       <details class="fadeup"><summary>Do I need to be technical to set this up? <span class="chev">+</span></summary>
-        <div class="faq-body"><div><p>No. You download, drop in your license key, and double-click the setup file — it handles everything. Then you paste one small config into your AI agent (copy-paste, no code). If anything's off, a built-in doctor check tells you exactly what to fix, in plain English.</p></div></div></details>
+        <div class="faq-body"><div><p>No. Tell your AI agent to install PlugICT, give setup the path to your private <code>license.key</code>, and let it run the doctor and direct-search checks. No MCP config is required for the default path.</p></div></div></details>
       <details class="fadeup"><summary>Does it work without internet? <span class="chev">+</span></summary>
         <div class="faq-body"><div><p>The vault's search runs locally on your machine — it never sends your queries to a cloud. But your AI agent and the YouTube links do need internet. Think of it like this: the library is on your shelf, but you need wifi to ask the librarian.</p></div></div></details>
-      <details class="fadeup"><summary>Can I use it with ChatGPT or Claude on the web? <span class="chev">+</span></summary>
-        <div class="faq-body"><div><p>PlugICT is built for Hermes, the Nous Research agent, over a local MCP connection, and setup steps are included. A normal browser chat cannot reach a local vault unless that product supports a compatible local tool connection.</p></div></div></details>
+      <details class="fadeup"><summary>Can I use it with my own AI agent? <span class="chev">+</span></summary>
+        <div class="faq-body"><div><p>Yes — PlugICT is built for Hermes and similar terminal-capable agents that can run local Python commands and read JSON. The default path uses <code>plugict_search.py</code>; MCP is optional for compatible clients. A normal browser chat by itself cannot reach a local vault.</p></div></div></details>
       <details class="fadeup"><summary>What exactly do I download? <span class="chev">+</span></summary>
-        <div class="faq-body"><div><p>Three things: an encrypted knowledge vault file, a setup file that handles everything automatically, and your personal <code>license.key</code> (emailed to you). No app, no installer, no bloat. The license is tied to you and traceable, so please don't share it.</p></div></div></details>
+        <div class="faq-body"><div><p>You get the public PlugICT GitHub repo and a private <code>license.key</code> delivered after purchase. Setup downloads and verifies the encrypted vault release automatically. No separate app or manual config hunting — and please don't share the license.</p></div></div></details>
       <details class="fadeup"><summary>Do I need to pay for anything else? <span class="chev">+</span></summary>
         <div class="faq-body"><div><p>PlugICT itself is a one-time $18.99 purchase. The AI model is separate: you use your own supported client and provider, so any model cost depends on what you choose.</p></div></div></details>
       <details class="fadeup"><summary>How can I pay? <span class="chev">+</span></summary>
-        <div class="faq-body"><div><p>International cards via Stripe. Your license is emailed to you after purchase, and the product works exactly the same however you paid.</p></div></div></details>
+        <div class="faq-body"><div><p>International cards via Stripe. Your license is delivered within 24 hours after purchase, and the product works exactly the same however you paid.</p></div></div></details>
       <details class="fadeup"><summary>What are the system requirements? <span class="chev">+</span></summary>
         <div class="faq-body"><div><p>Windows, macOS or Linux with Python 3.10+. The setup script handles the rest in an isolated environment, so it won't interfere with anything else on your computer.</p></div></div></details>
     </div>

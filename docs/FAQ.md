@@ -3,10 +3,10 @@
 ## General
 
 **Q: What exactly is this?**
-A: A searchable library of 775 Inner Circle Trader YouTube videos — fully transcribed, indexed, and optimized for AI agent queries. Not raw files. Not PDFs. You can search by concept, keyword, or meaning.
+A: A searchable library of Inner Circle Trader YouTube videos — fully transcribed, indexed, and optimized for AI agent queries. Not raw files. Not PDFs. You can search by concept, keyword, or meaning.
 
 **Q: Is this all of ICT's content?**
-A: We've transcribed 775 videos across 10 playlists from 2016-2026. This covers the major mentorship series (2022, 2023, 2024), lecture series (2025, 2026 SMC), charter content, forex series, and more.
+A: We've transcribed a broad library across 10 playlists from 2016-2026. This covers the major mentorship series (2022, 2023, 2024), lecture series (2025, 2026 SMC), charter content, forex series, and more.
 
 **Q: Can I browse the raw transcript files?**
 A: No. The vault is encrypted — you search and get results. Raw files are not extractable. This protects the content from unauthorized sharing.
@@ -22,7 +22,7 @@ A: Any agent that can run local Python commands and read JSON, including Hermes 
 ## Technical
 
 **Q: Do I need internet?**
-A: No. Everything runs locally. The vault, search engine, and embeddings are all on your machine. Zero API calls.
+A: Search runs locally and PlugICT does not send your queries to a PlugICT cloud service. Internet is still needed for initial setup, downloading the verified release/dependencies, your AI agent, and YouTube deep links. Query execution does not require a PlugICT API.
 
 **Q: How big is it?**
 A: The exact size depends on the release build, but you only need about 500MB free disk space to install and run it.
@@ -31,7 +31,7 @@ A: The exact size depends on the release build, but you only need about 500MB fr
 A: Yes. Requirements: Python 3.10+, 4GB RAM.
 
 **Q: Why is the first search slow?**
-A: The cross-encoder model loads on first use (~30 seconds). Subsequent searches are <2 seconds.
+A: The encrypted vault and local retrieval runtime need to warm up on first use. The exact time depends on your machine. v3.6.7 does not require the old cross-encoder model.
 
 **Q: How does the search work?**
 A: The local runner uses the same licensed vault engine as the compatibility MCP server. It returns bounded evidence from keyword (FTS5), semantic (ChromaDB vectors), and knowledge-graph retrieval where available. Results are ranked by relevance, not just keyword match count.
@@ -77,13 +77,13 @@ A: We've extracted ICT concepts (FVG, Order Block, Silver Bullet, etc.) and thei
 
 **Q: Something's not working.**
 A: Check:
-1. `license.key` is in the same folder as `mcp_server.py`
+1. You supplied the full private `license.key` file to setup — not only a `LICENSE_ID` or `PURCHASE_ID`
 2. Python 3.10+ is installed (`python --version`)
-3. Run `pip install -r requirements.txt` again
-4. Try deleting `_vectors` folder and re-extract the vault
+3. Rerun `python setup.py --license /path/to/license.key` so setup can recreate the isolated `.venv`, verify the release, and run doctor/direct-search checks
+4. Run `python plugict_search.py --doctor` and send the reported error to support; do not manually delete vault/runtime folders or install PlugICT into global Python
 
 **Q: How do I contact support?**
 A: Email `plugICTsupport@agentmail.to`.
 
 **Q: Refund policy?**
-A: Due to the nature of digital products, refunds are not available once the license key has been issued. Please review the product description carefully before purchasing.
+A: If the product has a genuine defect and we cannot resolve it within 7 days of purchase, you are entitled to a full refund. See `refund.html` for the qualifying cases and process.
