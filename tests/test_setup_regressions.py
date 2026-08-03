@@ -55,6 +55,7 @@ def test_doctor_failure_is_fatal(monkeypatch, tmp_path):
     doctor = tmp_path / "mcp_server.py"
     doctor.write_text("# fixture", encoding="utf-8")
     (tmp_path / "vault_core.py").write_text("# fixture", encoding="utf-8")
+    (tmp_path / "plugict_search.py").write_text("# fixture", encoding="utf-8")
     (tmp_path / "ict-vault.kevin").write_bytes(b"fixture")
     (tmp_path / "license.key").write_text("fixture", encoding="utf-8")
     (tmp_path / "smoke_test.py").write_text("# fixture", encoding="utf-8")
@@ -96,3 +97,10 @@ def test_json_config_uses_same_runtime_and_server(tmp_path):
     assert server_cfg["command"] == python.as_posix()
     assert server_cfg["args"] == ["-E", "-X", "utf8", server.as_posix()]
     assert server_cfg["env"]["ICT_TEMP_DIR"] == (tmp_path / ".tmp").as_posix()
+
+
+def test_runtime_package_includes_direct_runner_without_plaintext_corpus():
+    assert "plugict_search.py" in setup.RUNTIME_FILES
+    assert "mcp_server.py" in setup.RUNTIME_FILES
+    assert not any(path.endswith(".md") for path in setup.RUNTIME_FILES)
+    assert not any("transcript" in path.lower() for path in setup.RUNTIME_FILES)

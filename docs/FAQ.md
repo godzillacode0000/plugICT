@@ -12,10 +12,10 @@ A: We've transcribed 775 videos across 10 playlists from 2016-2026. This covers 
 A: No. The vault is encrypted — you search and get results. Raw files are not extractable. This protects the content from unauthorized sharing.
 
 **Q: Do I need an AI agent to use this?**
-A: Yes — ICT Vault is built for Hermes, the Nous Research agent. You ask Hermes questions in natural conversation, and it searches the vault to answer with cited timestamps.
+A: Yes — the product is designed for a terminal-capable AI agent. The default path is the local `plugict_search.py` runner, which returns bounded evidence and citations for the agent to synthesize. MCP is optional.
 
 **Q: What AI agent do I need?**
-A: Hermes, the Nous Research agent. See `AI-AGENT-GUIDE.md`.
+A: Any agent that can run local Python commands and read JSON, including Hermes and similar terminal-capable agents. See `AI-AGENT-GUIDE.md`.
 
 ---
 
@@ -34,10 +34,10 @@ A: Yes. Requirements: Python 3.10+, 4GB RAM.
 A: The cross-encoder model loads on first use (~30 seconds). Subsequent searches are <2 seconds.
 
 **Q: How does the search work?**
-A: Multi-signal fusion — keyword (FTS5) + semantic (ChromaDB vectors) + knowledge graph. Results are ranked by relevance, not just keyword match count.
+A: The local runner uses the same licensed vault engine as the compatibility MCP server. It returns bounded evidence from keyword (FTS5), semantic (ChromaDB vectors), and knowledge-graph retrieval where available. Results are ranked by relevance, not just keyword match count.
 
 **Q: Can I search by playlist?**
-A: Yes. Ask your AI to focus on one, e.g. *"What does the 2022 Mentorship say about FVG?"* — the `search_ict` tool accepts a playlist filter.
+A: Yes. Use `--playlist` with the local runner, for example `python plugict_search.py --query "What does ICT say about FVG?" --playlist "2022 ICT Mentorship"`, or ask the optional MCP `search_ict` tool to apply the filter.
 
 ---
 

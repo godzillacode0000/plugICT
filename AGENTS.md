@@ -41,8 +41,9 @@ When a user asks to install PlugICT, follow this exact flow:
    - create/use only the buyer-local `.venv`;
    - install dependencies with the buyer interpreter and block host `PYTHONPATH` leakage;
    - run `mcp_server.py --doctor`;
+   - run a direct local `plugict_search.py` smoke query and require cited evidence;
    - run a real MCP `search_ict` smoke query and require cited evidence;
-   - generate Claude, Cursor, and Hermes config files.
+   - generate optional Claude, Cursor, and Hermes MCP config files.
 
 5. Merge the generated top-level Hermes block into the active profile config.
    Do not append a duplicate `plugict` block. The generated config already
@@ -52,11 +53,20 @@ When a user asks to install PlugICT, follow this exact flow:
    - a 180-second cold-start timeout;
    - isolated temp/model-cache paths.
 
-6. Restart the AI agent and ask:
+6. For the default non-MCP path, ask your AI agent to run:
+
+   ```bash
+   python plugict_search.py --query "What is FVG in ICT?" --format json
+   ```
+
+   The agent should use the returned excerpts and YouTube deep links when
+   writing the answer. MCP is optional for agents that support it.
+
+7. If MCP is configured, restart the AI agent and ask:
 
    > Search PlugICT: What is FVG in ICT?
 
-   A working install returns cited video timestamps. If setup exits non-zero,
+   A working install returns cited video timestamps through either path. If setup exits non-zero,
    treat the install as incomplete and show the reported error; do not claim it
    succeeded.
 
@@ -64,6 +74,7 @@ When a user asks to install PlugICT, follow this exact flow:
 
 > Install PlugICT from `https://github.com/godzillacode0000/plugICT`. My full
 > `license.key` file is in my Downloads folder. Do not print its contents.
+> Install and verify the local `plugict_search.py` runner. MCP is optional.
 
 ## Troubleshooting
 
@@ -74,5 +85,6 @@ When a user asks to install PlugICT, follow this exact flow:
   encrypted vault may take 30–60 seconds to warm up on first use.
 - Integrity/hash failure: the vault and license do not match. Re-download the
   official package or contact support; do not disable verification.
-- Never run `vault_core.py --query`; vault queries are exposed through MCP
-  tools (`search_ict`, `multi_search_ict`, `expand_result`).
+- Never run `vault_core.py --query`; use the buyer-facing `plugict_search.py`
+  runner for local search, or the optional MCP tools (`search_ict`,
+  `multi_search_ict`, `expand_result`).
