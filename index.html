@@ -143,12 +143,13 @@ window.PLUGICT = {
     border:1px solid rgba(255,255,255,.09);
     box-shadow:inset 0 1px 0 rgba(255,255,255,.06), inset 0 0 0 1px rgba(255,255,255,.02),
       0 34px 90px -46px rgba(0,0,0,.9)}
-  .hero::before{content:""; position:absolute; top:-30%; right:-15%; width:70%; height:130%; pointer-events:none; z-index:1;
-    background:radial-gradient(50% 50% at 60% 40%, rgba(255,107,26,.12), transparent 70%)}
-  /* hero background video stays subtle under the content */
-  .hero-bg-video{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; pointer-events:none; z-index:0; opacity:.42;
-    filter:brightness(1.04) saturate(1.06) contrast(1.02) blur(0px); transform:scale(1.04); transform-origin:center; object-position:center center;}
-  /* faint engineering grid */
+  .hero::before{content:""; position:absolute; inset:0; pointer-events:none; z-index:1;
+    background:linear-gradient(90deg, rgba(0,0,0,.52) 0%, rgba(0,0,0,.22) 48%, rgba(0,0,0,.38) 100%),
+      radial-gradient(50% 50% at 60% 40%, rgba(255,107,26,.10), transparent 70%)}
+  /* hero background art stays soft and subordinate to the copy */
+  .hero-bg-image{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; pointer-events:none; z-index:0; opacity:.28;
+    filter:brightness(.72) saturate(.82) contrast(.94) blur(4px); transform:scale(1.08); transform-origin:center; object-position:center 38%; will-change:transform;}
+
   .hero::after{content:""; position:absolute; inset:0; pointer-events:none; z-index:1; opacity:.35;
     background:
       repeating-linear-gradient(0deg, rgba(156,163,175,.04) 0 1px, transparent 1px 64px),
@@ -668,7 +669,7 @@ window.PLUGICT = {
     *,*::before,*::after{animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important}
     .fadeup{opacity:1 !important; transform:none !important}
     .rv{opacity:1 !important; transform:none !important}
-    #hero-bg-video{display:none} #spotlight{display:none !important}
+    #hero-bg-image{display:none} #spotlight{display:none !important}
   }
 </style>
 <link rel="stylesheet" href="assets/coderabbit-v2.css?v=20260801-lessons">
@@ -705,9 +706,7 @@ window.PLUGICT = {
 <!-- ═══ HERO ═══ -->
 <div class="hero-frame" id="top">
 <header class="hero">
-  <video id="hero-bg-video" class="hero-bg-video" autoplay loop muted playsinline preload="metadata" poster="assets/video/hero-background-poster.jpg?v=20260725c" aria-hidden="true">
-    <source src="assets/video/hero-background.mp4?v=20260725c" type="video/mp4">
-  </video>
+  <img id="hero-bg-image" class="hero-bg-image" src="assets/images/hero-background.jpg?v=20260803-hero-art" alt="" aria-hidden="true">
   <div class="wrap hero-stack">
     <div class="hero-copy">
       <h1 class="fadeup" data-delay=".06"><span class="hero-line">Learn Smarter.</span><em>Understand What ICT Actually Taught</em></h1>
@@ -1481,7 +1480,7 @@ window.PLUGICT = {
   (function(){
     if(REDUCED) return;
     const hero=document.querySelector('.hero'); if(!hero) return;
-    const bg=document.getElementById('hero-bg-video');
+    const bg=document.getElementById('hero-bg-image');
     const term=hero.querySelector('.terminal');
     let raf=0;
     function upd(){ raf=0; const y=scrollY;
@@ -1491,15 +1490,6 @@ window.PLUGICT = {
         'perspective(1400px) rotateY(-7deg) rotateX(1.5deg) translateY('+(y*-0.05)+'px)';
     }
     addEventListener('scroll',()=>{ if(!raf) raf=requestAnimationFrame(upd); },{passive:true});
-  })();
-
-  /* ── 4b. slow hero video playback (subtle, premium motion) ── */
-  (function(){
-    if(REDUCED) return;
-    const bg=document.getElementById('hero-bg-video'); if(!bg) return;
-    const rate=.78;
-    const apply=()=>{ try{ bg.playbackRate=rate; }catch(e){} };
-    if(bg.readyState>=1) apply(); else bg.addEventListener('loadedmetadata', apply, {once:true});
   })();
 
   /* ── 5. directional scroll-reveal for .rv elements ── */
