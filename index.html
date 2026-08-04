@@ -740,17 +740,24 @@ window.PLUGICT = {
         <span class="hero-video-title">PlugICT — demo walkthrough</span>
       </div>
       <div class="hero-video-body demo-video-body" id="hero-video-body">
+        <div class="demo-video-toolbar">
+          <button class="demo-video-toggle" id="demo-video-toggle" type="button" aria-pressed="false" aria-label="Play both demo videos">
+            <span class="demo-video-toggle-icon" aria-hidden="true">▶</span>
+            <span class="demo-video-toggle-text">Play both</span>
+          </button>
+          <span class="demo-video-status" id="demo-video-status">Desktop + phone views together</span>
+        </div>
         <div class="demo-video-grid" aria-label="PlugICT demo walkthrough shown on desktop and phone">
           <figure class="demo-video-card desktop">
             <span class="demo-video-label">Desktop walkthrough</span>
-            <video controls playsinline preload="metadata" poster="assets/video/plugict-demo-desktop-poster.jpg?v=20260804" aria-label="PlugICT desktop walkthrough">
+            <video muted playsinline preload="metadata" poster="assets/video/plugict-demo-desktop-poster.jpg?v=20260804" aria-label="PlugICT desktop walkthrough">
               <source src="assets/video/plugict-demo-desktop.webm?v=20260804" type="video/webm">
               <source src="assets/video/plugict-demo-desktop.mp4?v=20260804" type="video/mp4">
             </video>
           </figure>
           <figure class="demo-video-card phone">
             <span class="demo-video-label">Phone view</span>
-            <video controls playsinline preload="metadata" poster="assets/video/plugict-demo-phone-poster.jpg?v=20260804" aria-label="PlugICT phone screen recording">
+            <video muted playsinline preload="metadata" poster="assets/video/plugict-demo-phone-poster.jpg?v=20260804" aria-label="PlugICT phone screen recording">
               <source src="assets/video/plugict-demo-phone.webm?v=20260804" type="video/webm">
               <source src="assets/video/plugict-demo-phone.mp4?v=20260804" type="video/mp4">
             </video>
@@ -1290,6 +1297,62 @@ window.PLUGICT = {
       f.allowFullscreen=true;
       body.appendChild(f);
     }
+  })();
+
+  /* ── split demo: one user gesture controls both video views ── */
+  (function(){
+    const root=document.querySelector('.demo-video-grid');
+    const button=document.getElementById('demo-video-toggle');
+    const icon=button&&button.querySelector('.demo-video-toggle-icon');
+    const text=button&&button.querySelector('.demo-video-toggle-text');
+    const status=document.getElementById('demo-video-status');
+    if(!root||!button||!icon||!text||!status) return;
+    const videos=[...root.querySelectorAll('video')];
+    if(videos.length<2) return;
+    let playing=false;
+    let syncing=false;
+    const master=videos[0];
+    const follower=videos[1];
+    const setState=(next,message)=>{
+      playing=next;
+      button.setAttribute('aria-pressed',String(next));
+      button.setAttribute('aria-label',next?'Pause both demo videos':'Play both demo videos');
+      icon.textContent=next?'❚❚':'▶';
+      text.textContent=next?'Pause both':'Play both';
+      status.textContent=message||(next?'Playing both views together':'Desktop + phone views together');
+    };
+    const stopAll=(message)=>{
+      videos.forEach(v=>v.pause());
+      setState(false,message);
+    };
+    button.addEventListener('click',async()=>{
+      if(playing){stopAll();return;}
+      videos.forEach(v=>{
+        v.muted=true;
+        if(v.ended)v.currentTime=0;
+      });
+      button.disabled=true;
+      try{
+        await Promise.all(videos.map(v=>Promise.resolve(v.play())));
+        setState(true);
+      }catch(err){
+        videos.forEach(v=>v.pause());
+        setState(false,'Tap Play both to start');
+      }finally{button.disabled=false;}
+    });
+    videos.forEach(v=>v.addEventListener('ended',()=>stopAll('Demo finished — tap Play both to replay')));
+    videos.forEach(v=>v.addEventListener('error',()=>{
+      if(playing)stopAll('A demo video could not be loaded');
+    }));
+    master.addEventListener('timeupdate',()=>{
+      if(!playing||syncing||follower.ended)return;
+      if(Math.abs(master.currentTime-follower.currentTime)>.25){
+        syncing=true;
+        follower.currentTime=master.currentTime;
+        syncing=false;
+      }
+    });
+    setState(false);
   })();
 
   /* ── payments: direct Stripe checkout, modal fallback, countdown, email capture (config in <head>) ── */

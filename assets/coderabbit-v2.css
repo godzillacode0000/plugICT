@@ -77,6 +77,12 @@ nav .btn.primary.small{border-radius:13px}
 
 /* Side-by-side real demo footage: desktop walkthrough left, phone view right. */
 .demo-video-body{aspect-ratio:auto}
+.demo-video-toolbar{display:flex;align-items:center;justify-content:center;gap:12px;padding:12px 14px;border-bottom:1px solid #2b2b34;background:#0d0d10}
+.demo-video-toggle{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border:1px solid rgba(255,107,26,.7);border-radius:999px;background:#ff6b1a;color:#120b07;font:700 11px var(--mono);letter-spacing:.05em;text-transform:uppercase;cursor:pointer;box-shadow:0 5px 18px rgba(255,107,26,.18);transition:transform .18s ease,background .18s ease,box-shadow .18s ease}
+.demo-video-toggle:hover{background:#ff7e38;box-shadow:0 7px 24px rgba(255,107,26,.28);transform:translateY(-1px)}
+.demo-video-toggle:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.demo-video-toggle-icon{font-size:12px;line-height:1}
+.demo-video-status{color:#83838f;font:500 10px var(--mono);letter-spacing:.04em}
 .demo-video-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(220px,.7fr);gap:14px;padding:14px;background:#08080b;align-items:stretch;min-height:clamp(360px,56vw,680px)}
 .demo-video-grid .demo-video-card video{position:static;inset:auto;display:block;width:100%;height:100%;border:0;background:#000}
 .demo-video-card{min-width:0;min-height:0;position:relative;overflow:hidden;border:1px solid #2b2b34;border-radius:12px;background:#000;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
