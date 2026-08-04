@@ -23,3 +23,9 @@ assets/video/hero-background-poster.jpg
 assets/video/hero-background.mp4
 assets/video/knowledge-graph-poster.jpg
 assets/video/plugict-knowledge-graph.mp4
+assets/video/plugict-demo-desktop-poster.jpg
+assets/video/plugict-demo-desktop.mp4
+assets/video/plugict-demo-desktop.webm
+assets/video/plugict-demo-phone-poster.jpg
+assets/video/plugict-demo-phone.mp4
+assets/video/plugict-demo-phone.webm
