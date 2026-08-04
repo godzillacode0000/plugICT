@@ -29,3 +29,5 @@ assets/video/plugict-demo-desktop.webm
 assets/video/plugict-demo-phone-poster.jpg
 assets/video/plugict-demo-phone.mp4
 assets/video/plugict-demo-phone.webm
+assets/video/plugict-demo-narrated-poster.jpg
+assets/video/plugict-demo-narrated.mp4
