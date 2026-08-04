@@ -100,6 +100,17 @@ window.PLUGICT = {
   .navlinks{display:flex; gap:28px; align-items:center; font-size:14px}
   .navlinks a{color:var(--ink-soft); text-decoration:none; transition:color .2s}
   .navlinks a:hover{color:var(--ink)}
+  .navlinks .affiliate-link{position:relative; display:inline-flex; align-items:center; justify-content:center;
+    padding:7px 14px; border:1px solid transparent; border-radius:999px; color:var(--ink)!important;
+    background:linear-gradient(rgba(160,124,254,.07),rgba(160,124,254,.07)) padding-box,
+      linear-gradient(115deg,#A07CFE 0%,#FE8FB5 38%,#FFBE7B 55%,#A07CFE 78%,#FE8FB5 100%) border-box;
+    background-size:100% 100%,220% 100%; background-position:0 0,0 0; isolation:isolate; overflow:hidden;
+    box-shadow:0 0 14px rgba(160,124,254,.20), inset 0 0 12px rgba(254,143,181,.08);
+    animation:affiliate-shine 3.8s linear infinite; transition:color .2s, background-color .2s, box-shadow .2s}
+  .navlinks .affiliate-link:hover{background-color:rgba(160,124,254,.15); box-shadow:0 0 20px rgba(160,124,254,.34),0 0 34px rgba(254,143,181,.12),inset 0 0 12px rgba(255,190,123,.10)}
+  @keyframes affiliate-shine{to{background-position:0 0,-220% 0}}
+  @media(prefers-reduced-motion:reduce){.navlinks .affiliate-link{animation:none}}
+
   .btn{display:inline-flex; align-items:center; gap:9px; text-decoration:none; cursor:pointer;
     font:500 15.5px var(--sans); padding:16px 30px; border-radius:16px; border:none;
     transition:transform .15s ease, background .2s;}
@@ -690,7 +701,7 @@ window.PLUGICT = {
       <div class="navlinks" id="navmenu">
         <a href="#agents">Your AI</a>
         <a href="#setup">How it works</a>
-        <a href="/affiliate">Affiliate</a>
+        <a class="affiliate-link" href="/affiliate">Affiliate</a>
         <div class="navlinks-cta">
           <a class="btn primary" href="#pricing" data-buy-link>Get PlugICT
             <svg class="btn-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7"/><path d="M9 7h8v8"/></svg>
