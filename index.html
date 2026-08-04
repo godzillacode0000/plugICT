@@ -36,9 +36,8 @@ window.PLUGICT = {
 
   supportEmail: 'plugICTsupport@agentmail.to',  // where buyers send payment proof / questions
 
-  /* Demo walkthrough video. Set a YouTube embed URL (e.g.
-     'https://www.youtube.com/embed/VIDEO_ID') and the demo section appears.
-     Empty = section stays hidden. No placeholder shown to visitors. */
+  /* Optional legacy single-video override. The default demo is the real
+     two-panel desktop + phone walkthrough in the page markup below. */
   demoVideoUrl: '',
 
   /* Real buyer quotes only — leave empty until you have them. Each item:
@@ -741,9 +740,21 @@ window.PLUGICT = {
         <span class="hero-video-title">PlugICT — demo walkthrough</span>
       </div>
       <div class="hero-video-body" id="hero-video-body">
-        <div class="hero-video-placeholder" id="hero-video-placeholder">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M10 8.5v7l6-3.5z" fill="currentColor" stroke="none"/></svg>
-          <p>Demo video coming soon — a real walkthrough of how PlugICT plugs into your AI and searches the vault.</p>
+        <div class="demo-video-grid" aria-label="PlugICT demo walkthrough shown on desktop and phone">
+          <figure class="demo-video-card desktop">
+            <span class="demo-video-label">Desktop walkthrough</span>
+            <video controls playsinline preload="metadata" poster="assets/video/plugict-demo-desktop-poster.jpg?v=20260804" aria-label="PlugICT desktop walkthrough">
+              <source src="assets/video/plugict-demo-desktop.webm?v=20260804" type="video/webm">
+              <source src="assets/video/plugict-demo-desktop.mp4?v=20260804" type="video/mp4">
+            </video>
+          </figure>
+          <figure class="demo-video-card phone">
+            <span class="demo-video-label">Phone view</span>
+            <video controls playsinline preload="metadata" poster="assets/video/plugict-demo-phone-poster.jpg?v=20260804" aria-label="PlugICT phone screen recording">
+              <source src="assets/video/plugict-demo-phone.webm?v=20260804" type="video/webm">
+              <source src="assets/video/plugict-demo-phone.mp4?v=20260804" type="video/mp4">
+            </video>
+          </figure>
         </div>
       </div>
     </div>
@@ -1260,11 +1271,11 @@ window.PLUGICT = {
     });
   });
 
-  /* ── hero demo video: embeds once PLUGICT.demoVideoUrl is set, else shows an honest placeholder ── */
+  /* ── optional legacy single-video override; leave the static split demo intact ── */
   (function(){
     const cfg=window.PLUGICT||{};
     const body=document.getElementById('hero-video-body');
-    if(!body||!cfg.demoVideoUrl) return;
+    if(!body||body.querySelector('.demo-video-grid')||!cfg.demoVideoUrl) return;
     const url=cfg.demoVideoUrl;
     const isFile=/\.(mp4|webm|ogv)(\?.*)?$/i.test(url);
     body.innerHTML='';
