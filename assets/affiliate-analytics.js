@@ -4,14 +4,33 @@
 (function () {
   'use strict';
 
-  var api = (window.PLUGICT_AFFILIATE_API || '').replace(/\/$/, '');
-  if (!api) return;
-
   var params = new URLSearchParams(window.location.search);
   var ref = (params.get('ref') || '').trim().toLowerCase();
+  var cleanUrl = '';
+  if (params.has('ref')) {
+    params.delete('ref');
+    var query = params.toString();
+    cleanUrl = (window.location.pathname || '/')
+      + (query ? '?' + query : '')
+      + (window.location.hash || '');
+  }
+  function cleanReferralUrl() {
+    if (!cleanUrl) return;
+    try { window.history.replaceState(window.history.state, '', cleanUrl); } catch (_) {}
+  }
+
+  var api = (window.PLUGICT_AFFILIATE_API || '').replace(/\/$/, '');
+  if (!api) {
+    cleanReferralUrl();
+    return;
+  }
+
   /* A stored referral keeps checkout attribution alive, but must not create
      another analytics click on later visits. */
-  if (!/^[a-z0-9_-]{1,64}$/.test(ref)) return;
+  if (!/^[a-z0-9_-]{1,64}$/.test(ref)) {
+    cleanReferralUrl();
+    return;
+  }
 
   function persistentId(key) {
     try {
@@ -49,4 +68,5 @@
       credentials: 'omit'
     }).catch(function () {});
   } catch (_) {}
+  cleanReferralUrl();
 }());

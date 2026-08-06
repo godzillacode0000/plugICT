@@ -2,21 +2,33 @@
    Original CSS implementation: preserves the existing checkout and product logic. */
 
 :root{
-  --paper:#070709;
-  --paper-alt:#0d0d10;
-  --card:#121216;
-  --dark:#050506;
-  --dark-line:#282832;
-  --ink:#f7f7f8;
-  --ink-soft:#aaaab4;
-  --ink-mut:#92929d;
-  --line:#282832;
+  /* Warm neutrals: the greys carry a little of the accent's temperature, which
+     is what stops orange reading as a sticker on a cold grey page. */
+  --paper:#0a0908;
+  --paper-alt:#100e0c;
+  --card:#161412;
+  --dark:#070605;
+  --dark-line:#2a2622;
+  --ink:#f5efe6;
+  --ink-soft:#b0a99f;
+  --ink-mut:#8d867d;
+  --line:#2a2622;
+  /* Second accent. Orange is saturated and means act; gold is desaturated and
+     means this is worth money. They sit beside each other on the wheel, so they
+     read as one family rather than two competing signals. */
+  --gold:#e0c08a;
+  --gold-soft:#c8a86e;
+  --gold-dim:rgba(224,192,138,.4);
   --line-soft:rgba(255,255,255,.08);
-  --terracotta:#22c55e;
-  --terracotta-bright:#4ade80;
-  --terracotta-deep:#16a34a;
-  --ember-glow:rgba(34,197,94,.24);
-  --spot:rgba(34,197,94,.06);
+  --terracotta:#ff6b1a;
+  --terracotta-bright:#ff8a3d;
+  --terracotta-deep:#d95410;
+  --ember-glow:rgba(255,107,26,.24);
+  --spot:rgba(255,107,26,.06);
+  /* Declared here, not in a page's inline block, so every page resolves it.
+     The stack is literal rather than var(--sans): that token is defined
+     per-page, and an undefined reference invalidates the whole rule. */
+  --display:'Anton','Arial Narrow',Impact,'Helvetica Neue',sans-serif;
   --maxw:1200px;
 }
 
@@ -28,23 +40,24 @@ nav{top:14px;width:calc(100% - 40px);max-width:1280px;margin:14px auto 0;border-
 nav .wrap{height:68px;max-width:100%}
 .brand{font-size:20px;letter-spacing:-.025em}
 .navlinks{gap:26px;font-size:14px}
-.btn{border-radius:4px}
+.btn{border-radius:10px}
 .btn.primary{background:var(--terracotta);color:#041006;box-shadow:none}
-.btn.primary:hover{background:var(--terracotta-bright);box-shadow:0 0 32px rgba(34,197,94,.18)}
+.btn.primary:hover{background:var(--terracotta-bright);box-shadow:0 0 32px rgba(255,107,26,.18)}
 .btn.ghost{border-color:var(--line);color:var(--ink-soft);background:rgba(255,255,255,.025)}
 .btn.ghost:hover{background:#151519;border-color:#4b4b58;color:var(--ink)}
 .hero .cta .btn{border-radius:999px}
+/* the nav CTA takes the same corner as the hero's Get PlugICT button, rather
+   than the squared-off 4px every other .btn gets */
+nav .btn.primary.small{border-radius:13px}
 
 /* Hero: centered promise followed by a large product stage, matching the reference rhythm. */
 .hero{min-height:auto;border-bottom:1px solid var(--line-soft)}
-.hero::before{top:-260px;right:50%;transform:translateX(50%);width:900px;height:620px;background:radial-gradient(circle,rgba(34,197,94,.12),transparent 64%)}
+.hero::before{top:-260px;right:50%;transform:translateX(50%);width:900px;height:620px;background:radial-gradient(circle,rgba(255,107,26,.12),transparent 64%)}
 .hero::after{opacity:.16;background:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:64px 64px;mask-image:linear-gradient(#000,transparent 70%)}
 #hero-canvas{opacity:.1}
 .hero .wrap.hero-stack{display:block;max-width:1280px;padding:86px 28px 0}
 .hero-copy{max-width:880px;margin:0 auto;text-align:center;position:relative;z-index:2}
-.hero-copy .eyebrow{display:inline-flex;align-items:center;gap:5px;border:1px solid rgba(34,197,94,.28);background:rgba(34,197,94,.07);padding:3px 8px;border-radius:999px;letter-spacing:.1em}
-.hero-copy .eyebrow::before{content:"";width:4px;height:4px;border-radius:50%;background:var(--terracotta-bright);box-shadow:0 0 8px rgba(74,222,128,.8)}
-.hero h1{font:600 clamp(48px,6.2vw,82px)/.98 var(--sans);letter-spacing:-.055em;max-width:980px;margin:28px auto 0}
+.hero h1{font:600 clamp(48px,6.2vw,82px)/.98 var(--sans);letter-spacing:-.055em;max-width:980px;margin:0 auto}
 .hero h1 .hero-line,.hero h1 em{display:block}
 .hero h1 em{color:var(--terracotta-bright)}
 .hero .sub{font-size:clamp(17px,1.7vw,22px);line-height:1.52;max-width:720px;margin:24px auto 0;color:#b9b9c2}
@@ -52,55 +65,208 @@ nav .wrap{height:68px;max-width:100%}
 .hero .cta .btn{padding:14px 24px;font-size:15px}
 .hero .fine{margin-top:16px;font-size:11px;text-transform:uppercase;letter-spacing:.08em}
 
-.hero-video{position:relative;margin:72px auto 0;max-width:1200px;border:1px solid #31313b;border-bottom:none;border-radius:10px 10px 0 0;background:#141419;box-shadow:0 -20px 90px rgba(0,0,0,.48),0 0 80px rgba(34,197,94,.07);overflow:hidden;text-align:left}
-.hero-video-frame{height:50px;display:flex;align-items:center;gap:8px;padding:0 16px;border-bottom:1px solid #2b2b34;background:#0d0d10;color:#83838f;font:500 11px var(--mono);letter-spacing:.02em}
-.hero-video-dot{width:8px;height:8px;border-radius:50%;background:#3a3a44}
-.hero-video-title{margin-left:8px;color:#c7c7cf}
-.hero-video-body{position:relative;aspect-ratio:16/9;background:#0b0b0e;display:flex;align-items:center;justify-content:center}
+.hero-video{position:relative;margin:72px auto 0;max-width:1200px;background:transparent;box-shadow:none;overflow:visible;text-align:left}
+.hero-video-body{position:relative;aspect-ratio:16/9;background:transparent;display:flex;align-items:center;justify-content:center}
 .hero-video-body iframe,.hero-video-body video{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
 .hero-video-placeholder{max-width:460px;padding:32px;text-align:center;color:#8b8b96}
 .hero-video-placeholder svg{width:40px;height:40px;margin:0 auto 14px;color:#4b4b58}
 .hero-video-placeholder p{font-size:13px;line-height:1.6}
 
+/* Single pre-composited narrated demo video. */
+.demo-video-body{aspect-ratio:auto}
+.demo-video-single{width:100%;padding:0;border:2px solid rgba(255,255,255,.96);border-radius:28px;overflow:hidden;background:#000;box-shadow:0 12px 42px rgba(0,0,0,.28)}
+.demo-video-single video{position:static;inset:auto;display:block;width:100%;height:auto;aspect-ratio:16/9;object-fit:contain;border:0;border-radius:inherit;background:#000}
+.demo-video-toolbar{display:flex;align-items:center;justify-content:center;gap:12px;padding:12px 14px;border-bottom:1px solid #2b2b34;background:#0d0d10}
+.demo-video-toggle{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border:1px solid rgba(255,107,26,.7);border-radius:999px;background:#ff6b1a;color:#120b07;font:700 11px var(--mono);letter-spacing:.05em;text-transform:uppercase;cursor:pointer;box-shadow:0 5px 18px rgba(255,107,26,.18);transition:transform .18s ease,background .18s ease,box-shadow .18s ease}
+.demo-video-toggle:hover{background:#ff7e38;box-shadow:0 7px 24px rgba(255,107,26,.28);transform:translateY(-1px)}
+.demo-video-toggle:focus-visible{outline:2px solid #fff;outline-offset:3px}
+.demo-video-toggle-icon{font-size:12px;line-height:1}
+.demo-video-status{color:#83838f;font:500 10px var(--mono);letter-spacing:.04em}
+.demo-video-grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(220px,.7fr);gap:14px;padding:14px;background:#08080b;align-items:stretch;min-height:clamp(360px,56vw,680px)}
+.demo-video-grid .demo-video-card video{position:static;inset:auto;display:block;width:100%;height:100%;border:0;background:#000}
+.demo-video-card{min-width:0;min-height:0;position:relative;overflow:hidden;border:1px solid #2b2b34;border-radius:12px;background:#000;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+.demo-video-card video{display:block;width:100%;height:100%;background:#000}
+.demo-video-card.desktop video{object-fit:cover}
+.demo-video-card.phone video{object-fit:contain}
+.demo-video-card .demo-video-label{position:absolute;left:12px;top:12px;z-index:1;padding:5px 8px;border:1px solid rgba(255,255,255,.12);border-radius:999px;background:rgba(0,0,0,.64);color:rgba(245,239,230,.72);font:500 9px var(--mono);letter-spacing:.08em;text-transform:uppercase;pointer-events:none}
+@media(max-width:700px){
+  .demo-video-grid{grid-template-columns:1fr;min-height:0;padding:10px}
+  .demo-video-card.desktop video{height:auto;aspect-ratio:730/650;object-fit:cover}
+  .demo-video-card.phone video{height:auto;aspect-ratio:744/1280;object-fit:contain}
+}
+
 /* Proof band replaces a generic stats line with a confidence-building section. */
 .proof-band{padding:68px 28px 72px;background:var(--paper);border-bottom:1px solid var(--line-soft)}
 .proof-wrap{max-width:1200px;margin:0 auto;text-align:center}
 .proof-wrap h2{font:600 clamp(28px,3.3vw,46px)/1.08 var(--sans);letter-spacing:-.035em;max-width:760px;margin:0 auto}
-.proof-grid{display:grid;grid-template-columns:repeat(4,1fr);margin-top:42px;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:var(--card)}
+.proof-grid{display:grid;grid-template-columns:repeat(4,1fr);margin-top:42px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--card)}
 .proof-item{min-height:128px;padding:25px 18px;display:flex;flex-direction:column;justify-content:center;border-right:1px solid var(--line)}
 .proof-item:last-child{border-right:0}
 .proof-value{font:600 clamp(24px,3vw,40px)/1 var(--sans);letter-spacing:-.04em;color:var(--ink)}
 .proof-value.green{color:var(--terracotta-bright)}
 .proof-label{font:500 11px var(--mono);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-mut);margin-top:10px}
 .integration-rail{display:flex;justify-content:center;align-items:center;gap:9px;flex-wrap:wrap;margin-top:28px;color:#92929d;font:500 10px var(--mono);letter-spacing:.06em;text-transform:uppercase}
-.integration-rail span{border:1px solid #292932;background:#0e0e12;border-radius:4px;padding:7px 11px;color:#9a9aa5}
+.integration-rail span{border:1px solid var(--line);background:var(--paper-alt);border-radius:999px;padding:7px 11px;color:#9a9aa5}
 
 /* Narrative sections. */
 section{padding:104px 28px}
 section h2{font:600 clamp(34px,4.6vw,60px)/1.03 var(--sans);letter-spacing:-.045em}
 .eyebrow{font-weight:600;color:var(--terracotta-bright)}
-.sub{color:#a2a2ad}
+.sub{color:var(--ink-soft)}
+
+/* ── Gold tier ─────────────────────────────────────────────────────────────
+   Section labels, the emphasised clause of a heading, and anything to do with
+   price. Orange is left for things you click. */
+.eyebrow{color:var(--gold)}
+section h2 em{color:var(--gold)}
+.hero h1 em{color:var(--gold)}
+.rb-eyebrow,.panel.answer .panel-label{color:var(--gold)}
+.price,.price-value,.pricing-price{color:var(--gold)}
+
 #problem{background:var(--paper)}
 #problem .inner>h2{max-width:870px}
 #problem .inner>.sub{max-width:680px}
 .story{gap:16px;margin-top:48px}
-.panel{border-radius:6px;min-height:330px;padding:38px;background:#111115}
-.panel.answer{background:#0a0a0c;border-color:rgba(34,197,94,.42)}
+.panel{border-radius:16px;min-height:330px;padding:38px;background:#111115}
+.panel.answer{background:#0a0a0c;border-color:rgba(255,107,26,.42)}
 .panel .dlg{font-size:15px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,.055)}
 .panel .dlg:last-child{border-bottom:0}
 
-/* Founder section keeps the human proof but tightens the wall of copy. */
-.about-sec{background:#0d0d10;border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft)}
-.about-wrap{gap:72px;margin-top:0}
-.about-text h2{margin-top:16px}
-.about-sub{max-width:620px;color:#aaaab4}
-.about-name{font-family:var(--sans);font-style:normal;font-weight:600}
-.about-card{border-radius:6px;background:#111115;border-color:#30303a;box-shadow:none;text-align:left}
-.about-card-icon{margin:0 0 28px;border-radius:6px}
-.about-card-stat{display:grid;grid-template-columns:84px 1fr;align-items:end;padding:16px 0;margin:0;border-bottom:1px solid #292932}
-.about-card-num{font:600 38px/1 var(--sans)}
-.about-card-label{margin:0 0 3px;font-size:10px;text-transform:uppercase}
-.about-card-footer{font-family:var(--sans);font-style:normal}
+/* ── The problem: cost of the hunt, beside the vault's actual answer ──────────
+   Two panels that must read as a contrast, so the left one takes a red accent
+   — the only place on the page that leaves the green system, deliberately. */
+#problem{position:relative;overflow:hidden}
+/* faint circuit trace behind the top-right corner; decorative only */
+#problem::after{content:"";position:absolute;top:0;right:0;width:46%;height:62%;
+  pointer-events:none;opacity:.5;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240' fill='none' stroke='%23ff6b1a' stroke-opacity='.16' stroke-width='1'><path d='M20 0v40h44v52h56M96 0v28h40v40h64M164 0v20h28M0 60h32v44h40v56M0 128h48v52h72v60M200 40v40h40M148 92h52v56h40M72 160h56v40h56'/><circle cx='64' cy='92' r='3'/><circle cx='120' cy='92' r='3'/><circle cx='200' cy='68' r='3'/><circle cx='136' cy='68' r='3'/><circle cx='72' cy='104' r='3'/><circle cx='120' cy='180' r='3'/><circle cx='200' cy='148' r='3'/><circle cx='128' cy='200' r='3'/></svg>");
+  -webkit-mask-image:radial-gradient(120% 100% at 100% 0,#000 25%,transparent 72%);
+          mask-image:radial-gradient(120% 100% at 100% 0,#000 25%,transparent 72%)}
+#problem .inner{position:relative;z-index:1}
+.story{grid-template-columns:1fr 1fr;gap:20px;align-items:start;margin-top:52px}
+.story .panel{min-height:0;min-width:0;padding:30px 28px 26px;display:flex;flex-direction:column}
+/* the table below is allowed to scroll inside itself; without these it instead
+   pushes the whole panel past the edge of its grid column */
+.proof,.proof-msg,.proof-tablewrap{min-width:0}
+.panel-label{position:static;margin-bottom:20px;font:600 10.5px var(--mono);letter-spacing:.14em;
+  text-transform:uppercase;color:var(--ink-mut)}
+.panel-title{font:600 27px/1.15 var(--sans);letter-spacing:-.03em;color:var(--ink)}
+
+/* left panel */
+.panel.hunt{background:#0d0d10;border-color:#2a1c1e}
+.panel.hunt .panel-label{color:#f0575a}
+.hunt-list{list-style:none;margin:26px 0 0;padding:0;display:flex;flex-direction:column;gap:22px}
+.hunt-list li{position:relative;display:flex;align-items:center;gap:18px}
+/* dashed run between the markers, drawn from each row down to the next */
+.hunt-list li:not(:last-child)::before{content:"";position:absolute;left:23px;top:48px;bottom:-22px;
+  border-left:1px dashed rgba(240,87,90,.42)}
+.hunt-ico{flex:none;display:grid;place-items:center;width:46px;height:46px;border-radius:50%;
+  border:1px solid rgba(240,87,90,.42);background:rgba(240,87,90,.07);color:#f0575a}
+.hunt-ico svg{width:22px;height:22px}
+.hunt-text{display:flex;flex-direction:column;gap:3px;min-width:0}
+.hunt-q{font-size:14.5px;color:var(--ink-soft)}
+.hunt-text b{font:600 19px/1.2 var(--sans);letter-spacing:-.02em;color:var(--ink)}
+.hunt-end{margin-top:auto;padding-top:26px;display:flex;align-items:center;gap:12px}
+.hunt-end::before,.hunt-end::after{content:"";flex:1;border-top:1px dashed rgba(240,87,90,.34)}
+.hunt-x{flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:50%;
+  border:1px solid rgba(240,87,90,.5);color:#f0575a}
+.hunt-x svg{width:18px;height:18px}
+
+/* right panel */
+.panel.answer{background:#050806;border-color:rgba(255,107,26,.55);
+  box-shadow:0 0 0 1px rgba(255,107,26,.12),0 0 46px -12px rgba(255,107,26,.42),inset 0 0 42px -22px rgba(255,107,26,.5)}
+.panel.answer .panel-label{color:var(--terracotta-bright)}
+.ask{border:1px solid rgba(255,107,26,.4);border-radius:12px;overflow:hidden;background:rgba(6,20,10,.6)}
+.ask-bar{display:flex;align-items:center;gap:10px;padding:12px 14px;
+  border-bottom:1px solid rgba(255,107,26,.28);color:var(--terracotta-bright)}
+.ask-ico svg{width:17px;height:17px;display:block}
+.ask-app{font:600 15px var(--sans);color:var(--ink)}
+.ask-q{margin:0;padding:13px 14px;font-size:15px;line-height:1.5;color:rgba(249,250,251,.9)}
+.proof{margin-top:16px;border:1px solid rgba(255,107,26,.3);border-radius:12px;padding:18px 16px;
+  background:rgba(6,16,9,.55)}
+.proof-ok{display:flex;align-items:center;gap:9px;font:600 15px var(--sans);color:var(--terracotta-bright)}
+.proof-tick{display:grid;place-items:center;width:21px;height:21px;flex:none;border-radius:50%;
+  border:1px solid rgba(255,138,61,.6)}
+.proof-tick svg{width:12px;height:12px}
+/* The answer is styled as a captured message — light card, serif headings,
+   quoted blocks — so it reads as something the product actually sent, while
+   staying real text that stays sharp and reflows on a phone. */
+/* The reply is the real capture, fitted into a scroll box: the document runs
+   about 5,600px tall, so it is given a window rather than allowed to swallow
+   the section. width:100% + height:auto against the intrinsic size means it is
+   scaled, never stretched. */
+.proof-msg{position:relative;margin-top:14px;border-radius:12px;overflow:hidden;
+  background:#f7f8fa;box-shadow:0 10px 30px -14px rgba(0,0,0,.75)}
+.proof-scroll{max-height:460px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.proof-scroll img{display:block;width:100%;height:auto}
+.proof-more{position:absolute;left:0;right:0;bottom:0;padding:16px 0 7px;text-align:center;
+  font:600 9.5px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:#69737c;
+  pointer-events:none;background:linear-gradient(transparent,#f7f8fa 62%)}
+
+/* the panel plays itself out once seen */
+html.js .panel.answer .proof-ok,
+html.js .panel.answer .proof-msg{opacity:0}
+.panel.answer.typed .proof-ok{animation:pf-rise .45s ease .05s forwards}
+.panel.answer.typed .proof-msg{animation:pf-emerge 1.5s cubic-bezier(.22,1,.36,1) .3s forwards}
+@keyframes pf-rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@keyframes pf-emerge{from{opacity:0;clip-path:inset(0 0 100% 0)}to{opacity:1;clip-path:inset(0 0 0 0)}}
+.panel.answer.typing .ask-q::after{content:"";display:inline-block;width:2px;height:1em;
+  margin-left:2px;vertical-align:-2px;background:var(--terracotta);animation:pf-caret .9s steps(1) infinite}
+@keyframes pf-caret{50%{opacity:0}}
+.ask-q{min-height:1.5em}
+
+/* the hunt markers keep ticking, so the cost side of the section is not static */
+@media(prefers-reduced-motion:no-preference){
+  .hunt-list li:nth-child(1) .hunt-ico svg path{transform-origin:12px 12px;
+    animation:pf-hand 6s steps(12,end) infinite}
+  .hunt-list li:nth-child(2) .hunt-ico{animation:pf-pulse 2.6s ease-in-out infinite}
+  .hunt-list li:nth-child(3) .hunt-ico{animation:pf-nudge 4s ease-in-out infinite}
+}
+@keyframes pf-hand{to{transform:rotate(360deg)}}
+@keyframes pf-pulse{0%,100%{box-shadow:0 0 0 0 rgba(240,87,90,0)}
+  45%{box-shadow:0 0 0 7px rgba(240,87,90,.11)}}
+@keyframes pf-nudge{0%,88%,100%{transform:none}92%{transform:translateY(-3px)}96%{transform:translateY(0)}}
+
+/* results bar */
+.results-bar{margin-top:20px;display:flex;align-items:center;gap:20px;padding:24px 28px;
+  border:1px solid #232a25;border-radius:14px;background:#0b0f0c;position:relative;overflow:hidden}
+.rb-tick{flex:none;display:grid;place-items:center;width:52px;height:52px;border-radius:50%;
+  border:1px solid rgba(255,107,26,.5);background:rgba(255,107,26,.08);color:var(--terracotta-bright);
+  box-shadow:0 0 26px -8px rgba(255,107,26,.6)}
+.rb-tick svg{width:26px;height:26px}
+.rb-text{min-width:0;flex:1}
+.rb-eyebrow{display:block;font:600 10.5px var(--mono);letter-spacing:.14em;text-transform:uppercase;
+  color:var(--terracotta-bright)}
+.rb-text h3{margin:6px 0 0;font:600 27px/1.15 var(--sans);letter-spacing:-.03em;color:var(--ink)}
+.rb-text p{margin:5px 0 0;font-size:14.5px;color:var(--ink-soft)}
+.rb-spark{flex:none;color:rgba(255,138,61,.7)}
+.rb-spark svg{width:44px;height:44px;filter:drop-shadow(0 0 14px rgba(255,107,26,.55))}
+
+@media(max-width:900px){
+  .story{grid-template-columns:1fr;gap:14px;margin-top:38px}
+  .story .panel{padding:24px 18px 20px}
+  .panel-title,.rb-text h3{font-size:23px}
+  .hunt-list{gap:18px}
+  .hunt-list li{gap:14px}
+  .hunt-ico{width:40px;height:40px}
+  .hunt-ico svg{width:19px;height:19px}
+  .hunt-list li:not(:last-child)::before{left:20px;top:42px;bottom:-18px}
+  .hunt-text b{font-size:17px}
+  .proof{padding:15px 13px}
+  .proof-title{font-size:15px}
+  .proof-list li,.proof-table{font-size:11.5px}
+  .proof-table th,.proof-table td{padding:8px 7px}
+  .results-bar{margin-top:14px;padding:20px 18px;gap:14px;align-items:flex-start}
+  .rb-tick{width:42px;height:42px}
+  .rb-tick svg{width:21px;height:21px}
+  .rb-spark svg{width:30px;height:30px}
+  #problem::after{width:70%;height:40%;opacity:.32}
+}
+@media(max-width:430px){
+  .rb-spark{display:none}
+  .proof-src,.proof-quote{font-size:12.5px}
+}
+
 
 /* Bento capabilities: three compact proof cards, then deeper product context. */
 #capabilities{background:var(--paper)}
@@ -118,14 +284,24 @@ section h2{font:600 clamp(34px,4.6vw,60px)/1.03 var(--sans);letter-spacing:-.045
 .cap-visual{grid-column:auto;max-width:none;width:100%;margin-top:auto;padding-top:24px}
 .cap-visual.cv-graph{margin-top:32px;padding-top:0}
 .cv-term,.cv-cite,.cv-license{background:#09090b;border-color:#30303a}
-.cv-badges span{background:#0b0b0e;border-color:#30303a;border-radius:4px}
-.cv-graph{background:radial-gradient(ellipse 54% 46% at 50% 49%,rgba(34,197,94,.13),transparent 64%),linear-gradient(180deg,#121217,#09090c 58%,#060608)!important;border-color:#30303a!important}
+.cv-badges span{background:var(--paper-alt);border-color:var(--line);border-radius:999px}
+.cv-graph{border-radius:14px;background:radial-gradient(ellipse 54% 46% at 50% 49%,rgba(255,107,26,.13),transparent 64%),linear-gradient(180deg,#121217,#09090c 58%,#060608)!important;border-color:#30303a!important}
 .kg-node{background:linear-gradient(180deg,rgba(28,28,34,.97),rgba(11,11,14,.98))!important;border-color:#3a3a45!important;color:#e5e5e9!important}
-.kg-node.primary{border-color:rgba(34,197,94,.48)!important}
-.kg-node.primary[data-id="ob"]{border-color:rgba(74,222,128,.82)!important;color:#f7f7f8!important}
+.kg-node.primary{border-color:rgba(255,107,26,.48)!important}
+.kg-node.primary[data-id="ob"]{border-color:rgba(255,138,61,.82)!important;color:#f7f7f8!important}
 .kg-node .label{color:#f1f1f3!important;font-family:var(--sans)!important}
-.kg-pulse{fill:#4ade80}
-.kg-caption{background:#101014;border-color:rgba(34,197,94,.25)}
+.kg-pulse{fill:#ff8a3d}
+.kg-caption{background:#101014;border-color:rgba(255,107,26,.25)}
+
+/* The knowledge-graph card is visual-first — a compact label, then the film.
+   With no body copy left, `.cap-visual`'s auto top margin and the .cv-graph
+   32px offset would open a gap exactly where the text used to be, so both
+   get pinned shut. */
+.kg-card{padding:22px}
+.kg-label{display:flex;flex-direction:column;gap:5px;margin-bottom:16px}
+.kg-label .eyebrow{font-size:10px;letter-spacing:.12em}
+.kg-label p{margin:0;font-size:13px;line-height:1.4;color:var(--ink-mut)}
+.kg-card .cap-visual.cv-graph{margin-top:0;padding-top:0}
 
 /* Buyer-owned AI section mirrors CodeRabbit's workflow/flexibility chapters. */
 .agent-section{background:#0d0d10;border-top:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft)}
@@ -133,19 +309,21 @@ section h2{font:600 clamp(34px,4.6vw,60px)/1.03 var(--sans);letter-spacing:-.045
 .agent-head h2{max-width:620px}
 .agent-head .sub{margin:0;max-width:560px}
 .agent-grid{display:grid;grid-template-columns:360px minmax(0,1fr);gap:14px;margin-top:50px;align-items:start}
-.agent-picker,.agent-flow{border:1px solid #2b2b34;background:#111115;border-radius:6px;padding:20px}
-.agent-option{display:flex;align-items:center;gap:14px;padding:16px;border:1px solid rgba(34,197,94,.28);background:rgba(34,197,94,.05);border-radius:6px;color:#f2f2f4;font-size:14px}
+.agent-picker,.agent-flow{border:1px solid #2b2b34;background:#111115;border-radius:16px;padding:20px}
+.stage-label{font:400 19px/1.1 var(--display);letter-spacing:0;color:var(--ink);margin-bottom:14px}
+.agent-option{display:flex;align-items:center;gap:18px;padding:20px;border:1px solid rgba(255,107,26,.28);background:rgba(255,107,26,.05);border-radius:12px;color:#f2f2f4;font-size:14px}
 .agent-option+.agent-option{margin-top:8px}
-.agent-logo{position:relative;display:grid;place-items:center;width:48px;height:48px;border:1px solid rgba(34,197,94,.4);border-radius:6px;background:#0a0a0c;overflow:hidden;flex:none}
+.agent-logo{position:relative;display:grid;place-items:center;width:84px;height:84px;border:1px solid rgba(255,107,26,.4);border-radius:16px;background:#0a0a0c;overflow:hidden;flex:none}
 .agent-logo img{width:100%;height:100%;object-fit:cover;display:block}
 .agent-logo-fallback{display:none;font:600 12px var(--mono);color:var(--terracotta-bright)}
-.agent-option small{display:block;color:#92929d;font-size:12px;margin-top:3px}
+.agent-option{font-size:19px}
+.agent-option small{display:block;color:#92929d;font-size:13px;margin-top:5px}
 .agent-flow{padding:0;overflow:hidden;background:#09090c}
 .flow-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid #2b2b34;font:500 10px var(--mono);color:#92929d}
 .flow-head b{color:var(--terracotta-bright);font-weight:500}
 .flow-body{padding:28px}
 .flow-lane{display:grid;grid-template-columns:1fr 44px 1fr 44px 1fr;align-items:center;gap:8px}
-.flow-node{min-height:145px;border:1px solid #30303a;border-radius:5px;background:#141419;padding:18px}
+.flow-node{min-height:145px;border:1px solid #30303a;border-radius:12px;background:#141419;padding:18px}
 .flow-node .node-kicker{font:600 10px var(--mono);letter-spacing:.1em;color:#92929d;text-transform:uppercase}
 .flow-node h3{font:600 17px var(--sans);margin-top:10px}
 .flow-node p{font-size:12px;color:#858590;line-height:1.55;margin-top:7px}
@@ -162,14 +340,14 @@ section h2{font:600 clamp(34px,4.6vw,60px)/1.03 var(--sans);letter-spacing:-.045
 .priv-item b{font-size:16px}
 #setup{background:#0d0d10;border-top:1px solid var(--line-soft)}
 .moves{gap:14px}
-.move-card{background:#111115;border-color:#2b2b34;border-radius:6px;min-height:280px}
+.move-card{background:#111115;border-color:#2b2b34;border-radius:16px;min-height:280px}
 .move-card .num{font-size:10px;letter-spacing:.12em}
 .move-card h3{font-size:21px;letter-spacing:-.02em;margin-top:18px}
 .move-card p{font-size:14px}
 
 #pricing{background:var(--paper)}
 .price-card{background:#111115;border-color:#34343e;box-shadow:none}
-.price-card:hover{box-shadow:0 0 45px rgba(34,197,94,.08)}
+.price-card:hover{box-shadow:0 0 45px rgba(255,107,26,.08)}
 .price-card .now{font-family:var(--sans);font-weight:650;letter-spacing:-.055em}
 #faq{background:#0d0d10;border-top:1px solid var(--line-soft)}
 .faq{background:#111115;border-color:#2b2b34}
@@ -208,7 +386,6 @@ footer .disc{color:#92929d}
   .hero h1{font-size:clamp(38px,11.4vw,46px);line-height:1.01;letter-spacing:-.05em}
   .hero h1 .hero-line{white-space:nowrap}
   .hero h1 em{max-width:350px;margin:0 auto}
-  .hero-copy .eyebrow{max-width:100%;font-size:6.5px;letter-spacing:.08em;white-space:normal;justify-content:center}
   .hero .sub{font-size:16px;line-height:1.55}
   .hero .cta{flex-direction:column;align-items:stretch;gap:9px}
   .hero .cta .btn{width:100%;flex:auto}
@@ -225,11 +402,21 @@ footer .disc{color:#92929d}
   section{padding:80px 18px}
   section h2{font-size:clamp(34px,10vw,48px)}
   .panel{padding:25px;min-height:0}
-  .about-wrap{gap:42px}
   .cap-list{display:block}
   .cap-row{margin-bottom:12px;min-height:0}
   .cap-row:nth-child(4){padding:20px 12px}
   .cv-graph{min-height:370px}
+  /* On mobile the film is the point of this section, so the card bleeds past
+     the section gutter to reach ~93% of the viewport. The bleed stays inside
+     the viewport width, so nothing scrolls sideways. */
+  #capabilities .kg-card{margin-left:-10px;margin-right:-10px;padding:14px 6px 6px}
+  .kg-label{margin-bottom:11px;padding:0 8px}
+  .kg-label p{font-size:12px}
+  /* 4/3 with the existing object-fit:cover crops the source to its middle 75%
+     and buys a third more height. Checked against the film: the graph occupies
+     22-80% of frame width and the closing wordmark 27-72%, both well inside the
+     12.5-87.5% the crop keeps, so nothing gets clipped. */
+  .cv-video .kg-video{aspect-ratio:4/3}
   .agent-grid{margin-top:34px}
   .agent-picker{padding:12px}
   .flow-body{padding:18px}
@@ -287,39 +474,76 @@ nav .wrap{height:56px;background:none;border:none;box-shadow:none;border-radius:
    sitting underneath — reuses the concept ticker's marquee approach. */
 .assets-band{padding:14px 12px 0;background:var(--paper)}
 .assets-band .inner{max-width:1200px;margin:0 auto}
-.asset-card{position:relative;overflow:hidden;border-radius:20px;
-  background:#111115;border:1px solid #292932;padding:30px 0 8px}
-.asset-rails{display:flex;flex-direction:column;gap:14px;
+.asset-card{position:relative;overflow:hidden;border-radius:24px;
+  background:#111115;border:1px solid #292932;padding:46px 0 12px}
+.asset-rails{display:flex;flex-direction:column;gap:20px;
   -webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);
   mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
-.asset-row{overflow:hidden;white-space:nowrap}
+/* same shadow-slicing problem as .tk-row; .asset-card does the clipping */
+.asset-row{overflow:visible;white-space:nowrap}
 .asset-track{display:inline-block;will-change:transform}
 /* chips reuse the .asset-chip system defined with the ticker; the rail only
    needs to space them out */
-.asset-track .asset-chip{margin-right:12px}
+.asset-track .asset-chip{margin-right:14px}
 /* concept chips carry a plain brand bubble instead of a flag/coin glyph */
-.asset-chip .bubble.bubble-ict{background:linear-gradient(140deg,var(--terracotta-bright),#0f5132)}
+.asset-chip .bubble.bubble-ict{background:linear-gradient(140deg,var(--terracotta-bright),#7a3a10)}
+
+/* Instrument coins, FundedNext-style: the glyph is scaled up until it fills its
+   disc and gets clipped by the border-radius, so a flag reads as a bright round
+   coin rather than a small emoji floating in a dark bubble. Flag emoji are wider
+   than they are tall, so the glyph runs ~1.15x the disc: at parity it stops short
+   of the top and bottom edges and the dark bubble shows through as a flat chord.
+   The `.ico` wrapper
+   loses its own disc — the bubble *is* the coin now.
+   Both marquees share the `.asset-chip` system, so this is unscoped. */
+.asset-chip{gap:13px;min-height:62px;padding:11px 26px 11px 11px;
+  border-color:rgba(255,255,255,.10)}
+.asset-chip .ico{width:40px;height:40px;background:none;border:0;box-shadow:none}
+.asset-chip .ico.duo{width:auto;min-width:0;padding:0}
+.asset-chip .bubble{width:40px;height:40px;overflow:hidden;
+  background:linear-gradient(180deg,rgba(255,255,255,.24),rgba(255,255,255,.10));
+  border:2px solid rgba(255,255,255,.62);font-size:46px;line-height:1;
+  box-shadow:0 2px 6px rgba(0,0,0,.45)}
+.asset-chip .ico.duo .bubble{width:38px;height:38px;font-size:44px;margin-left:-13px}
+.asset-chip .ico.duo .bubble:first-child{margin-left:0}
+/* a drawn mark already carries its own disc and colour, so it fills the bubble
+   completely and only the ring is kept */
+.asset-chip .bubble.coin{background:none;padding:0}
+.asset-chip .bubble.coin svg{display:block;width:100%;height:100%}
+/* the concept bubble has no glyph, so it stays a small brand dot rather than a
+   big empty disc — and it has to restate its gradient, since the coin rule
+   above shares its specificity and would otherwise win on source order */
+.asset-chip .bubble.bubble-ict{width:26px;height:26px;
+  background:linear-gradient(140deg,var(--terracotta-bright),#7a3a10);
+  border-width:1px;border-color:rgba(255,255,255,.24);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.10)}
+.asset-chip .label{font-size:clamp(13px,1.55vw,16px);color:rgba(249,250,251,.9)}
 .ar-a{animation:ar-L 46s linear infinite}
 .ar-b{animation:ar-R 52s linear infinite}
 @keyframes ar-L{from{transform:translateX(0)}to{transform:translateX(-50%)}}
 @keyframes ar-R{from{transform:translateX(-50%)}to{transform:translateX(0)}}
 @media(prefers-reduced-motion:reduce){.ar-a,.ar-b{animation:none}}
-.asset-copy{padding:44px 32px 30px}
+.asset-copy{padding:58px 40px 42px}
 .asset-copy h3{font:600 clamp(26px,3vw,38px)/1.12 var(--sans);letter-spacing:-.03em;color:var(--ink)}
 .asset-copy p{margin-top:12px;max-width:540px;color:var(--ink-soft);
   font-size:clamp(15px,1.4vw,17px);line-height:1.6}
 @media(max-width:700px){
   .assets-band{padding:12px 10px 0}
-  .asset-card{border-radius:16px;padding:22px 0 4px}
-  .asset-track .asset-chip{margin-right:9px}
-  .asset-copy{padding:34px 20px 24px}
+  .asset-card{border-radius:18px;padding:30px 0 6px}
+  .asset-rails{gap:14px}
+  .asset-track .asset-chip{margin-right:10px}
+  .asset-chip{gap:10px;min-height:52px;padding:9px 18px 9px 9px}
+  .asset-chip .ico{width:34px;height:34px}
+  .asset-chip .bubble{width:34px;height:34px;font-size:39px;border-width:2px}
+  .asset-chip .ico.duo .bubble{width:32px;height:32px;font-size:37px;margin-left:-11px}
+  .asset-chip .bubble.bubble-ict{width:22px;height:22px}
+  .asset-copy{padding:40px 22px 30px}
 }
 
-/* Affiliate hero: match the main page's small badge and pill buttons.
-   `.hero .wrap > .eyebrow` selects the affiliate page only — on the main page
-   the badge sits inside .hero-copy rather than directly under .wrap. */
+/* Affiliate hero: small badge and pill buttons. `.hero .wrap > .eyebrow` is
+   affiliate-only; the main page's hero carries no badge at all now. */
 .hero .wrap > .eyebrow{gap:5px;padding:3px 8px;font-size:7px;letter-spacing:.1em;line-height:1.5}
-.hero .wrap > .eyebrow::before{width:4px;height:4px;box-shadow:0 0 8px rgba(74,222,128,.8)}
+.hero .wrap > .eyebrow::before{width:4px;height:4px;box-shadow:0 0 8px rgba(255,138,61,.8)}
 /* .btn{border-radius:4px} above squares these off; the main page rounds its
    hero buttons via .hero .cta .btn, which does not match .cta-row */
 .cta-row .btn{border-radius:999px}
@@ -340,14 +564,14 @@ nav.nav-open .nav-toggle .ico-menu{display:none}
 nav.nav-open .nav-toggle .ico-close{display:block}
 /* copy is centred in the opening screen and clears the bar floating over it */
 .hero .wrap.hero-stack{width:100%;padding:92px 28px 56px}
-.hero-copy .eyebrow{margin:0 auto;line-height:1.5;text-align:center;
-  font-size:7px;letter-spacing:.06em}
-.hero h1{font-size:clamp(34px,3.6vw,52px);margin-top:20px}
+.hero h1{font-size:clamp(34px,3.6vw,52px);margin-top:0}
 .hero .cta{margin-top:24px}
 /* smaller CTA bubble */
-.cta-card{padding:5px;border-radius:13px}
+.cta-card{padding:5px;border-radius:18px}
 .hero .cta .btn{padding:10px 20px;font-size:14px}
-.cta-card .btn{border-radius:9px}
+/* rounded rectangle rather than a capsule, as in the reference. Needs to outrank
+   `.hero .cta .btn{border-radius:999px}` above, hence the extra class. */
+.hero .cta .cta-card .btn{border-radius:13px}
 /* positioning line in the gap before the demo */
 .hero-band{padding:52px 12px 0;background:var(--paper);text-align:center}
 .hero-band .wrap{max-width:920px;padding:0}
@@ -372,7 +596,6 @@ body:has(.ref-banner.on) .hero-frame{padding-top:42px}
   .hero-frame .hero{border-radius:20px;min-height:calc(100vh - 20px);min-height:calc(100svh - 20px)}
   .hero .wrap.hero-stack{padding:76px 16px 44px}
   .hero h1{font-size:clamp(26px,7.4vw,32px)}
-  .hero-copy .eyebrow{font-size:6.5px;letter-spacing:.08em;padding:3px 8px}
   .hero .cta .btn{padding:9px 14px;font-size:13px}
   .hero-stage{padding:0 10px}
 }
@@ -419,3 +642,15 @@ body:has(.ref-banner.on) .hero-frame{padding-top:42px}
   .navlinks,nav.nav-open .navlinks{border-radius:18px}
   .navlinks-cta .btn{flex:1;justify-content:center;padding:11px 10px;font-size:13px}
 }
+
+/* ── Display face ──────────────────────────────────────────────────────────
+   Anton is already condensed and very heavy, so the tight tracking the old
+   grotesque needed would close it up; it gets near-zero letter-spacing and a
+   slightly tighter leading instead. */
+.hero h1,section h2,.proof-wrap h2,.panel-title,.rb-text h3,.cap-text h3,
+.flow-node h3,.move-card h3,.asset-copy h3,.pay-modal h3,.stage-label{
+  font-family:var(--display);font-weight:400;letter-spacing:0}
+.hero h1{letter-spacing:-.005em;line-height:.94}
+section h2,.proof-wrap h2{line-height:1}
+.panel-title,.rb-text h3{line-height:1.05}
+.cap-text h3{font-weight:400;letter-spacing:0}
