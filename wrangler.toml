@@ -1,13 +1,41 @@
+# PlugICT landing — wrangler config (shared by affiliate preview + chatbar preview projects)
+# Affiliate project:  npx wrangler pages deploy dist --project-name plugict-affiliate-preview
+# Chatbar project:    npx wrangler pages deploy dist --project-name plugictmodify
 name = "plugict-affiliate-preview"
 compatibility_date = "2026-07-27"
 pages_build_output_dir = "dist"
 
 [vars]
 ANALYTICS_MODE = "preview"
-ALLOWED_ORIGINS = "http://localhost:8788,http://127.0.0.1:8788"
+ALLOWED_ORIGINS = "https://plugict.com,https://plugictmodify.pages.dev,https://feat-chatbar-dashboard.plugictmodify.pages.dev,http://localhost:8788,http://127.0.0.1:8788"
 CLICK_HASH_SALT = "preview-click-salt"
+# Supabase (Google auth) — public browser-safe project configuration
+SUPABASE_URL = "https://tamevojmkrmttutkkuvo.supabase.co"
+SUPABASE_PUBLISHABLE_KEY = "sb_publishable_dCl2B3UUxlqXQKdtRIH09A_wIRFPrVb"
 
+# ── Affiliate analytics (existing) ────────────────────────────────────────
 [[d1_databases]]
 binding = "DB"
 database_name = "plugict-affiliate-analytics-preview"
 database_id = "29e37c14-8888-4a8f-b266-2f435dfc6659"
+
+# ── Chatbar (plugictmodify project) ───────────────────────────────────────
+[[d1_databases]]
+binding = "CHAT_DB"
+database_name = "plugict-chat-db"
+database_id = "2687a536-4a12-4075-91d9-0a85851e0192"
+
+[[vectorize]]
+binding = "VECTORIZE"
+index_name = "plugict-vault-index"
+
+[[r2_buckets]]
+binding = "VAULT_R2"
+bucket_name = "plugict-vault"
+
+[[kv_namespaces]]
+binding = "CACHE"
+id = "ebc2e40b3e514835895b8bc43b265b9e"
+
+[ai]
+binding = "AI"

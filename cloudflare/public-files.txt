@@ -1,4 +1,5 @@
 index.html
+chat/index.html
 affiliate.html
 affiliate-dashboard.html
 privacy.html
@@ -8,6 +9,10 @@ release-manifest.json
 assets/affiliate-analytics.js
 assets/affiliate-attribution.js
 assets/affiliate-config.js
+assets/chat-app.js
+assets/chat-bootstrap.js
+assets/vendor/supabase.js
+assets/vendor/supabase.LICENSE.txt
 assets/coderabbit-v2.css
 assets/logos/favicon.png
 assets/logos/hermes.jpg

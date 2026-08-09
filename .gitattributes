@@ -1,0 +1,2 @@
+# Official npm browser artifact: preserve exact bytes and audit via pinned SHA-256.
+assets/vendor/supabase.js -text -diff -whitespace

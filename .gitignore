@@ -31,3 +31,9 @@ dist/
 node_modules/
 .wrangler/
 .dev.vars
+# Generated migration/export artifacts (local only; never commit)
+cloudflare/ingest-out/
+cloudflare/ingest-existing/
+
+# AgentMail credentials — NEVER commit
+store/agentmail.env
