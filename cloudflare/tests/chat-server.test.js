@@ -359,6 +359,60 @@ test('authenticated timestamped answers stream framed events and cache after com
   assert.equal(db.runs[1].params[3], 0);
 });
 
+test('double-escaped gateway JSON is normalized before grounded validation', async (t) => {
+  // OpenCode Go (OpenAI-compatible gateway) streams deepseek-v4-flash deltas
+  // with double-escaped JSON: {\"answer\":\"...\"} instead of {"answer":"..."}.
+  // The server must normalize the escapes, then validate and stream normally.
+  const answer = 'Liquidity rests above old highs and below old lows.';
+  const escapedPayload = JSON.stringify({ answer, evidence_ids: ['E1'] }).replaceAll('"', '\\"');
+  const upstream = [
+    `data: ${JSON.stringify({ choices: [{ delta: { content: escapedPayload }, finish_reason: 'stop' }] })}`,
+    '',
+    'data: [DONE]',
+    '',
+  ].join('\n');
+  let deepSeekRequest;
+  installAuthenticatedFetch(t, async (url, options) => {
+    assert.equal(url, 'https://api.deepseek.com/chat/completions');
+    deepSeekRequest = JSON.parse(options.body);
+    return new Response(streamFromText(upstream), {
+      status: 200,
+      headers: { 'Content-Type': 'text/event-stream' },
+    });
+  });
+
+  const writes = [];
+  const waits = [];
+  const db = makeDb({ ftsResults: [MATCH] });
+  const env = makeEnv(db, {
+    CACHE: {
+      async get() { return null; },
+      async put(...args) { writes.push(args); },
+    },
+  });
+  const request = await authenticatedRequest('Where does liquidity rest?');
+  const { onRequestPost } = await import(askUrl.href);
+  const response = await onRequestPost({
+    request,
+    env,
+    waitUntil(promise) { waits.push(Promise.resolve(promise)); },
+  });
+  const body = await response.text();
+  await Promise.all(waits);
+
+  assert.equal(response.status, 200, 'double-escaped JSON must still produce a verified answer');
+  assert.match(response.headers.get('Content-Type'), /text\/event-stream/);
+  assert.match(body, /"type":"delta"/);
+  assert.match(body, new RegExp(answer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  assert.match(body, /"type":"done"/);
+  assert.equal(writes.length, 1, 'normalized completion must still be cached');
+  const [key, payload] = writes[0];
+  assert.match(key, /^qa:[0-9a-f]{64}$/);
+  assert.equal(JSON.parse(payload).answer, answer);
+  assert.equal(db.runs.length, 2, 'success reserves one credit and writes one analytics row');
+  assert.equal(deepSeekRequest.model, 'deepseek-v4-flash');
+});
+
 test('cache keys isolate plan output class, model, prompt, and corpus contracts', async (t) => {
   const handlerSource = readFileSync(askUrl, 'utf8');
   const scopeSource = /const cacheScope = ([\s\S]*?);\r?\n\s*const cacheKey/.exec(handlerSource)?.[1] || '';

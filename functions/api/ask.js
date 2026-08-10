@@ -309,10 +309,19 @@ OUTPUT CONTRACT — CRITICAL:
 
 function parseGroundedCompletion(raw, evidenceById, maxOutputChars) {
   let parsed;
+  const text = String(raw || '').trim();
   try {
-    parsed = JSON.parse(String(raw || '').trim());
+    parsed = JSON.parse(text);
   } catch {
-    return null;
+    // Some OpenAI-compatible gateways (e.g. OpenCode Go serving
+    // deepseek-v4-flash) double-escape JSON inside streamed deltas:
+    // {\"answer\":\"...\"} instead of {"answer":"..."}. Normalize the
+    // escapes before declaring the completion invalid.
+    try {
+      parsed = JSON.parse(text.replaceAll('\\"', '"'));
+    } catch {
+      return null;
+    }
   }
   const answer = typeof parsed?.answer === 'string' ? parsed.answer.trim() : '';
   const ids = Array.isArray(parsed?.evidence_ids) ? [...new Set(parsed.evidence_ids)] : [];
