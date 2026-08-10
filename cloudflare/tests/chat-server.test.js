@@ -173,6 +173,10 @@ function makeEnv(db, overrides = {}) {
     ALLOWED_ORIGINS: 'http://localhost:8788',
     SUPABASE_URL: TEST_SUPABASE_URL,
     DEEPSEEK_API_KEY: 'test-only-key',
+    MULTIQUERY: 'false', // Tests verify single-shot path; tool-calling has its own tests
+    TOP_K: '4', // Preserve original test thresholds
+    MIN_VECTOR_SCORE: '0.68',
+    MAX_CONTEXT_CHARS: '12000',
     CHAT_DB: db,
     VAULT_R2: {
       async get(key) {
@@ -423,9 +427,9 @@ test('cache keys isolate plan output class, model, prompt, and corpus contracts'
     'TEMPERATURE',
     'PROMPT_VERSION',
     'CORPUS_VERSION',
-    'TOP_K',
-    'MIN_VECTOR_SCORE',
-    'MAX_CONTEXT_CHARS',
+    'top-k:${topK}',
+    'min-vector-score:${minScore}',
+    'context-chars:${maxContextChars}',
     'RETRIEVAL_VERSION',
   ]) {
     assert.ok(scopeSource.includes(boundary), `cache scope must bind ${boundary}`);

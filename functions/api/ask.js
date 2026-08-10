@@ -48,11 +48,12 @@ const GROUNDING_MARKER = 'exact-r2';
 const CORPUS_VERSION = 'chunks-0e405ddd9318345f6c507f540cfb90c2c88d5c540cdf5292b4c871ccbb7e2eba:transcripts-12bc027354b9100b3d9e54abf15b9920bc8e32a1e9e024cec501d8c62ce007a7';
 
 const MAX_INPUT = 200;
-const TOP_K = 4;
-const MAX_CONTEXT_CHARS = 12000;
+// Defaults; overridable per deployment via env vars.
+const DEFAULT_TOP_K = 6;
+const DEFAULT_MAX_CONTEXT_CHARS = 16000;
 // Calibrated on the immutable 21,376-vector export: representative ICT top-4
 // scores were >=0.7416 while sampled off-topic maxima were <=0.6011.
-const MIN_VECTOR_SCORE = 0.68;
+const DEFAULT_MIN_VECTOR_SCORE = 0.65;
 
 const LIMITS = {
   free: { questions: 5, dailyReset: false, maxOutputChars: 4000, maxTokens: 1500 },
@@ -182,6 +183,55 @@ function isValidCacheEnvelope(entry, maxOutputChars, model) {
   ));
 }
 
+// ── Tool-calling: AI-driven retrieval ──────────────────────────────────
+const MAX_TOOL_ROUNDS = 3;
+const VAULT_TOOLS = [
+  {
+    type: 'function',
+    function: {
+      name: 'search_vault',
+      description: 'Search the ICT transcript vault for relevant content. Returns matching video excerpts with timestamps and evidence IDs.',
+      parameters: {
+        type: 'object',
+        properties: {
+          query: { type: 'string', description: 'Search query using ICT terminology' },
+        },
+        required: ['query'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'expand_transcript',
+      description: 'Load a specific time range from a video transcript for more context.',
+      parameters: {
+        type: 'object',
+        properties: {
+          video_id: { type: 'string', description: 'Video ID from a search result' },
+          start_seconds: { type: 'number', description: 'Start time in seconds' },
+          end_seconds: { type: 'number', description: 'End time in seconds' },
+        },
+        required: ['video_id', 'start_seconds', 'end_seconds'],
+      },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'get_related_chunks',
+      description: 'Find other chunks from the same video to explore related content.',
+      parameters: {
+        type: 'object',
+        properties: {
+          chunk_id: { type: 'string', description: 'Chunk ID from a search result' },
+        },
+        required: ['chunk_id'],
+      },
+    },
+  },
+];
+
 // ── Retrieval: Vectorize first, FTS5 fallback ───────────────────────────
 async function embedQuery(env, text) {
   if (env.AI) {
@@ -191,17 +241,123 @@ async function embedQuery(env, text) {
   return null;
 }
 
-async function retrieve(env, question, embedding) {
+// Multi-query expansion: ask the AI to generate 2-3 concise search queries
+// from a verbose/unclear user question. Each variant is embedded separately
+// and searched, so the vault is explored from multiple angles.
+async function expandQueries(env, question, dsUrl) {
+  const body = {
+    model: env.DEEPSEEK_MODEL || DEFAULT_MODEL,
+    messages: [
+      {
+        role: 'system',
+        content: `You are a search query optimizer for an ICT (Inner Circle Trader) trading education vault.
+The user asked a question. Generate exactly 2 concise search queries that would find relevant ICT concepts in a transcript vault.
+Return ONLY a JSON array of strings, nothing else. Example: ["silver bullet model ICT", "ICT silver bullet entry criteria"]`,
+      },
+      { role: 'user', content: question },
+    ],
+    max_tokens: 120,
+    temperature: 0.1,
+    stream: false,
+  };
+  try {
+    const res = await fetch(dsUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${env.DEEPSEEK_API_KEY}`,
+        'User-Agent': 'PlugICT-Chatbar/1.0',
+      },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) return [question];
+    const data = await res.json();
+    const content = data?.choices?.[0]?.message?.content || '';
+    // Normalize double-escaped JSON from gateway
+    let cleaned = content.trim();
+    try { JSON.parse(cleaned); } catch { cleaned = cleaned.replaceAll('\\"', '"'); }
+    const queries = JSON.parse(cleaned);
+    if (Array.isArray(queries) && queries.length >= 1 && queries.length <= 4) {
+      return [question, ...queries.filter((q) => typeof q === 'string' && q !== question)];
+    }
+  } catch (e) {
+    console.error('query expansion error:', e.message);
+  }
+  return [question];
+}
+
+// Multi-round tool-calling loop: the AI drives retrieval.
+// Returns { answer, evidenceById } on success, or null on failure.
+async function toolCallLoop(env, question, dsUrl, model, policy, topK, minScore) {
+  const evidenceById = new Map();
+  const transcriptCache = new Map();
+  const messages = [
+    {
+      role: 'system',
+      content: buildSystemPrompt(policy.maxOutputChars)
+        + '\n\nYou have access to tools to search the ICT transcript vault. '
+        + 'Use search_vault first to find relevant evidence, then expand_transcript or get_related_chunks if you need more context. '
+        + 'After gathering evidence, answer using the exact JSON format specified in the system prompt.',
+    },
+    { role: 'user', content: question },
+  ];
+
+  for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+    let data;
+    try {
+      const res = await fetch(dsUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${env.DEEPSEEK_API_KEY}`,
+          'User-Agent': 'PlugICT-Chatbar/1.0',
+        },
+        body: JSON.stringify({
+          model, messages, tools: VAULT_TOOLS,
+          max_tokens: policy.maxTokens, temperature: TEMPERATURE, stream: false,
+        }),
+      });
+      if (!res.ok) { console.error('tool-call http', res.status); return null; }
+      data = await res.json();
+    } catch (e) {
+      console.error('tool-call error:', e.message);
+      return null;
+    }
+
+    const choice = data?.choices?.[0];
+    const message = choice?.message;
+    if (!message) return null;
+
+    // No tool calls → final answer
+    if (!message.tool_calls?.length) {
+      return { answer: message.content || '', evidenceById };
+    }
+
+    // Process tool calls
+    messages.push(message);
+    for (const tc of message.tool_calls) {
+      const result = await executeTool(env, tc, evidenceById, topK, minScore);
+      messages.push({ role: 'tool', tool_call_id: tc.id, content: result });
+    }
+  }
+  return null;
+}
+
+async function retrieve(env, question, embeddings, topK, minScore) {
   const matches = [];
-  if (embedding) {
+  const seen = new Set();
+  for (const embedding of embeddings) {
+    if (!embedding) continue;
     try {
       const res = await env.VECTORIZE.query(embedding, {
-        topK: TOP_K,
+        topK,
         returnMetadata: 'indexed',
         filter: { contentType: 'transcript_chunk' },
       });
       for (const m of res?.matches || []) {
-        if (!Number.isFinite(Number(m.score)) || Number(m.score) < MIN_VECTOR_SCORE) continue;
+        if (!Number.isFinite(Number(m.score)) || Number(m.score) < minScore) continue;
+        if (seen.has(m.id)) continue;
+        seen.add(m.id);
         matches.push({
           chunkId: m.id,
           videoId: m.metadata?.video_id,
@@ -215,7 +371,7 @@ async function retrieve(env, question, embedding) {
         });
       }
     } catch (e) {
-      console.error('vectorize error, falling back to FTS5:', e.message);
+      console.error('vectorize error:', e.message);
     }
   }
 
@@ -228,7 +384,7 @@ async function retrieve(env, question, embedding) {
           `SELECT chunk_id, title, video_id, playlist, start_ts, end_ts,
                   start_seconds, end_seconds, content
              FROM vault_fts WHERE vault_fts MATCH ?1 ORDER BY rank LIMIT ?2`
-        ).bind(q, TOP_K).all();
+        ).bind(q, topK).all();
         for (const r of res?.results || []) {
           matches.push({
             chunkId: r.chunk_id,
@@ -248,7 +404,62 @@ async function retrieve(env, question, embedding) {
       }
     }
   }
-  return matches;
+  // Sort by score descending, keep top-K overall
+  matches.sort((a, b) => b.score - a.score);
+  return matches.slice(0, topK);
+}
+
+// Execute a tool call from the AI and return the result as a string.
+async function executeTool(env, toolCall, evidenceById, topK, minScore) {
+  const name = toolCall.function?.name;
+  let args;
+  try { args = JSON.parse(toolCall.function?.arguments || '{}'); } catch { args = {}; }
+
+  if (name === 'search_vault') {
+    const query = String(args.query || '').slice(0, 200);
+    if (!query) return JSON.stringify({ error: 'Empty query' });
+    const emb = await embedQuery(env, query);
+    const matches = await retrieve(env, query, emb ? [emb] : [], topK, minScore);
+    if (!matches.length) return JSON.stringify({ results: [], message: 'No matches found' });
+    const results = [];
+    for (const m of matches.slice(0, 4)) {
+      const segments = await loadTimestampedEvidence(env, m);
+      const id = `E${evidenceById.size + 1}`;
+      const url = deeplink(m.videoId, m.startSeconds);
+      evidenceById.set(id, {
+        evidence_id: id, video_id: m.videoId, playlist: m.playlist || 'Other / Misc',
+        title: m.title || m.videoId, timestamp: m.startTs, seconds: m.startSeconds,
+        url, quote: segments.map(s => s.text).join(' '),
+      });
+      results.push({ evidence_id: id, video_id: m.videoId, title: m.title, timestamp: m.startTs, score: m.score, excerpt: segments.map(s => `[${s.timestamp}] ${s.text}`).join('\n') });
+    }
+    return JSON.stringify({ results });
+  }
+
+  if (name === 'expand_transcript') {
+    const vid = String(args.video_id || '');
+    const start = Number(args.start_seconds) || 0;
+    const end = Number(args.end_seconds) || start + 300;
+    const row = await env.CHAT_DB.prepare('SELECT r2_key, source_file FROM vault_chunks WHERE video_id = ?1 LIMIT 1').bind(vid).first();
+    if (!row) return JSON.stringify({ error: `Video ${vid} not found` });
+    const obj = await env.VAULT_R2.get(row.r2_key);
+    if (!obj) return JSON.stringify({ error: 'Transcript not in R2' });
+    const text = await obj.text();
+    const segments = extractTimedSegments(text, start, end, 50);
+    return JSON.stringify({ video_id: vid, segments: segments.map(s => `[${s.timestamp}] ${s.text}`) });
+  }
+
+  if (name === 'get_related_chunks') {
+    const chunkId = String(args.chunk_id || '');
+    const chunk = await env.CHAT_DB.prepare('SELECT video_id, playlist FROM vault_chunks WHERE id = ?1').bind(chunkId).first();
+    if (!chunk) return JSON.stringify({ error: 'Chunk not found' });
+    const related = await env.CHAT_DB.prepare(
+      'SELECT id, title, start_ts, end_ts, start_seconds, end_seconds FROM vault_chunks WHERE video_id = ?1 AND id != ?2 ORDER BY chunk_idx LIMIT 5'
+    ).bind(chunk.video_id, chunkId).all();
+    return JSON.stringify({ video_id: chunk.video_id, playlist: chunk.playlist, related: related.results || [] });
+  }
+
+  return JSON.stringify({ error: `Unknown tool: ${name}` });
 }
 
 async function loadTimestampedEvidence(env, match, transcriptCache) {
@@ -415,6 +626,11 @@ export async function onRequestPost({ request, env, waitUntil }) {
   // overrides (e.g. OpenCode Go gateway); defaults stay on DeepSeek direct.
   const model = env.DEEPSEEK_MODEL || DEFAULT_MODEL;
   const dsUrl = env.DEEPSEEK_URL || DEFAULT_DEEPSEEK_URL;
+  // Search knobs: overridable per deployment via env vars.
+  const topK = Number(env.TOP_K) || DEFAULT_TOP_K;
+  const minScore = Number(env.MIN_VECTOR_SCORE) || DEFAULT_MIN_VECTOR_SCORE;
+  const maxContextChars = Number(env.MAX_CONTEXT_CHARS) || DEFAULT_MAX_CONTEXT_CHARS;
+  const multiquery = env.MULTIQUERY !== 'false'; // default ON
 
   // 4. KV cache (repeat questions instant, no LLM cost)
   const qHash = await sha256Hex(question);
@@ -426,9 +642,9 @@ export async function onRequestPost({ request, env, waitUntil }) {
     `temperature:${TEMPERATURE}`,
     `prompt:${PROMPT_VERSION}`,
     `retrieval:${RETRIEVAL_VERSION}`,
-    `top-k:${TOP_K}`,
-    `min-vector-score:${MIN_VECTOR_SCORE}`,
-    `context-chars:${MAX_CONTEXT_CHARS}`,
+    `top-k:${topK}`,
+    `min-vector-score:${minScore}`,
+    `context-chars:${maxContextChars}`,
     `corpus:${CORPUS_VERSION}`,
   ].join('|');
   const cacheKey = `qa:${await sha256Hex(`${cacheScope}\n${question}`)}`;
@@ -467,130 +683,137 @@ export async function onRequestPost({ request, env, waitUntil }) {
     });
   }
 
-  // 5. Retrieval
-  if (!env.DEEPSEEK_API_KEY) {
-    const refundError = await refundOrError(request, env, key, reservation);
-    if (refundError) return refundError;
-    return errorResponse(request, env, 503, 'AI service is not configured.');
+  // 5. Retrieval: try tool-calling first (AI-driven), fall back to single-shot
+  let rawCompletion = '';
+  let evidenceById = new Map();
+
+  if (multiquery) {
+    try {
+      const result = await toolCallLoop(env, question, dsUrl, model, policy, topK, minScore);
+      if (result?.answer) {
+        rawCompletion = result.answer;
+        evidenceById = result.evidenceById;
+      }
+    } catch (e) {
+      console.error('tool-call loop failed, falling back:', e.message);
+    }
   }
 
-  let context = '';
-  const evidenceById = new Map();
-  try {
-    let embedding = null;
+  // Fallback: single-shot retrieval (existing path)
+  if (!rawCompletion || evidenceById.size === 0) {
     try {
-      embedding = await embedQuery(env, question);
-    } catch (error) {
-      console.error('embedding error, falling back to FTS5:', error?.message || error);
-    }
-    const matches = await retrieve(env, question, embedding);
-    if (matches.length) {
-      const parts = [];
-      const transcriptCache = new Map();
-      let contextLength = 0;
-      for (const m of matches) {
-        const segments = await loadTimestampedEvidence(env, m, transcriptCache);
-        if (!segments.length) continue;
-        const lines = [];
-        const candidates = [];
-        for (const segment of segments) {
-          const id = `E${evidenceById.size + candidates.length + 1}`;
-          const url = deeplink(m.videoId, segment.seconds);
-          lines.push(`[${id} | ${segment.timestamp} | ${url}] ${segment.text}`);
-          candidates.push([id, {
-            evidence_id: id,
-            video_id: m.videoId,
-            playlist: m.playlist || 'Other / Misc',
-            title: m.title || m.videoId,
-            timestamp: segment.timestamp,
-            seconds: segment.seconds,
-            url,
-            quote: segment.text,
-          }]);
-        }
-        const part = `[SOURCE video=${m.videoId} playlist=${m.playlist || '?'} range=${m.startTs || '0:00'}-${m.endTs || '?'}]\n${lines.join('\n')}`;
-        if (contextLength + part.length + 7 > MAX_CONTEXT_CHARS) continue;
-        for (const [id, source] of candidates) evidenceById.set(id, source);
-        parts.push(part);
-        contextLength += part.length + 7;
+      let embedding = null;
+      try {
+        embedding = await embedQuery(env, question);
+      } catch (error) {
+        console.error('embedding error, falling back to FTS5:', error?.message || error);
       }
-      context = parts.join('\n\n---\n\n');
+      const matches = await retrieve(env, question, embedding ? [embedding] : [], topK, minScore);
+      if (matches.length) {
+        const parts = [];
+        const transcriptCache = new Map();
+        let contextLength = 0;
+        for (const m of matches) {
+          const segments = await loadTimestampedEvidence(env, m, transcriptCache);
+          if (!segments.length) continue;
+          const lines = [];
+          const candidates = [];
+          for (const segment of segments) {
+            const id = `E${evidenceById.size + candidates.length + 1}`;
+            const url = deeplink(m.videoId, segment.seconds);
+            lines.push(`[${id} | ${segment.timestamp} | ${url}] ${segment.text}`);
+            candidates.push([id, {
+              evidence_id: id,
+              video_id: m.videoId,
+              playlist: m.playlist || 'Other / Misc',
+              title: m.title || m.videoId,
+              timestamp: segment.timestamp,
+              seconds: segment.seconds,
+              url,
+              quote: segment.text,
+            }]);
+          }
+          const part = `[SOURCE video=${m.videoId} playlist=${m.playlist || '?'} range=${m.startTs || '0:00'}-${m.endTs || '?'}]\n${lines.join('\n')}`;
+          if (contextLength + part.length + 7 > maxContextChars) continue;
+          for (const [id, source] of candidates) evidenceById.set(id, source);
+          parts.push(part);
+          contextLength += part.length + 7;
+        }
+        const context = parts.join('\n\n---\n\n');
+        if (context && evidenceById.size > 0) {
+          // Single-shot streaming call
+          let dsRes;
+          try {
+            dsRes = await fetch(dsUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${env.DEEPSEEK_API_KEY}`,
+                'User-Agent': 'PlugICT-Chatbar/1.0',
+              },
+              body: JSON.stringify({
+                model,
+                messages: [
+                  { role: 'system', content: buildSystemPrompt(policy.maxOutputChars) },
+                  { role: 'user', content: `${context}\n\nQUESTION: ${question}` },
+                ],
+                max_tokens: policy.maxTokens,
+                temperature: TEMPERATURE,
+                stream: true,
+              }),
+            });
+          } catch (e) {
+            console.error('deepseek connect error:', e.message);
+            const refundError = await refundOrError(request, env, key, reservation);
+            if (refundError) return refundError;
+            return errorResponse(request, env, 502, 'AI service unavailable — try again in a moment.');
+          }
+          if (!dsRes.ok || !dsRes.body) {
+            const errText = await dsRes.text().catch(() => '');
+            console.error('deepseek http', dsRes.status, errText.slice(0, 300));
+            const refundError = await refundOrError(request, env, key, reservation);
+            if (refundError) return refundError;
+            return errorResponse(request, env, 502, 'AI service unavailable — try again in a moment.');
+          }
+          const reader = dsRes.body.getReader();
+          const upstream = createDeepSeekSseDecoder();
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              rawCompletion += upstream.push(value);
+            }
+            rawCompletion += upstream.flush();
+          } catch (e) {
+            console.error('stream error:', e.message);
+            const refundError = await refundOrError(request, env, key, reservation);
+            if (refundError) return refundError;
+            return errorResponse(request, env, 502, 'AI stream interrupted — please retry.');
+          } finally {
+            try { await reader.cancel(); } catch { /* ignore */ }
+          }
+          if (!upstream.doneSeen() || upstream.finishReason() !== 'stop' || upstream.malformed()) {
+            const refundError = await refundOrError(request, env, key, reservation);
+            if (refundError) return refundError;
+            return errorResponse(request, env, 422, 'AI did not return a complete verified answer. Try rephrasing your question.');
+          }
+        }
+      }
+    } catch (error) {
+      console.error('retrieval error:', error?.message || error);
+      const refundError = await refundOrError(request, env, key, reservation);
+      if (refundError) return refundError;
+      return errorResponse(request, env, 502, 'Knowledge search unavailable — try again in a moment.');
     }
-  } catch (error) {
-    console.error('retrieval error:', error?.message || error);
-    const refundError = await refundOrError(request, env, key, reservation);
-    if (refundError) return refundError;
-    return errorResponse(request, env, 502, 'Knowledge search unavailable — try again in a moment.');
   }
-  if (!context || evidenceById.size === 0) {
+
+  if (!rawCompletion || evidenceById.size === 0) {
     const refundError = await refundOrError(request, env, key, reservation);
     if (refundError) return refundError;
     return errorResponse(request, env, 422, 'No matching timestamped vault evidence found. Try rephrasing your question.');
   }
 
-  // 6. DeepSeek streaming
-  let dsRes;
-  try {
-    dsRes = await fetch(dsUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${env.DEEPSEEK_API_KEY}`,
-            'User-Agent': 'PlugICT-Chatbar/1.0',
-          },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: buildSystemPrompt(policy.maxOutputChars) },
-          { role: 'user', content: context ? `${context}\n\nQUESTION: ${question}` : `QUESTION: ${question}` },
-        ],
-        max_tokens: policy.maxTokens,
-        temperature: TEMPERATURE,
-        stream: true,
-      }),
-    });
-  } catch (e) {
-    console.error('deepseek connect error:', e.message);
-    const refundError = await refundOrError(request, env, key, reservation);
-    if (refundError) return refundError;
-    return errorResponse(request, env, 502, 'AI service unavailable — try again in a moment.');
-  }
-  if (!dsRes.ok || !dsRes.body) {
-    const errText = await dsRes.text().catch(() => '');
-    console.error('deepseek http', dsRes.status, errText.slice(0, 300));
-    const refundError = await refundOrError(request, env, key, reservation);
-    if (refundError) return refundError;
-    return errorResponse(request, env, 502, 'AI service unavailable — try again in a moment.');
-  }
-
-  // 7. Buffer and validate the complete model payload before releasing any
-  // answer bytes. This is deliberately fail-closed: streaming presentation
-  // must never outrun evidence verification.
-  const reader = dsRes.body.getReader();
-  const upstream = createDeepSeekSseDecoder();
-  let rawCompletion = '';
-  try {
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      rawCompletion += upstream.push(value);
-    }
-    rawCompletion += upstream.flush();
-  } catch (e) {
-    console.error('stream error:', e.message);
-    const refundError = await refundOrError(request, env, key, reservation);
-    if (refundError) return refundError;
-    return errorResponse(request, env, 502, 'AI stream interrupted — please retry.');
-  } finally {
-    try { await reader.cancel(); } catch { /* ignore */ }
-  }
-
-  if (!upstream.doneSeen() || upstream.finishReason() !== 'stop' || upstream.malformed()) {
-    const refundError = await refundOrError(request, env, key, reservation);
-    if (refundError) return refundError;
-    return errorResponse(request, env, 422, 'AI did not return a complete verified answer. Try rephrasing your question.');
-  }
-
+  // 6. Validate and stream
   const grounded = parseGroundedCompletion(rawCompletion, evidenceById, policy.maxOutputChars);
   if (!grounded) {
     const refundError = await refundOrError(request, env, key, reservation);
