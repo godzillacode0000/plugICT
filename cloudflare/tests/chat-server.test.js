@@ -365,7 +365,7 @@ test('cache keys isolate plan output class, model, prompt, and corpus contracts'
   for (const boundary of [
     'policy.maxOutputChars',
     'policy.maxTokens',
-    'MODEL',
+    'model:${model}',
     'TEMPERATURE',
     'PROMPT_VERSION',
     'CORPUS_VERSION',
@@ -374,7 +374,7 @@ test('cache keys isolate plan output class, model, prompt, and corpus contracts'
     'MAX_CONTEXT_CHARS',
     'RETRIEVAL_VERSION',
   ]) {
-    assert.match(scopeSource, new RegExp(boundary.replace('.', '\\.')), `cache scope must bind ${boundary}`);
+    assert.ok(scopeSource.includes(boundary), `cache scope must bind ${boundary}`);
   }
 
   const modelPayload = JSON.stringify({

@@ -13,6 +13,13 @@ CLICK_HASH_SALT = "preview-click-salt"
 SUPABASE_URL = "https://tamevojmkrmttutkkuvo.supabase.co"
 SUPABASE_PUBLISHABLE_KEY = "sb_publishable_dCl2B3UUxlqXQKdtRIH09A_wIRFPrVb"
 
+# ── AI provider (chatbar) ───────────────────────────────────────────────
+# OpenAI-compatible gateway serving deepseek-v4-flash. Defaults in ask.js
+# point at DeepSeek's own API; these overrides route through OpenCode Go.
+# The API key itself is the DEEPSEEK_API_KEY secret (never committed).
+DEEPSEEK_URL = "https://opencode.ai/zen/go/v1/chat/completions"
+DEEPSEEK_MODEL = "deepseek-v4-flash"
+
 # ── Affiliate analytics (existing) ────────────────────────────────────────
 [[d1_databases]]
 binding = "DB"

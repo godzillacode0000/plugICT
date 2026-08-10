@@ -4,7 +4,8 @@
 // exact transcript excerpts, timestamps, and YouTube deeplinks.
 //
 // Requires env (Cloudflare Pages secrets/vars):
-//   DEEPSEEK_API_KEY (secret),
+//   DEEPSEEK_API_KEY (secret), optional DEEPSEEK_URL / DEEPSEEK_MODEL
+//   overrides (OpenAI-compatible gateway; defaults: DeepSeek direct API),
 //   ALLOWED_ORIGINS (var), SUPABASE_URL (public var; JWTs verified via public JWKS)
 // Bindings: CHAT_DB (D1 plugict-chat-db), VECTORIZE (plugict-vault-index),
 //           VAULT_R2 (plugict-vault), CACHE (KV plugict-chat-cache)
@@ -22,9 +23,14 @@ import {
   sseFinalEvent,
 } from '../../cloudflare/lib/chat-utils.js';
 
-const MODEL = 'deepseek-v4-flash';
+// Model endpoint is deployment-overridable (e.g. OpenCode Go gateway at
+// https://opencode.ai/zen/go/v1/chat/completions, which hosts deepseek-v4-flash).
+// Defaults stay pinned to DeepSeek's own API; override via env vars
+// DEEPSEEK_URL / DEEPSEEK_MODEL. The resolved model participates in cache
+// identity, so switching endpoints/models never reuses stale answers.
+const DEFAULT_MODEL = 'deepseek-v4-flash';
+const DEFAULT_DEEPSEEK_URL = 'https://api.deepseek.com/chat/completions';
 const TEMPERATURE = 0.3;
-const DEEPSEEK_URL = 'https://api.deepseek.com/chat/completions';
 const PROMPT_VERSION = 'grounded-json-v1';
 const RETRIEVAL_VERSION = 'hybrid-vector-fts-exact-r2-v2';
 // Output-contract enforcement: the model may not place direct quotes,
@@ -157,11 +163,11 @@ async function recordChatLog(env, { questionHash, plan, latencyMs, cacheHit }) {
 // A cached answer is only trusted when its envelope is complete and matches
 // every response-affecting policy boundary of the CURRENT request. Anything
 // else is stale, forged, or from an incompatible release — treat as a miss.
-function isValidCacheEnvelope(entry, maxOutputChars) {
+function isValidCacheEnvelope(entry, maxOutputChars, model) {
   if (!entry || typeof entry !== 'object') return false;
   if (entry.v !== CACHE_ENVELOPE_VERSION) return false;
   if (entry.corpus !== CORPUS_VERSION) return false;
-  if (entry.model !== MODEL) return false;
+  if (entry.model !== model) return false;
   if (entry.prompt !== PROMPT_VERSION) return false;
   if (entry.retrieval !== RETRIEVAL_VERSION) return false;
   if (entry.grounding !== GROUNDING_MARKER) return false;
@@ -396,13 +402,18 @@ export async function onRequestPost({ request, env, waitUntil }) {
   }
   const remaining = Math.max(0, policy.questions - reservation.used);
 
+  // Model endpoint resolved per deployment: DEEPSEEK_URL / DEEPSEEK_MODEL
+  // overrides (e.g. OpenCode Go gateway); defaults stay on DeepSeek direct.
+  const model = env.DEEPSEEK_MODEL || DEFAULT_MODEL;
+  const dsUrl = env.DEEPSEEK_URL || DEFAULT_DEEPSEEK_URL;
+
   // 4. KV cache (repeat questions instant, no LLM cost)
   const qHash = await sha256Hex(question);
   const cacheScope = [
     `plan:${plan}`,
     `output:${policy.maxOutputChars}`,
     `tokens:${policy.maxTokens}`,
-    `model:${MODEL}`,
+    `model:${model}`,
     `temperature:${TEMPERATURE}`,
     `prompt:${PROMPT_VERSION}`,
     `retrieval:${RETRIEVAL_VERSION}`,
@@ -418,7 +429,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
   } catch (error) {
     console.error('chat cache read error:', error?.message || error);
   }
-  if (cached && isValidCacheEnvelope(cached, policy.maxOutputChars)) {
+  if (cached && isValidCacheEnvelope(cached, policy.maxOutputChars, model)) {
     const headers = cors;
     headers.set('Content-Type', 'application/json; charset=utf-8');
     headers.set('X-Cache', 'HIT');
@@ -511,14 +522,14 @@ export async function onRequestPost({ request, env, waitUntil }) {
   // 6. DeepSeek streaming
   let dsRes;
   try {
-    dsRes = await fetch(DEEPSEEK_URL, {
+    dsRes = await fetch(dsUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${env.DEEPSEEK_API_KEY}`,
       },
       body: JSON.stringify({
-        model: MODEL,
+        model,
         messages: [
           { role: 'system', content: buildSystemPrompt(policy.maxOutputChars) },
           { role: 'user', content: context ? `${context}\n\nQUESTION: ${question}` : `QUESTION: ${question}` },
@@ -582,7 +593,7 @@ export async function onRequestPost({ request, env, waitUntil }) {
     const cacheWrite = Promise.resolve(env.CACHE.put(cacheKey, JSON.stringify({
       v: CACHE_ENVELOPE_VERSION,
       corpus: CORPUS_VERSION,
-      model: MODEL,
+      model,
       prompt: PROMPT_VERSION,
       retrieval: RETRIEVAL_VERSION,
       maxOutputChars: policy.maxOutputChars,
