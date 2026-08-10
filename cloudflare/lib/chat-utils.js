@@ -87,7 +87,19 @@ export function createDeepSeekSseDecoder(decoder = new TextDecoder()) {
         continue;
       }
       if (terminalSeen) {
-        malformed = true;
+        // OpenCode Go emits a harmless post-[DONE] usage/cost envelope such as
+        // {"choices":[],"cost":"0"}. It contains no answer bytes and is
+        // not equivalent to trailing model content. Continue rejecting any
+        // post-terminal event that carries choices or cannot be parsed.
+        try {
+          const metadata = JSON.parse(payload);
+          const harmless = Array.isArray(metadata?.choices)
+            && metadata.choices.length === 0
+            && (typeof metadata.cost === 'string' || typeof metadata.cost === 'number');
+          if (!harmless) malformed = true;
+        } catch {
+          malformed = true;
+        }
         continue;
       }
       try {

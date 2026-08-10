@@ -1156,6 +1156,24 @@ test('DeepSeek DONE without an explicit stop reason is refused and refunded', as
   assert.equal(db.runs.length, 2, 'missing terminal reason must refund the reservation');
 });
 
+test('OpenCode Go usage metadata after [DONE] is accepted', async () => {
+  const { createDeepSeekSseDecoder } = await import(utilsUrl.href);
+  const decoder = createDeepSeekSseDecoder();
+  const source = [
+    'data: {"choices":[{"delta":{"content":"ok"},"finish_reason":"stop"}]}',
+    '',
+    'data: [DONE]',
+    '',
+    'data: {"choices":[],"cost":"0"}',
+    '',
+  ].join(String.fromCharCode(10));
+  const answer = decoder.push(new TextEncoder().encode(source)) + decoder.flush();
+  assert.equal(answer, 'ok');
+  assert.equal(decoder.doneSeen(), true);
+  assert.equal(decoder.finishReason(), 'stop');
+  assert.equal(decoder.malformed(), false);
+});
+
 test('trailing events after [DONE] fail closed and refund', async (t) => {
   const completion = JSON.stringify({ answer: 'Liquidity rests above old highs.', evidence_ids: ['E1'] });
   const upstream = [
