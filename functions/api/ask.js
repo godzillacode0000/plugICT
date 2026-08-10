@@ -286,6 +286,19 @@ Return ONLY a JSON array of strings, nothing else. Example: ["silver bullet mode
   return [question];
 }
 
+// Sanitize answer text: strip patterns that FORBIDDEN_ANSWER_CONTENT rejects.
+// The AI naturally writes quotes and references timestamps; the server adds
+// source cards separately, so these are safe to remove from the answer body.
+function sanitizeAnswer(text) {
+  return text
+    .replace(/["""\u201C\u201D\u2018\u2019]/g, '')   // curly/straight quotes
+    .replace(/\b\d{1,3}:\d{2}(?::\d{2})?\b/g, '')    // timestamps like 1:30
+    .replace(/https?:\/\/[^\s)]+/g, '')                // URLs
+    .replace(/```[\s\S]*?```/g, '')                    // code fences
+    .replace(/\s{2,}/g, ' ')                           // collapse whitespace
+    .trim();
+}
+
 // Multi-round tool-calling loop: the AI drives retrieval.
 // Returns { answer, evidenceById } on success, or null on failure.
 async function toolCallLoop(env, question, dsUrl, model, policy, topK, minScore) {
@@ -338,11 +351,14 @@ async function toolCallLoop(env, question, dsUrl, model, policy, topK, minScore)
         try { parsed = JSON.parse(content.trim().replaceAll('\\"', '"')); } catch { parsed = null; }
       }
       if (parsed && typeof parsed.answer === 'string' && Array.isArray(parsed.evidence_ids)) {
+        // Sanitize: strip forbidden patterns the AI may naturally include.
+        parsed.answer = sanitizeAnswer(parsed.answer);
         return { answer: JSON.stringify(parsed), evidenceById };
       }
-      // Plain text: wrap in the expected format using all gathered evidence IDs.
+      // Plain text: sanitize and wrap in the expected format using all gathered evidence IDs.
       const ids = Array.from(evidenceById.keys());
-      return { answer: JSON.stringify({ answer: content.trim(), evidence_ids: ids }), evidenceById };
+      const clean = sanitizeAnswer(content.trim());
+      return { answer: JSON.stringify({ answer: clean, evidence_ids: ids }), evidenceById };
     }
 
     // Process tool calls
