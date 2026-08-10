@@ -532,11 +532,12 @@ export async function onRequestPost({ request, env, waitUntil }) {
   let dsRes;
   try {
     dsRes = await fetch(dsUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${env.DEEPSEEK_API_KEY}`,
-      },
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${env.DEEPSEEK_API_KEY}`,
+            'User-Agent': 'PlugICT-Chatbar/1.0',
+          },
       body: JSON.stringify({
         model,
         messages: [
