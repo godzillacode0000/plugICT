@@ -330,7 +330,19 @@ async function toolCallLoop(env, question, dsUrl, model, policy, topK, minScore)
 
     // No tool calls → final answer
     if (!message.tool_calls?.length) {
-      return { answer: message.content || '', evidenceById };
+      let content = message.content || '';
+      // The AI may return plain text instead of the expected JSON contract.
+      // Normalize: try parsing as JSON first; if plain text, wrap it.
+      let parsed;
+      try { parsed = JSON.parse(content.trim()); } catch {
+        try { parsed = JSON.parse(content.trim().replaceAll('\\"', '"')); } catch { parsed = null; }
+      }
+      if (parsed && typeof parsed.answer === 'string' && Array.isArray(parsed.evidence_ids)) {
+        return { answer: JSON.stringify(parsed), evidenceById };
+      }
+      // Plain text: wrap in the expected format using all gathered evidence IDs.
+      const ids = Array.from(evidenceById.keys());
+      return { answer: JSON.stringify({ answer: content.trim(), evidence_ids: ids }), evidenceById };
     }
 
     // Process tool calls
