@@ -320,9 +320,9 @@ test('authenticated timestamped answers stream framed events and cache after com
   assert.match(body, /"type":"delta"/);
   assert.match(body, new RegExp(answer.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   assert.match(body, /"type":"done"/);
-  assert.match(body, /"remaining":4/);
+  assert.match(body, /"remaining":9/);
   assert.match(body, /"plan":"free"/);
-  assert.match(body, /"limit":5/);
+  assert.match(body, /"limit":10/);
   assert.match(body, /"dailyReset":false/);
   assert.match(deepSeekRequest.messages[1].content, /\[E1 \| 1:30 \| https:\/\/youtu\.be\/video123\?t=90\]/);
   assert.match(deepSeekRequest.messages[1].content, /Liquidity rests above old highs/);
@@ -349,9 +349,9 @@ test('authenticated timestamped answers stream framed events and cache after com
       url: 'https://youtu.be/video123?t=90',
       quote: 'Liquidity rests above old highs and below old lows.',
     }],
-    remaining: 4,
+    remaining: 9,
     plan: 'free',
-    limit: 5,
+    limit: 10,
     dailyReset: false,
   });
   assert.deepEqual(options, { expirationTtl: 86400 });
@@ -536,8 +536,8 @@ test('authenticated entitlement status reports the server plan and remaining cre
   assert.equal(response.status, 200);
   assert.deepEqual(await response.json(), {
     plan: 'free',
-    remaining: 2,
-    limit: 5,
+    remaining: 7,
+    limit: 10,
     dailyReset: false,
   });
 });
@@ -549,7 +549,7 @@ test('atomic lifetime free quota denial blocks DeepSeek before upstream cost', a
     return new Response('should not be called', { status: 500 });
   });
 
-  const db = makeDb({ reservationChanges: 0, questionsUsed: 5 });
+  const db = makeDb({ reservationChanges: 0, questionsUsed: 10 });
   const env = makeEnv(db);
   const request = await authenticatedRequest('Where does liquidity rest?');
   const { onRequestPost } = await import(askUrl.href);
@@ -557,7 +557,7 @@ test('atomic lifetime free quota denial blocks DeepSeek before upstream cost', a
   const payload = await response.json();
 
   assert.equal(response.status, 429);
-  assert.match(payload.error, /5 questions per account/i);
+  assert.match(payload.error, /10 questions per account/i);
   assert.equal(deepSeekFetched, false);
   assert.equal(db.runs.length, 1);
   assert.match(db.runs[0].sql, /ON CONFLICT[\s\S]+DO UPDATE[\s\S]+WHERE/i);

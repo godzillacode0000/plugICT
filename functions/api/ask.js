@@ -56,7 +56,7 @@ const DEFAULT_MAX_CONTEXT_CHARS = 16000;
 const DEFAULT_MIN_VECTOR_SCORE = 0.65;
 
 const LIMITS = {
-  free: { questions: 5, dailyReset: false, maxOutputChars: 4000, maxTokens: 1500 },
+  free: { questions: 10, dailyReset: false, maxOutputChars: 4000, maxTokens: 1500 },
   premium: { questions: 100, dailyReset: true, maxOutputChars: 4000, maxTokens: 1500 },
   pro: { questions: 500, dailyReset: true, maxOutputChars: 8000, maxTokens: 2500 },
 };
