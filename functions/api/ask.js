@@ -184,7 +184,9 @@ function isValidCacheEnvelope(entry, maxOutputChars, model) {
 }
 
 // ── Tool-calling: AI-driven retrieval ──────────────────────────────────
-const MAX_TOOL_ROUNDS = 3;
+const MAX_TOOL_ROUNDS = 2; // Each round is a full LLM round-trip; stay inside CF's 30s wall clock.
+const TOOL_ROUND_MAX_TOKENS = 400; // Tool calls are short JSON; the final answer gets the full budget.
+const TOOL_LOOP_DEADLINE_MS = 20000; // Abort retrieval loop, leaving headroom for the final answer.
 const VAULT_TOOLS = [
   {
     type: 'function',
@@ -204,15 +206,16 @@ const VAULT_TOOLS = [
     type: 'function',
     function: {
       name: 'expand_transcript',
-      description: 'Load a specific time range from a video transcript for more context.',
+      description: 'Load a specific time range from a video transcript for more context. Pass full:true to load the ENTIRE transcript (e.g. when you need the whole lesson).',
       parameters: {
         type: 'object',
         properties: {
           video_id: { type: 'string', description: 'Video ID from a search result' },
-          start_seconds: { type: 'number', description: 'Start time in seconds' },
-          end_seconds: { type: 'number', description: 'End time in seconds' },
+          start_seconds: { type: 'number', description: 'Start time in seconds (ignored if full:true)' },
+          end_seconds: { type: 'number', description: 'End time in seconds (ignored if full:true)' },
+          full: { type: 'boolean', description: 'Load the entire transcript (true) or a range (false)' },
         },
-        required: ['video_id', 'start_seconds', 'end_seconds'],
+        required: ['video_id'],
       },
     },
   },
@@ -315,7 +318,9 @@ async function toolCallLoop(env, question, dsUrl, model, policy, topK, minScore)
     { role: 'user', content: question },
   ];
 
+  const loopStarted = Date.now();
   for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
+    if (Date.now() - loopStarted > TOOL_LOOP_DEADLINE_MS) return null;
     let data;
     try {
       const res = await fetch(dsUrl, {
@@ -327,7 +332,9 @@ async function toolCallLoop(env, question, dsUrl, model, policy, topK, minScore)
         },
         body: JSON.stringify({
           model, messages, tools: VAULT_TOOLS,
-          max_tokens: policy.maxTokens, temperature: TEMPERATURE, stream: false,
+          // Tool rounds only need short JSON tool calls; the final answer
+          // (no tool_calls) gets the full policy token budget.
+          max_tokens: TOOL_ROUND_MAX_TOKENS, temperature: TEMPERATURE, stream: false,
         }),
       });
       if (!res.ok) { console.error('tool-call http', res.status); return null; }
@@ -341,9 +348,31 @@ async function toolCallLoop(env, question, dsUrl, model, policy, topK, minScore)
     const message = choice?.message;
     if (!message) return null;
 
-    // No tool calls → final answer
+    // No tool calls → final answer. Re-request with the full policy token
+    // budget (the loop used a small budget to keep tool rounds fast).
     if (!message.tool_calls?.length) {
-      let content = message.content || '';
+      let finalContent = message.content || '';
+      try {
+        const finalRes = await fetch(dsUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${env.DEEPSEEK_API_KEY}`,
+            'User-Agent': 'PlugICT-Chatbar/1.0',
+          },
+          body: JSON.stringify({
+            model, messages: [...messages, message],
+            max_tokens: policy.maxTokens, temperature: TEMPERATURE, stream: false,
+          }),
+        });
+        if (finalRes.ok) {
+          const finalData = await finalRes.json();
+          finalContent = finalData?.choices?.[0]?.message?.content || finalContent;
+        }
+      } catch (e) {
+        console.error('final answer error:', e.message);
+      }
+      let content = finalContent;
       // The AI may return plain text instead of the expected JSON contract.
       // Normalize: try parsing as JSON first; if plain text, wrap it.
       let parsed;
@@ -466,15 +495,26 @@ async function executeTool(env, toolCall, evidenceById, topK, minScore) {
 
   if (name === 'expand_transcript') {
     const vid = String(args.video_id || '');
-    const start = Number(args.start_seconds) || 0;
-    const end = Number(args.end_seconds) || start + 300;
+    if (!vid) return JSON.stringify({ error: 'Missing video_id' });
+    const full = args.full === true;
+    const start = full ? 0 : (Number(args.start_seconds) || 0);
+    const end = full ? Number.MAX_SAFE_INTEGER : (Number(args.end_seconds) || start + 300);
     const row = await env.CHAT_DB.prepare('SELECT r2_key, source_file FROM vault_chunks WHERE video_id = ?1 LIMIT 1').bind(vid).first();
     if (!row) return JSON.stringify({ error: `Video ${vid} not found` });
     const obj = await env.VAULT_R2.get(row.r2_key);
     if (!obj) return JSON.stringify({ error: 'Transcript not in R2' });
     const text = await obj.text();
-    const segments = extractTimedSegments(text, start, end, 50);
-    return JSON.stringify({ video_id: vid, segments: segments.map(s => `[${s.timestamp}] ${s.text}`) });
+    // Full transcripts can be long; cap at 400 segments (~2h of content).
+    const segments = extractTimedSegments(text, start, end, 400);
+    const total = extractTimedSegments(text, 0, Number.MAX_SAFE_INTEGER, 100000).length;
+    return JSON.stringify({
+      video_id: vid,
+      full,
+      total_segments: total,
+      returned_segments: segments.length,
+      truncated: segments.length < total,
+      segments: segments.map(s => `[${s.timestamp}] ${s.text}`),
+    });
   }
 
   if (name === 'get_related_chunks') {
