@@ -608,10 +608,12 @@ function parseGroundedCompletion(raw, evidenceById, maxOutputChars) {
   if (!ids.every((id) => typeof id === 'string' && evidenceById.has(id))) return null;
   // The output contract forbids direct quotes, timestamps, source links and
   // markdown fences inside answer — the server attaches exact source excerpts
-  // itself. A completion that violates the contract may be fabricating
-  // content, so it fails closed exactly like an invalid evidence ID.
-  if (FORBIDDEN_ANSWER_CONTENT.some((pattern) => pattern.test(answer))) return null;
-  return { answer, sources: ids.map((id) => evidenceById.get(id)) };
+  // itself. The model may naturally include them; strip them rather than
+  // rejecting the whole completion (grounding is already enforced by the
+  // evidence-ID check above). Empty-after-strip still fails closed.
+  const clean = sanitizeAnswer(answer);
+  if (!clean) return null;
+  return { answer: clean, sources: ids.map((id) => evidenceById.get(id)) };
 }
 
 // ── Main handlers ───────────────────────────────────────────────────────

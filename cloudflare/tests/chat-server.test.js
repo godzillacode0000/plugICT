@@ -1025,7 +1025,7 @@ test('fabricated model evidence IDs are refused, refunded, and never cached', as
   assert.equal(db.runs.length, 2, 'invalid model evidence must refund the reservation');
 });
 
-test('model quotes, timestamps, and links inside the answer are refused and refunded', async (t) => {
+test('quotes, timestamps, and links inside the answer are stripped, not fabricated', async (t) => {
   const fabricated = JSON.stringify({
     answer: 'ICT said at 1:30 that "the moon controls liquidity" and you can verify at https://plugict.com.',
     evidence_ids: ['E1'],
@@ -1047,10 +1047,22 @@ test('model quotes, timestamps, and links inside the answer are refused and refu
   const { onRequestPost } = await import(askUrl.href);
   const response = await onRequestPost({ request, env });
 
-  assert.equal(response.status, 422);
-  assert.match((await response.json()).error, /verified source evidence/i);
-  assert.equal(db.runs.length, 2, 'forbidden answer content must refund the reservation');
-  assert.match(db.runs[1].sql, /UPDATE chat_usage_scoped/);
+  // Grounding is enforced by the evidence-ID check; forbidden characters in
+  // the answer body are stripped server-side (the server attaches exact
+  // source excerpts itself).
+  assert.equal(response.status, 200);
+  const body = await response.text();
+  // The fabricated URL, timestamp, and quote marks are stripped from the
+  // ANSWER body; plain words remain (grounding is enforced by the
+  // evidence-ID check). Source cards legitimately carry timestamps/URLs.
+  const delta = JSON.parse(/data: ({"type":"delta".*})\n/.exec(body)[1]);
+  assert.doesNotMatch(delta.content, /plugict\.com/);
+  assert.doesNotMatch(delta.content, /1:30/);
+  assert.doesNotMatch(delta.content, /"moon controls liquidity"/);
+  assert.match(delta.content, /moon controls liquidity/);
+  assert.match(body, /"type":"done"/);
+  assert.equal(db.runs.length, 2, 'success reserves one credit and writes analytics');
+  assert.match(db.runs[1].sql, /INSERT INTO chat_log/, 'second run is analytics, NOT a refund');
 });
 
 test('evidence IDs excluded by the prompt budget cannot be guessed by the model', async (t) => {
