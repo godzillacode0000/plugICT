@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>PlugICT — local responsive QA</title>
+    <style>
+      body {
+        font:
+          14px Arial,
+          sans-serif;
+        background: #e5e7e0;
+        margin: 0;
+      }
+      header {
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        padding: 12px 20px;
+        background: white;
+        position: sticky;
+        top: 0;
+        z-index: 2;
+      }
+      label {
+        display: flex;
+        gap: 7px;
+        align-items: center;
+      }
+      select,
+      button {
+        font: inherit;
+        padding: 8px;
+      }
+      iframe {
+        display: block;
+        border: 0;
+        margin: 20px auto;
+        background: #f9f9f6;
+        box-shadow: 0 3px 30px #0002;
+      }
+      #report {
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <strong>Local QA only</strong
+      ><label
+        >Viewport width
+        <select id="width">
+          <option>320</option>
+          <option selected>390</option>
+          <option>600</option>
+          <option>768</option>
+          <option>1024</option>
+          <option>1280</option>
+        </select></label
+      ><label><input id="scripts" type="checkbox" checked /> JavaScript</label
+      ><button id="reload">Reload page</button
+      ><span id="report" aria-live="polite"></span>
+    </header>
+    <iframe
+      id="site"
+      title="Responsive PlugICT preview"
+      width="390"
+      height="820"
+    ></iframe>
+    <script>
+      const frame = document.getElementById("site"),
+        width = document.getElementById("width"),
+        scripts = document.getElementById("scripts");
+      function load() {
+        frame.width = width.value;
+        frame.setAttribute(
+          "sandbox",
+          scripts.checked
+            ? "allow-scripts allow-same-origin allow-popups"
+            : "allow-same-origin allow-popups",
+        );
+        frame.src = "/?qa=" + Date.now();
+      }
+      width.addEventListener("change", load);
+      scripts.addEventListener("change", load);
+      document.getElementById("reload").addEventListener("click", load);
+      frame.addEventListener("load", () => {
+        const d = frame.contentDocument;
+        const measure = () => {
+          const width = d.documentElement.clientWidth;
+          const overflow = [...d.querySelectorAll('main *')].filter(e => e.getClientRects().length && !e.classList.contains('hero-art') && e.getBoundingClientRect().right > width + 1);
+          document.getElementById('report').textContent = `Viewport ${width}px / content ${d.documentElement.scrollWidth}px` + (overflow.length ? ' / Overflow: ' + overflow.slice(0,4).map(e=>e.tagName+'.'+e.className).join(', ') : ' / No overflow');
+        };
+        measure();
+        d.fonts.ready.then(measure);
+      });
+      load();
+    </script>
+  </body>
+</html>
