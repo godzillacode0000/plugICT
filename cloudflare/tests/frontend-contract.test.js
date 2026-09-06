@@ -14,8 +14,12 @@ test('beacon uses fresh-ref-only fetch keepalive transport', () => {
   assert.equal(beacon.includes("localStorage.getItem('plugict_ref')"), false);
 });
 
-test('production affiliate API config stays empty', () => {
-  assert.match(config, /window\.PLUGICT_AFFILIATE_API\s*=\s*''/);
+test('production affiliate API config preserves the configured public endpoint', () => {
+  const endpoint = /window\.PLUGICT_AFFILIATE_API\s*=\s*'([^']*)'/.exec(config)?.[1];
+  assert.equal(endpoint, 'https://plugict-affiliate-production.pages.dev');
+  const url = new URL(endpoint);
+  assert.equal(url.protocol, 'https:');
+  assert.equal(url.username + url.password + url.search + url.hash, '');
 });
 
 test('dashboard accepts session-only tokens and handles unavailable finance', () => {

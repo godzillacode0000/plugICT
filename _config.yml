@@ -1,4 +1,5 @@
 exclude:
+  - design-qa.md
   - AGENTS.md
   - CLAUDE.md
   - HERMES.md
